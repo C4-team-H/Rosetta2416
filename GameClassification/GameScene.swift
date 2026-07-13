@@ -26,7 +26,12 @@ class GameScene: SKScene {
     // Tombol "DRAW" di pojok kanan bawah
     private var actionButton: SKShapeNode?
     // Status tantangan
-    private var isChallengeCompleted = false
+    private let totalChallenges = 5
+    private var challengesCompleted = 0
+    // Antrean tantangan acak (shuffled) — tiap objek muncul sekali dalam 5 ronde.
+    private var challengeQueue: [DrawingChallenge] = []
+    // Label progres ronde di bagian atas layar
+    private var progressLabel: SKLabelNode?
     
     // Status joystick & arah pergerakan
     private var isJoystickActive = false
@@ -38,6 +43,16 @@ class GameScene: SKScene {
     
     // Kecepatan gerak karakter
     private let playerSpeed: CGFloat = 4.0
+    
+    // MARK: - Apple Pencil Pointer Navigation (tap-to-move)
+    // Apple Pencil berperan sebagai pointer: tap/drag Pencil menentukan titik
+    // tujuan karakter. Berbeda dari joystick jari (analog), ini metafora pointer.
+    private var pencilTouch: UITouch?       // Touch Pencil yang sedang aktif (untuk pressure)
+    private var pencilTarget: CGPoint?      // Titik tujuan karakter (dipertahankan setelah Pencil angkat)
+    private var pencilSpeedMultiplier: CGFloat = 1.0 // Modulasi kecepatan dari tekanan Pencil
+    private var targetMarker: SKShapeNode?  // Marker visual lingkaran di titik tujuan
+    // Threshold jarak: karakter dianggap sampai & berhenti saat jarak ke target < ini.
+    private let arrivalThreshold: CGFloat = 4.0
 
     // MARK: - Scene Lifecycle
     
@@ -56,6 +71,10 @@ class GameScene: SKScene {
         
         // 5. Membuat Objek Interaktif (Easel)
         createInteractiveObject()
+        
+        // 6. Siapkan antrean tantangan acak & label progres
+        challengeQueue = DrawingChallenge.all.shuffled()
+        createProgressLabel()
     }
     
     override func didChangeSize(_ oldSize: CGSize) {
@@ -86,6 +105,11 @@ class GameScene: SKScene {
         if let actionButton = actionButton {
             let btnRadius: CGFloat = 40
             actionButton.position = CGPoint(x: self.size.width - btnRadius - 50, y: joystickRadius + 70)
+        }
+        
+        // 6. Reposisi label progres ronde
+        if let progressLabel = progressLabel {
+            progressLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height - 40)
         }
     }
     
@@ -206,7 +230,7 @@ class GameScene: SKScene {
     // MARK: - Proximity Detection & Action Button
     
     private func checkProximityToInteractiveObject() {
-        guard let player = player, let interactiveObject = interactiveObject, !isChallengeCompleted else {
+        guard let player = player, let interactiveObject = interactiveObject, challengesCompleted < totalChallenges else {
             hideInteractionButton()
             return
         }
@@ -262,13 +286,45 @@ class GameScene: SKScene {
     
     // MARK: - Drawing Challenge Presentation
     
+    private func createProgressLabel() {
+        progressLabel?.removeFromParent()
+        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        label.fontSize = 18
+        label.fontColor = .white
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.zPosition = 15
+        label.position = CGPoint(x: self.size.width / 2, y: self.size.height - 40)
+        updateProgressLabel(label)
+        self.addChild(label)
+        progressLabel = label
+    }
+    
+    private func updateProgressLabel(_ label: SKLabelNode) {
+        label.text = "TANTANGAN: \(challengesCompleted)/\(totalChallenges)"
+    }
+    
     private func presentDrawingCanvas() {
+        // Jika semua tantangan sudah selesai, jangan present lagi.
+        guard challengesCompleted < totalChallenges else { return }
+        
         self.isPaused = true
         resetJoystick()
+        // Hentikan navigasi Pencil saat kanvas gambar muncul agar karakter tidak
+        // bergerak ke target lama saat scene di-resume.
+        pencilTouch = nil
+        pencilTarget = nil
+        pencilSpeedMultiplier = 1.0
+        hideTargetMarker()
         
         guard let viewController = self.view?.window?.rootViewController else { return }
         
         let drawingVC = DrawingViewController()
+        // Ambil tantangan berikutnya dari antrean acak.
+        drawingVC.challenge = challengeQueue[challengesCompleted]
+        drawingVC.challengeIndex = challengesCompleted + 1
+        drawingVC.totalChallenges = totalChallenges
+        
         drawingVC.onSuccess = { [weak self] in
             self?.isPaused = false
             self?.handleDrawingSuccess()
@@ -284,26 +340,81 @@ class GameScene: SKScene {
     }
     
     private func handleDrawingSuccess() {
-        isChallengeCompleted = true
+        challengesCompleted += 1
         
-        // Ubah warna papan easel menjadi hijau sukses
-        interactiveObject.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+        // Update label progres ronde
+        if let progressLabel = progressLabel {
+            updateProgressLabel(progressLabel)
+        }
         
-        // Sembunyikan tombol draw
+        // Sembunyikan tombol draw sementara (akan muncul lagi saat player mendekat,
+        // selama belum semua tantangan selesai).
         hideInteractionButton()
         
-        // Menampilkan label perayaan di layar
-        let successLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        successLabel.text = "TANTANGAN BERHASIL!"
-        successLabel.fontSize = 24
-        successLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
-        successLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
-        successLabel.zPosition = 20
-        self.addChild(successLabel)
+        if challengesCompleted >= totalChallenges {
+            // Semua tantangan selesai: ubah easel jadi hijau & tampilkan banner final.
+            interactiveObject.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            
+            let successLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            successLabel.text = "SEMUA TANTANGAN BERHASIL!"
+            successLabel.fontSize = 24
+            successLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            successLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+            successLabel.zPosition = 20
+            self.addChild(successLabel)
+            
+            let fadeOut = SKAction.fadeOut(withDuration: 3.5)
+            let remove = SKAction.removeFromParent()
+            successLabel.run(SKAction.sequence([fadeOut, remove]))
+        } else {
+            // Ronde perantara: tampilkan banner sementara, easel tetap interaktif.
+            let roundLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            roundLabel.text = "RONDE \(challengesCompleted)/\(totalChallenges) SELESAI!"
+            roundLabel.fontSize = 22
+            roundLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            roundLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+            roundLabel.zPosition = 20
+            self.addChild(roundLabel)
+            
+            let fadeOut = SKAction.fadeOut(withDuration: 2.5)
+            let remove = SKAction.removeFromParent()
+            roundLabel.run(SKAction.sequence([fadeOut, remove]))
+        }
+    }
+    
+    // MARK: - Apple Pencil Detection
+    
+    // UITouch.type: .stylus = Apple Pencil 1, .pencil = Apple Pencil 2/USB-C/Pro.
+    // .finger = sentuhan biasa. Memisahkan Pencil dari jari memungkinkan dua
+    // gaya input berbeda (joystick jari vs pointer Pencil) tanpa saling ganggu.
+    private func isPencilTouch(_ touch: UITouch) -> Bool {
+        return touch.type == .stylus || touch.type == .pencil
+    }
+    
+    // MARK: - Target Marker Helpers
+    
+    // Tampilkan/move marker lingkaran kecil di titik tujuan agar user melihat target.
+    private func showTargetMarker(at point: CGPoint) {
+        if targetMarker == nil {
+            let marker = SKShapeNode(circleOfRadius: 10)
+            marker.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 0.4)
+            marker.strokeColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            marker.lineWidth = 2.0
+            marker.zPosition = 12
+            self.addChild(marker)
+            targetMarker = marker
+        }
+        targetMarker?.position = point
         
-        let fadeOut = SKAction.fadeOut(withDuration: 3.5)
-        let remove = SKAction.removeFromParent()
-        successLabel.run(SKAction.sequence([fadeOut, remove]))
+        // Efek denyut singkat agar terlihat jelas saat target berubah.
+        targetMarker?.removeAction(forKey: "pulse")
+        let pop = SKAction.sequence([SKAction.scale(to: 1.4, duration: 0.12), SKAction.scale(to: 1.0, duration: 0.12)])
+        targetMarker?.run(pop, withKey: "pulse")
+    }
+    
+    private func hideTargetMarker() {
+        targetMarker?.removeFromParent()
+        targetMarker = nil
     }
     
     // MARK: - Touch Handling
@@ -313,6 +424,8 @@ class GameScene: SKScene {
             let touchLocation = touch.location(in: self)
             let nodesAtPoint = self.nodes(at: touchLocation)
             
+            // 1. Tombol DRAW dideteksi untuk SEMUA tipe sentuhan (jari maupun
+            //    Pencil), agar Pencil juga bisa tap tombol untuk membuka kanvas.
             for node in nodesAtPoint {
                 if node.name == "drawButton" {
                     presentDrawingCanvas()
@@ -320,7 +433,19 @@ class GameScene: SKScene {
                 }
             }
             
-            // Cek apakah sentuhan pertama berada di dalam area joystick
+            // 2. Apple Pencil → navigasi pointer (tap-to-move).
+            //    Pencil tidak memicu joystick; dua input eksklusif.
+            if isPencilTouch(touch) {
+                // Pencil down: simpan touch (untuk pressure), set titik tujuan,
+                // dan tampilkan marker. Saat drag, target akan di-update di touchesMoved.
+                pencilTouch = touch
+                pencilTarget = touchLocation
+                updatePencilSpeedMultiplier(from: touch)
+                showTargetMarker(at: touchLocation)
+                continue
+            }
+            
+            // 3. Finger → joystick (logik lama, tidak berubah).
             if joystickBase.contains(touchLocation) {
                 isJoystickActive = true
                 joystickActiveTouch = touch
@@ -331,6 +456,16 @@ class GameScene: SKScene {
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Apple Pencil drag → pindahkan titik tujuan + update kecepatan dari tekanan.
+        if let activePencil = pencilTouch, touches.contains(activePencil) {
+            let loc = activePencil.location(in: self)
+            pencilTarget = loc
+            updatePencilSpeedMultiplier(from: activePencil)
+            showTargetMarker(at: loc)
+            return
+        }
+        
+        // Finger → joystick (logik lama).
         guard isJoystickActive, let activeTouch = joystickActiveTouch else { return }
         
         if touches.contains(activeTouch) {
@@ -340,6 +475,15 @@ class GameScene: SKScene {
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Apple Pencil angkat: bersihkan touch & reset multiplier, TAPI pertahankan
+        // pencilTarget agar karakter terus jalan ke titik terakhir dan berhenti saat sampai.
+        if let activePencil = pencilTouch, touches.contains(activePencil) {
+            pencilTouch = nil
+            pencilSpeedMultiplier = 1.0
+            return
+        }
+        
+        // Finger → joystick reset.
         guard let activeTouch = joystickActiveTouch else { return }
         
         if touches.contains(activeTouch) {
@@ -348,7 +492,24 @@ class GameScene: SKScene {
     }
     
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Pencil dibatalkan: hentikan sepenuhnya (clear touch + target + marker).
+        if pencilTouch != nil {
+            pencilTouch = nil
+            pencilTarget = nil
+            pencilSpeedMultiplier = 1.0
+            hideTargetMarker()
+        }
         resetJoystick()
+    }
+    
+    // Konversi tekanan Pencil menjadi multiplier kecepatan 0.5x–1.5x.
+    // Tekan ringan = 0.5x, tekan penuh = 1.5x. Perangkat tanpa force sensor
+    // (maximumPossibleForce == 0, mis. simulator) memakai 1.0x.
+    private func updatePencilSpeedMultiplier(from touch: UITouch) {
+        let maxForce = touch.maximumPossibleForce
+        guard maxForce > 0 else { pencilSpeedMultiplier = 1.0; return }
+        let ratio = min(max(touch.force / maxForce, 0.0), 1.0) // 0.0 ... 1.0
+        pencilSpeedMultiplier = 0.5 + ratio * 1.0 // 0.5x ... 1.5x
     }
     
     // MARK: - Joystick Physics / Logic
@@ -382,7 +543,12 @@ class GameScene: SKScene {
     // MARK: - Game Loop Update
     
     override func update(_ currentTime: TimeInterval) {
-        if isJoystickActive && joystickVector != CGPoint.zero {
+        // Prioritas: navigasi Pencil (pointer) > joystick jari.
+        // Pencil aktif selama pencilTarget != nil (bahkan setelah Pencil diangkat,
+        // karakter terus menuju target dan berhenti saat sampai).
+        if pencilTarget != nil {
+            movePlayerTowardTarget()
+        } else if isJoystickActive && joystickVector != CGPoint.zero {
             movePlayer()
         }
         
@@ -402,6 +568,40 @@ class GameScene: SKScene {
         // Batasi karakter agar tidak keluar dari area layar game (Screen Boundaries Check)
         let playerRadius: CGFloat = 15
         
+        newPosition.x = max(playerRadius, min(self.size.width - playerRadius, newPosition.x))
+        newPosition.y = max(playerRadius, min(self.size.height - playerRadius, newPosition.y))
+        
+        player.position = newPosition
+    }
+    
+    // Navigasi pointer Apple Pencil: karakter jalan menuju pencilTarget.
+    // Berhenti otomatis saat jarak < arrivalThreshold; target & marker dibersihkan.
+    private func movePlayerTowardTarget() {
+        guard let target = pencilTarget else { return }
+        
+        let dx = target.x - player.position.x
+        let dy = target.y - player.position.y
+        let distance = sqrt(dx*dx + dy*dy)
+        
+        // Karakter dianggap sampai → hentikan & hapus target.
+        if distance <= arrivalThreshold {
+            pencilTarget = nil
+            hideTargetMarker()
+            return
+        }
+        
+        // Normalisasi arah & kalikan dengan kecepatan (× multiplier tekanan Pencil).
+        let step = playerSpeed * pencilSpeedMultiplier
+        let nx = dx / distance
+        let ny = dy / distance
+        
+        // Cegah overshoot: jika langkah lebih besar dari sisa jarak, langsung sampai.
+        let moveStep = min(step, distance)
+        var newPosition = CGPoint(x: player.position.x + nx * moveStep,
+                                  y: player.position.y + ny * moveStep)
+        
+        // Batasi karakter agar tidak keluar dari area layar (Screen Boundaries Check).
+        let playerRadius: CGFloat = 15
         newPosition.x = max(playerRadius, min(self.size.width - playerRadius, newPosition.x))
         newPosition.y = max(playerRadius, min(self.size.height - playerRadius, newPosition.y))
         

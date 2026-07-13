@@ -9,11 +9,37 @@ import UIKit
 import PencilKit
 import CoreML
 
-class DrawingViewController: UIViewController {
+// Data untuk satu ronde tantangan gambar.
+// `label` = output CoreML (lowercase English) untuk verifikasi prediksi.
+// `displayName` = nama objek dalam Bahasa Indonesia untuk ditampilkan di UI.
+struct DrawingChallenge {
+    let label: String
+    let displayName: String
+}
+
+extension DrawingChallenge {
+    // Kelas yang didukung model HandwritingGameClassification (TU Berlin sketch dataset).
+    static let all: [DrawingChallenge] = [
+        DrawingChallenge(label: "book",      displayName: "BUKU"),
+        DrawingChallenge(label: "butterfly", displayName: "KUPU-KUPU"),
+        DrawingChallenge(label: "cactus",    displayName: "KAKTUS"),
+        DrawingChallenge(label: "candle",    displayName: "LILIN"),
+        DrawingChallenge(label: "fish",      displayName: "IKAN")
+    ]
+}
+
+class DrawingViewController: UIViewController, PKCanvasViewDelegate {
 
     // MARK: - Callbacks
     var onSuccess: (() -> Void)?
     var onCancel: (() -> Void)?
+
+    // MARK: - Challenge Configuration
+    // Diset oleh GameScene sebelum present. Default = buku agar tetap aman bila
+    // VC di-present tanpa konfigurasi eksplisit.
+    var challenge: DrawingChallenge = DrawingChallenge.all[0]
+    var challengeIndex: Int = 1   // Ronde ke-berapa (1-based) untuk ditampilkan ke user
+    var totalChallenges: Int = 5  // Total ronde tantangan
 
     // MARK: - UI Components
     private let containerView: UIView = {
@@ -115,9 +141,21 @@ class DrawingViewController: UIViewController {
         
         view.backgroundColor = UIColor.black.withAlphaComponent(0.65) // Dark overlay background
         
+        // Update label dinamis sesuai tantangan yang dipilih GameScene.
+        titleLabel.text = "TANTANGAN: GAMBAR \(challenge.displayName)"
+        subtitleLabel.text = "Ronde \(challengeIndex) dari \(totalChallenges). Gambarkan \(challenge.displayName) menggunakan jari/apple pencil pada kanvas putih di bawah."
+        
         setupViews()
         setupCanvas()
         setupActions()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Make the canvas the active first responder so Apple Pencil events and
+        // system Pencil features are routed to it reliably. Does not show any
+        // extra UI because no PKToolPicker is attached.
+        canvasView.becomeFirstResponder()
     }
 
     // MARK: - Layout Setup
@@ -165,21 +203,33 @@ class DrawingViewController: UIViewController {
     }
 
     private func setupCanvas() {
+        // Delegate tracks drawing changes (hook for save/restore via
+        // drawing.dataRepresentation() / PKDrawing(data:)).
+        canvasView.delegate = self
+
         // Setup PencilKit inking tool
         canvasView.tool = PKInkingTool(.pen, color: .black, width: 6.0)
-        
-        // Allow finger drawing (supports simulator/touch device input)
-        if #available(iOS 14.0, *) {
-            canvasView.drawingPolicy = .anyInput
-        } else {
-            canvasView.allowsFingerDrawing = true
-        }
+
+        // Accept both Apple Pencil and finger input. PencilKit captures
+        // pressure, tilt, azimuth, and predicted/coalesced touches for Pencil
+        // strokes automatically; no custom touch handling is needed.
+        canvasView.drawingPolicy = .anyInput
     }
 
     private func setupActions() {
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         clearButton.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
         submitButton.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
+    }
+
+    // MARK: - PKCanvasViewDelegate
+
+    func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        // canvasView.drawing is the source of truth for all strokes.
+        // This is the hook for save/restore: serialize with
+        // canvasView.drawing.dataRepresentation() and restore with
+        // PKDrawing(data:). No manual stroke is added here, so Pencil and
+        // finger strokes never duplicate.
     }
 
     // MARK: - Actions
@@ -196,7 +246,7 @@ class DrawingViewController: UIViewController {
     @objc private func submitTapped() {
         // 1. Validasi jika canvas kosong
         guard !canvasView.drawing.bounds.isEmpty else {
-            showAlert(title: "Kanvas Kosong", message: "Silakan gambar pesawat terlebih dahulu sebelum menekan Kirim.")
+            showAlert(title: "Kanvas Kosong", message: "Silakan gambar \(challenge.displayName) terlebih dahulu sebelum menekan Kirim.")
             return
         }
         
@@ -229,8 +279,8 @@ class DrawingViewController: UIViewController {
             
             print("Predicted Class: \(predictedLabel), Confidence: \(probability)")
             
-            // Verifikasi label: model TU Berlin menghasilkan kelas 'book'
-            if predictedLabel == "book" {
+            // Verifikasi label: cocokkan prediksi model dengan label tantangan aktif.
+            if predictedLabel == challenge.label {
                 showSuccessAlert()
             } else {
                 showFailureAlert()
@@ -333,7 +383,15 @@ class DrawingViewController: UIViewController {
     }
 
     private func showSuccessAlert() {
-        let alert = UIAlertController(title: "Berhasil!", message: "Luar biasa! Tantangan selesai!", preferredStyle: .alert)
+        let isLast = challengeIndex >= totalChallenges
+        let title = isLast ? "Semua Tantangan Selesai!" : "Berhasil!"
+        let message: String
+        if isLast {
+            message = "Luar biasa! Anda menyelesaikan semua \(totalChallenges) tantangan gambar!"
+        } else {
+            message = "Luar biasa! \(challenge.displayName) benar. Tantangan \(challengeIndex) dari \(totalChallenges) selesai."
+        }
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Lanjutkan", style: .default, handler: { [weak self] _ in
             self?.dismiss(animated: true) {
                 self?.onSuccess?()
@@ -343,7 +401,7 @@ class DrawingViewController: UIViewController {
     }
 
     private func showFailureAlert() {
-        let alert = UIAlertController(title: "Kurang Tepat", message: "Gambar Anda belum benar, silakan gambar ulang.", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Kurang Tepat", message: "Gambar Anda belum terdeteksi sebagai \(challenge.displayName). Silakan gambar ulang.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Coba Lagi", style: .default, handler: { [weak self] _ in
             self?.submitButton.isEnabled = true
             self?.clearTapped()
