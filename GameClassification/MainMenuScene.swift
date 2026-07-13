@@ -2,7 +2,7 @@
 //  MainMenuScene.swift
 //  GameClassification
 //
-//  Created by Antigravity on 13/07/26.
+//  Created by Muhammad Muthi' Nuritzan on 13/07/26.
 //
 
 import SpriteKit
@@ -18,7 +18,7 @@ class MainMenuScene: SKScene {
         
         // 2. Membuat Label Judul Game
         titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        titleLabel.text = "ISOMETRIC GAME"
+        titleLabel.text = "DRAWING SPACE"
         titleLabel.fontSize = 36
         titleLabel.fontColor = .white
         titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.6)

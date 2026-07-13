@@ -2,7 +2,7 @@
 //  DrawingViewController.swift
 //  GameClassification
 //
-//  Created by Antigravity on 13/07/26.
+//  Created by Muhammad Muthi' Nuritzan on 13/07/26.
 //
 
 import UIKit
@@ -30,7 +30,7 @@ class DrawingViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "TANTANGAN: GAMBAR PESAWAT"
+        label.text = "TANTANGAN: GAMBAR BUKU"
         label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
         label.textColor = .white
         label.textAlignment = .center
@@ -40,7 +40,7 @@ class DrawingViewController: UIViewController {
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Gambarkan pesawat (airplane) menggunakan jari/stylus Anda pada kanvas putih di bawah."
+        label.text = "Gambarkan buku menggunakan jari/apple pencil pada kanvas putih di bawah."
         label.font = UIFont.systemFont(ofSize: 13, weight: .regular)
         label.textColor = UIColor.white.withAlphaComponent(0.7)
         label.textAlignment = .center
@@ -229,11 +229,11 @@ class DrawingViewController: UIViewController {
             
             print("Predicted Class: \(predictedLabel), Confidence: \(probability)")
             
-            // Verifikasi label: model TU Berlin menghasilkan kelas 'airplane'
-            if predictedLabel == "airplane" {
+            // Verifikasi label: model TU Berlin menghasilkan kelas 'book'
+            if predictedLabel == "book" {
                 showSuccessAlert()
             } else {
-                showFailureAlert(predictedLabel: predictedLabel, confidence: probability)
+                showFailureAlert()
             }
             
         } catch {
@@ -333,7 +333,7 @@ class DrawingViewController: UIViewController {
     }
 
     private func showSuccessAlert() {
-        let alert = UIAlertController(title: "Berhasil!", message: "Luar biasa! Gambar Anda dikenali sebagai Pesawat Terbang (Airplane). Tantangan selesai!", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Berhasil!", message: "Luar biasa! Tantangan selesai!", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Lanjutkan", style: .default, handler: { [weak self] _ in
             self?.dismiss(animated: true) {
                 self?.onSuccess?()
@@ -342,24 +342,8 @@ class DrawingViewController: UIViewController {
         present(alert, animated: true, completion: nil)
     }
 
-    private func showFailureAlert(predictedLabel: String, confidence: Double) {
-        let percentage = Int(confidence * 100)
-        let humanFriendlyLabel: String
-        
-        // Menyesuaikan beberapa label umum untuk respon yang ramah pengguna
-        switch predictedLabel {
-        case "flying bird": humanFriendlyLabel = "Burung Terbang"
-        case "space shuttle": humanFriendlyLabel = "Pesawat Ulang Alik"
-        case "blimp": humanFriendlyLabel = "Balon Udara Blimp"
-        case "helicopter": humanFriendlyLabel = "Helikopter"
-        case "dragon": humanFriendlyLabel = "Naga"
-        case "shark": humanFriendlyLabel = "Hiu"
-        default: humanFriendlyLabel = predictedLabel
-        }
-        
-        let message = "Maaf, gambar Anda lebih mirip dengan \"\(humanFriendlyLabel)\" (kecocokan \(percentage)%).\n\nSilakan bersihkan kanvas dan cobalah menggambar pesawat terbang yang lebih jelas!"
-        
-        let alert = UIAlertController(title: "Kurang Tepat", message: message, preferredStyle: .alert)
+    private func showFailureAlert() {
+        let alert = UIAlertController(title: "Kurang Tepat", message: "Gambar Anda belum benar, silakan gambar ulang.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Coba Lagi", style: .default, handler: { [weak self] _ in
             self?.submitButton.isEnabled = true
             self?.clearTapped()
