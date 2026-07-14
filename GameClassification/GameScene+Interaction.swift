@@ -130,7 +130,7 @@ extension GameScene {
     /// Membuka (present) pop-up canvas menggambar `DrawingViewController` secara modal.
     /// - Parameter isFood: true jika menggambar makanan (stasiun makanan), false jika menggambar tantangan utama
     func presentDrawingCanvas(isFood: Bool) {
-        self.isPaused = true // Jeda permainan agar stamina tidak berkurang saat menggambar
+        // PERUBAHAN: Game tidak di-pause agar energy (stamina) tetap berkurang saat menggambar.
         resetJoystick()
         pencilTouch = nil
         pencilTarget = nil
@@ -155,8 +155,8 @@ extension GameScene {
             drawingVC.totalChallenges = 1 // Hanya 1 ronde untuk pengisian makanan
             
             drawingVC.onSuccess = { [weak self] in
-                self?.isPaused = false
-                self?.handleFoodDrawingSuccess()
+                guard let self = self, !self.isGameOver else { return }
+                self.handleFoodDrawingSuccess()
             }
         } else {
             // Mode Utama: Selesaikan daftar tantangan utama berurutan
@@ -166,8 +166,8 @@ extension GameScene {
             drawingVC.totalChallenges = totalChallenges
             
             drawingVC.onSuccess = { [weak self] in
-                self?.isPaused = false
-                self?.handleDrawingSuccess()
+                guard let self = self, !self.isGameOver else { return }
+                self.handleDrawingSuccess()
             }
         }
         
@@ -222,13 +222,14 @@ extension GameScene {
         }
     }
     
-    /// Dipanggil saat user sukses menggambar makanan -> Mengisi stamina kembali ke 100%.
+    /// Dipanggil saat user sukses menggambar makanan -> Mengisi stamina bertambah 20%.
     func handleFoodDrawingSuccess() {
-        stamina = maxStamina
+        // PERUBAHAN: Energi yang bertambah hanya 20% dari maxStamina (dibatasi hingga maksimum maxStamina).
+        stamina = min(maxStamina, stamina + 0.40 * maxStamina)
         updateStaminaBarFill()
         
         let successLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        successLabel.text = "ENERGI PULIH 100%!"
+        successLabel.text = "ENERGI BERTAMBAH 40%!"
         successLabel.fontSize = 24
         successLabel.fontColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0)
         successLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
@@ -251,6 +252,13 @@ extension GameScene {
         pencilTouch = nil
         pencilTarget = nil
         hideTargetMarker()
+        
+        // PERUBAHAN: Tutup paksa popup menggambar jika sedang aktif saat Game Over terjadi.
+        if let rootVC = self.view?.window?.rootViewController {
+            if rootVC.presentedViewController is DrawingViewController {
+                rootVC.dismiss(animated: true, completion: nil)
+            }
+        }
         
         gameOverNode?.removeFromParent()
         
