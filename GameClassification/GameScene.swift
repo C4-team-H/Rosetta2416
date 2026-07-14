@@ -53,6 +53,26 @@ class GameScene: SKScene {
     private var targetMarker: SKShapeNode?  // Marker visual lingkaran di titik tujuan
     // Threshold jarak: karakter dianggap sampai & berhenti saat jarak ke target < ini.
     private let arrivalThreshold: CGFloat = 4.0
+    
+    // MARK: - Obstacles (rintanganyang tidak bisa ditabrak karakter)
+    // Rintangan disimpan dengan posisi relatif (fraksi ukuran scene) agar tetap
+    // proporsional saat layar berubah/rotasi. collisionBox dipakai untuk cek
+    // benturan (circle player vs rect obstacle). Pergerakan memakai slide-along:
+    // jika gerak penuh menabrak, coba hanya sumbu X lalu hanya Y agar karakter
+    // "meluncur" di sepanjang dinding, bukan menempel kaku.
+    private struct Obstacle {
+        let node: SKNode        // Node visual
+        let relX: CGFloat       // Posisi X sebagai fraksi lebar scene (0...1)
+        let relY: CGFloat       // Posisi Y sebagai fraksi tinggi scene (0...1)
+        let size: CGSize        // Ukuran kotak benturan (scene-space)
+    }
+    private var obstacles: [Obstacle] = []
+    // Radius player untuk perhitungan benturan (lingkaran).
+    private let playerRadius: CGFloat = 15
+
+    // MARK: - Candle-Light Overlay
+    // Layer gelap fullscreen dengan cahaya hangat yang mengikuti player.
+    private var candleLight: CandleLight?
 
     // MARK: - Scene Lifecycle
     
@@ -72,9 +92,15 @@ class GameScene: SKScene {
         // 5. Membuat Objek Interaktif (Easel)
         createInteractiveObject()
         
-        // 6. Siapkan antrean tantangan acak & label progres
+        // 6. Membuat rintangan (obstacles) yang tidak bisa ditabrak karakter
+        createObstacles()
+        
+        // 7. Siapkan antrean tantangan acak & label progres
         challengeQueue = DrawingChallenge.all.shuffled()
         createProgressLabel()
+        
+        // 8. Aktifkan overlay cahaya lilin (darkness + warm light around player)
+        enableCandleLight()
     }
     
     override func didChangeSize(_ oldSize: CGSize) {
@@ -85,7 +111,6 @@ class GameScene: SKScene {
         
         // 2. Batasi karakter agar tetap berada di dalam layar baru (tidak terlempar keluar layar)
         if let player = player {
-            let playerRadius: CGFloat = 15
             let newX = max(playerRadius, min(self.size.width - playerRadius, player.position.x))
             let newY = max(playerRadius, min(self.size.height - playerRadius, player.position.y))
             player.position = CGPoint(x: newX, y: newY)
@@ -110,6 +135,15 @@ class GameScene: SKScene {
         // 6. Reposisi label progres ronde
         if let progressLabel = progressLabel {
             progressLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height - 40)
+        }
+        
+        // 7. Reposisi rintangan sesuai fraksi ukuran scene baru
+        repositionObstacles()
+        
+        // 8. Resize overlay cahaya lilin agar tetap fullscreen & mapping benar
+        candleLight?.resize(to: self.size)
+        if let player = player {
+            candleLight?.update(lightPosition: player.position)
         }
     }
     
@@ -417,6 +451,165 @@ class GameScene: SKScene {
         targetMarker = nil
     }
     
+    // MARK: - Candle-Light Helpers
+
+    private func enableCandleLight() {
+        candleLight?.removeFromParent()
+
+        let configuration = CandleLight.Configuration(
+            radius: 220,
+            darknessOpacity: 0.94,
+            lightIntensity: 1.0,
+            softness: 0.42,
+            verticalScale: 1.08,
+            warmth: 0.08,
+            flickerAmount: 0.025,
+            flickerSpeed: 1.0
+        )
+        let light = CandleLight(sceneSize: self.size, configuration: configuration)
+        light.zPosition = 9.5 // Above nested world art; below joystick and HUD at 10+.
+        light.update(lightPosition: player.position)
+        self.addChild(light)
+        candleLight = light
+    }
+
+    // MARK: - Obstacles Setup
+    
+    private func createObstacles() {
+        // Bersihkan rintangan lama jika ada (dipanggil ulang saat ukuran berubah).
+        for o in obstacles { o.node.removeFromParent() }
+        obstacles.removeAll()
+        
+        // Definisi rintangan: (relX, relY, ukuran, warna isi, warna garis, bentuk).
+        // Posisi memakai fraksi scene agar responsif. Diletakkan menghindari:
+        // - titik awal player (0.5, 0.5)
+        // - area easel (0.5, 0.8) + radius interaksi
+        // - pojok joystick kiri-bawah & tombol DRAW kanan-bawah.
+        // Bentuk: "rect" = rounded rect, "circle" = lingkaran (untuk boulder).
+        struct Def { let relX: CGFloat; let relY: CGFloat; let size: CGSize
+                     let fill: SKColor; let stroke: SKColor; let shape: String }
+        let defs: [Def] = [
+            // Batu besar kiri-atas
+            Def(relX: 0.22, relY: 0.64, size: CGSize(width: 64, height: 48),
+                fill: SKColor(red: 0.45, green: 0.47, blue: 0.52, alpha: 1.0),
+                stroke: SKColor(red: 0.28, green: 0.30, blue: 0.35, alpha: 1.0), shape: "rect"),
+            // Boulder kanan-atas
+            Def(relX: 0.78, relY: 0.60, size: CGSize(width: 56, height: 56),
+                fill: SKColor(red: 0.42, green: 0.44, blue: 0.50, alpha: 1.0),
+                stroke: SKColor(red: 0.26, green: 0.28, blue: 0.33, alpha: 1.0), shape: "circle"),
+            // Blok kiri-bawah
+            Def(relX: 0.28, relY: 0.30, size: CGSize(width: 60, height: 60),
+                fill: SKColor(red: 0.38, green: 0.42, blue: 0.50, alpha: 1.0),
+                stroke: SKColor(red: 0.22, green: 0.26, blue: 0.34, alpha: 1.0), shape: "rect"),
+            // Pohon kanan-bawah (grup: kanopy hijau + batang coklat)
+            Def(relX: 0.74, relY: 0.32, size: CGSize(width: 70, height: 70),
+                fill: SKColor(red: 0.20, green: 0.55, blue: 0.30, alpha: 1.0),
+                stroke: SKColor(red: 0.12, green: 0.40, blue: 0.20, alpha: 1.0), shape: "tree"),
+            // Dinding horizontal di tengah-atas (antara player & easel)
+            Def(relX: 0.50, relY: 0.70, size: CGSize(width: 140, height: 26),
+                fill: SKColor(red: 0.33, green: 0.36, blue: 0.42, alpha: 1.0),
+                stroke: SKColor(red: 0.20, green: 0.22, blue: 0.28, alpha: 1.0), shape: "rect"),
+            // Batu kecil kiri-tengah
+            Def(relX: 0.14, relY: 0.48, size: CGSize(width: 44, height: 44),
+                fill: SKColor(red: 0.48, green: 0.50, blue: 0.55, alpha: 1.0),
+                stroke: SKColor(red: 0.30, green: 0.32, blue: 0.38, alpha: 1.0), shape: "circle")
+        ]
+        
+        for def in defs {
+            let node: SKNode
+            switch def.shape {
+            case "circle":
+                let r = min(def.size.width, def.size.height) / 2
+                let s = SKShapeNode(circleOfRadius: r)
+                s.fillColor = def.fill
+                s.strokeColor = def.stroke
+                s.lineWidth = 2.0
+                node = s
+            case "tree":
+                // Pohon = grup: kanopy lingkaran + batang rounded rect.
+                let group = SKNode()
+                let canopy = SKShapeNode(circleOfRadius: def.size.width / 2)
+                canopy.fillColor = def.fill
+                canopy.strokeColor = def.stroke
+                canopy.lineWidth = 2.0
+                canopy.position = CGPoint.zero
+                group.addChild(canopy)
+                let trunk = SKShapeNode(rectOf: CGSize(width: 14, height: 22), cornerRadius: 3)
+                trunk.fillColor = SKColor(red: 0.45, green: 0.30, blue: 0.18, alpha: 1.0)
+                trunk.strokeColor = .clear
+                trunk.position = CGPoint(x: 0, y: -def.size.height / 2 + 8)
+                group.addChild(trunk)
+                node = group
+            default: // "rect"
+                let s = SKShapeNode(rectOf: def.size, cornerRadius: 8)
+                s.fillColor = def.fill
+                s.strokeColor = def.stroke
+                s.lineWidth = 2.0
+                node = s
+            }
+            node.zPosition = 2
+            node.position = CGPoint(x: def.relX * self.size.width,
+                                    y: def.relY * self.size.height)
+            self.addChild(node)
+            obstacles.append(Obstacle(node: node, relX: def.relX, relY: def.relY, size: def.size))
+        }
+    }
+    
+    private func repositionObstacles() {
+        for o in obstacles {
+            o.node.position = CGPoint(x: o.relX * self.size.width,
+                                      y: o.relY * self.size.height)
+        }
+    }
+    
+    // MARK: - Collision Helpers
+    
+    // Kotak benturan (scene-space) untuk rintangan, dihitung dari posisi & ukuran.
+    private func collisionBox(for o: Obstacle) -> CGRect {
+        let cx = o.relX * self.size.width
+        let cy = o.relY * self.size.height
+        return CGRect(x: cx - o.size.width / 2, y: cy - o.size.height / 2,
+                      width: o.size.width, height: o.size.height)
+    }
+    
+    // Cek apakah player (lingkaran radius playerRadius) di `pos` menabrak rintangan.
+    // Pakai circle-vs-rect: titik terdekat rect ke pusat lingkaran, lalu bandingkan jarak.
+    private func collidesWithObstacle(at pos: CGPoint) -> Bool {
+        let r = playerRadius
+        for o in obstacles {
+            let rect = collisionBox(for: o)
+            let closestX = max(rect.minX, min(pos.x, rect.maxX))
+            let closestY = max(rect.minY, min(pos.y, rect.maxY))
+            let dx = pos.x - closestX
+            let dy = pos.y - closestY
+            if (dx * dx + dy * dy) < (r * r) {
+                return true
+            }
+        }
+        return false
+    }
+    
+    // Coba pindah ke `newPos`; jika menabrak, coba hanya sumbu X lalu hanya Y
+    // (slide-along wall). Jika semua menabrak, tetap di tempat. Mengembalikan
+    // posisi final yang sudah aman dari benturan.
+    private func attemptMove(to newPos: CGPoint) -> CGPoint {
+        if !collidesWithObstacle(at: newPos) {
+            return newPos
+        }
+        // Coba geser hanya sumbu X (meluncur horizontal).
+        let xOnly = CGPoint(x: newPos.x, y: player.position.y)
+        if !collidesWithObstacle(at: xOnly) {
+            return xOnly
+        }
+        // Coba geser hanya sumbu Y (meluncur vertikal).
+        let yOnly = CGPoint(x: player.position.x, y: newPos.y)
+        if !collidesWithObstacle(at: yOnly) {
+            return yOnly
+        }
+        // Dikelilingi penuh: jangan bergerak.
+        return player.position
+    }
+    
     // MARK: - Touch Handling
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -553,6 +746,10 @@ class GameScene: SKScene {
         }
         
         checkProximityToInteractiveObject()
+        
+        // Update overlay cahaya lilin: cahaya mengikuti posisi player setiap frame.
+        // Dipanggil terakhir agar flicker dan cahaya memakai waktu/posisi terbaru.
+        candleLight?.update(lightPosition: player.position, currentTime: currentTime)
     }
     
     private func movePlayer() {
@@ -566,10 +763,11 @@ class GameScene: SKScene {
         var newPosition = CGPoint(x: player.position.x + dx, y: player.position.y + dy)
         
         // Batasi karakter agar tidak keluar dari area layar game (Screen Boundaries Check)
-        let playerRadius: CGFloat = 15
-        
         newPosition.x = max(playerRadius, min(self.size.width - playerRadius, newPosition.x))
         newPosition.y = max(playerRadius, min(self.size.height - playerRadius, newPosition.y))
+        
+        // Cek benturan rintangan dengan slide-along (meluncur di sepanjang dinding).
+        newPosition = attemptMove(to: newPosition)
         
         player.position = newPosition
     }
@@ -601,9 +799,11 @@ class GameScene: SKScene {
                                   y: player.position.y + ny * moveStep)
         
         // Batasi karakter agar tidak keluar dari area layar (Screen Boundaries Check).
-        let playerRadius: CGFloat = 15
         newPosition.x = max(playerRadius, min(self.size.width - playerRadius, newPosition.x))
         newPosition.y = max(playerRadius, min(self.size.height - playerRadius, newPosition.y))
+        
+        // Cek benturan rintangan dengan slide-along.
+        newPosition = attemptMove(to: newPosition)
         
         player.position = newPosition
     }
