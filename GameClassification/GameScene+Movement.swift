@@ -26,9 +26,9 @@ extension GameScene {
         
         var newPosition = CGPoint(x: player.position.x + dx, y: player.position.y + dy)
         
-        // Screen Boundary Check: Batasi agar karakter tidak keluar dari batas layar
-        newPosition.x = max(playerRadius, min(self.size.width - playerRadius, newPosition.x))
-        newPosition.y = max(playerRadius, min(self.size.height - playerRadius, newPosition.y))
+        // Map Boundary Check: Batasi agar karakter tidak keluar dari batas map 2000x2000
+        newPosition.x = max(playerRadius, min(2000.0 - playerRadius, newPosition.x))
+        newPosition.y = max(playerRadius, min(2000.0 - playerRadius, newPosition.y))
         
         // Deteksi Obstacle: Cek benturan rintangan dengan slide-along physics
         newPosition = attemptMove(to: newPosition)
@@ -70,9 +70,9 @@ extension GameScene {
         var newPosition = CGPoint(x: player.position.x + nx * moveStep,
                                   y: player.position.y + ny * moveStep)
         
-        // Screen Boundary Check: Batasi agar tidak keluar layar
-        newPosition.x = max(playerRadius, min(self.size.width - playerRadius, newPosition.x))
-        newPosition.y = max(playerRadius, min(self.size.height - playerRadius, newPosition.y))
+        // Map Boundary Check: Batasi agar tidak keluar map 2000x2000
+        newPosition.x = max(playerRadius, min(2000.0 - playerRadius, newPosition.x))
+        newPosition.y = max(playerRadius, min(2000.0 - playerRadius, newPosition.y))
         
         // Deteksi Obstacle dengan slide-along physics
         newPosition = attemptMove(to: newPosition)
@@ -85,9 +85,7 @@ extension GameScene {
     /// - Parameter o: Struct rintangan (Obstacle)
     /// - Returns: CGRect koordinat layar real
     func collisionBox(for o: Obstacle) -> CGRect {
-        let cx = o.relX * self.size.width
-        let cy = o.relY * self.size.height
-        return CGRect(x: cx - o.size.width / 2, y: cy - o.size.height / 2,
+        return CGRect(x: o.absPos.x - o.size.width / 2, y: o.absPos.y - o.size.height / 2,
                       width: o.size.width, height: o.size.height)
     }
     

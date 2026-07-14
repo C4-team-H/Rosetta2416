@@ -12,7 +12,7 @@ import SpriteKit
 extension GameScene {
     
     /// Menggambar lantai bermotif papan catur (checkerboard grid) secara dinamis
-    /// menyesuaikan lebar & tinggi layar (Scene size).
+    /// mencakup area map sebesar 2000x2000.
     func createRegularGrid() {
         gridContainer?.removeFromParent()
         
@@ -21,8 +21,8 @@ extension GameScene {
         self.addChild(container)
         
         let tileSize: CGFloat = 60 // Ukuran tiap petak grid lantai
-        let cols = Int(ceil(self.size.width / tileSize))
-        let rows = Int(ceil(self.size.height / tileSize))
+        let cols = Int(ceil(2000.0 / tileSize))
+        let rows = Int(ceil(2000.0 / tileSize))
         
         for row in 0..<rows {
             for col in 0..<cols {
@@ -46,26 +46,29 @@ extension GameScene {
     }
     
     /// Membuat node karakter utama (player) berbentuk lingkaran merah dengan radius 15.
+    /// Karakter di-spawn di Sleeping Room (Kiri).
     func createPlayer() {
         player = SKShapeNode(circleOfRadius: 15)
         player.fillColor = SKColor(red: 0.9, green: 0.3, blue: 0.3, alpha: 1.0) // Merah menyala
         player.strokeColor = .white
         player.lineWidth = 2.0
-        player.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2) // Mulai di tengah layar
+        player.position = CGPoint(x: 375, y: 1000) // Mulai di Sleeping Room
         player.zPosition = 1
         self.addChild(player)
     }
     
-    /// Membuat struktur analog joystick visual di pojok kiri bawah layar.
+    /// Membuat struktur analog joystick visual sebagai anak dari cameraNode.
     func createJoystick() {
         // Alas Joystick (lingkaran luar abu-abu semi transparan)
         joystickBase = SKShapeNode(circleOfRadius: joystickRadius)
-        joystickBase.position = CGPoint(x: joystickRadius + 50, y: joystickRadius + 70)
+        let w = self.size.width
+        let h = self.size.height
+        joystickBase.position = CGPoint(x: -w / 2 + joystickRadius + 50, y: -h / 2 + joystickRadius + 70)
         joystickBase.fillColor = SKColor.black.withAlphaComponent(0.2)
         joystickBase.strokeColor = SKColor.white.withAlphaComponent(0.6)
         joystickBase.lineWidth = 3
         joystickBase.zPosition = 10
-        self.addChild(joystickBase)
+        cameraNode.addChild(joystickBase)
         
         // Tombol Joystick (knob lingkaran putih di dalam yang bisa digeser)
         joystickKnob = SKShapeNode(circleOfRadius: 25)
@@ -76,16 +79,33 @@ extension GameScene {
         joystickBase.addChild(joystickKnob)
     }
     
-    /// Membuat objek interaktif Easel Lukisan utama (Tantangan Gambar).
-    /// Berwarna kayu coklat, memiliki kanvas putih di tengah, dan lingkaran cahaya (glow) hijau berdenyut.
+    /// Membuat objek interaktif Easel Lukisan tantangan gambar di Engine Room dan Lab.
     func createInteractiveObject() {
-        interactiveObject = SKShapeNode(rectOf: CGSize(width: 50, height: 40), cornerRadius: 8)
-        interactiveObject.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1.0) // Warna kayu
-        interactiveObject.strokeColor = .white
-        interactiveObject.lineWidth = 2.0
-        interactiveObject.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.8) // Di bagian atas layar
-        interactiveObject.zPosition = 2
-        self.addChild(interactiveObject)
+        challengeEasels.forEach { $0.removeFromParent() }
+        challengeEasels.removeAll()
+        
+        // 1. Easel di Engine Room (Center)
+        let easelEngine = createEasel(at: CGPoint(x: 1000, y: 1000))
+        self.addChild(easelEngine)
+        challengeEasels.append(easelEngine)
+        
+        // Simpan referensi ke interactiveObject agar tidak merusak kode lain (misal saat mengganti warnanya di handleDrawingSuccess)
+        interactiveObject = easelEngine
+        
+        // 2. Easel di Lab (Top-Left)
+        let easelLab = createEasel(at: CGPoint(x: 375, y: 1600))
+        self.addChild(easelLab)
+        challengeEasels.append(easelLab)
+    }
+    
+    /// Helper untuk membuat satu easel papan gambar tantangan.
+    private func createEasel(at pos: CGPoint) -> SKShapeNode {
+        let easel = SKShapeNode(rectOf: CGSize(width: 50, height: 40), cornerRadius: 8)
+        easel.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1.0) // Warna kayu
+        easel.strokeColor = .white
+        easel.lineWidth = 2.0
+        easel.position = pos
+        easel.zPosition = 2
         
         // Kanvas putih mini di tengah papan
         let canvasInner = SKShapeNode(rectOf: CGSize(width: 36, height: 28), cornerRadius: 4)
@@ -93,7 +113,7 @@ extension GameScene {
         canvasInner.strokeColor = .clear
         canvasInner.position = CGPoint.zero
         canvasInner.zPosition = 3
-        interactiveObject.addChild(canvasInner)
+        easel.addChild(canvasInner)
         
         // Simbol goresan kuas (garis diagonal hitam)
         let line = SKShapeNode(rectOf: CGSize(width: 22, height: 4), cornerRadius: 1)
@@ -115,17 +135,19 @@ extension GameScene {
         let pulse = SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown]))
         glow.run(pulse)
         
-        interactiveObject.addChild(glow)
+        easel.addChild(glow)
+        return easel
     }
     
-    /// Membuat objek interaktif Makanan (Food Easel).
-    /// Berwarna kayu jingga dengan ikon donat lingkaran di kanvas putihnya, memancarkan cahaya oranye berdenyut.
+    /// Membuat objek interaktif Makanan (Food Easel) di Kitchen (Bawah Kanan).
     func createFoodObject() {
+        foodObject?.removeFromParent()
+        
         foodObject = SKShapeNode(rectOf: CGSize(width: 50, height: 40), cornerRadius: 8)
         foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0) // Jingga kayu
         foodObject.strokeColor = .white
         foodObject.lineWidth = 2.0
-        foodObject.position = CGPoint(x: self.size.width * 0.2, y: self.size.height * 0.3) // Di bagian kiri bawah
+        foodObject.position = CGPoint(x: 1625, y: 400) // Di Kitchen
         foodObject.zPosition = 2
         self.addChild(foodObject)
         
@@ -159,106 +181,137 @@ extension GameScene {
         foodObject.addChild(glow)
     }
     
-    /// Membuat daftar rintangan (obstacles) statis seperti batu besar, boulder bulat, dan pohon.
-    /// Menggunakan rasio posisi relatif agar fleksibel saat orientasi layar berganti.
+    /// Membuat dinding-dinding dan koridor untuk 4 ruangan: Sleeping Room, Engine Room, Kitchen, dan Lab.
     func createObstacles() {
         for o in obstacles { o.node.removeFromParent() }
         obstacles.removeAll()
         
-        struct Def {
-            let relX: CGFloat
-            let relY: CGFloat
-            let size: CGSize
-            let fill: SKColor
-            let stroke: SKColor
-            let shape: String
-        }
-        let defs: [Def] = [
-            // Batu besar kiri-atas
-            Def(relX: 0.22, relY: 0.64, size: CGSize(width: 64, height: 48),
-                fill: SKColor(red: 0.45, green: 0.47, blue: 0.52, alpha: 1.0),
-                stroke: SKColor(red: 0.28, green: 0.30, blue: 0.35, alpha: 1.0), shape: "rect"),
-            // Boulder kanan-atas
-            Def(relX: 0.78, relY: 0.60, size: CGSize(width: 56, height: 56),
-                fill: SKColor(red: 0.42, green: 0.44, blue: 0.50, alpha: 1.0),
-                stroke: SKColor(red: 0.26, green: 0.28, blue: 0.33, alpha: 1.0), shape: "circle"),
-            // Blok kiri-bawah
-            Def(relX: 0.28, relY: 0.30, size: CGSize(width: 60, height: 60),
-                fill: SKColor(red: 0.38, green: 0.42, blue: 0.50, alpha: 1.0),
-                stroke: SKColor(red: 0.22, green: 0.26, blue: 0.34, alpha: 1.0), shape: "rect"),
-            // Pohon kanan-bawah (grup: kanopy hijau + batang coklat)
-            Def(relX: 0.74, relY: 0.32, size: CGSize(width: 70, height: 70),
-                fill: SKColor(red: 0.20, green: 0.55, blue: 0.30, alpha: 1.0),
-                stroke: SKColor(red: 0.12, green: 0.40, blue: 0.20, alpha: 1.0), shape: "tree"),
-            // Dinding horizontal di tengah-atas (antara player & easel)
-            Def(relX: 0.50, relY: 0.70, size: CGSize(width: 140, height: 26),
-                fill: SKColor(red: 0.33, green: 0.36, blue: 0.42, alpha: 1.0),
-                stroke: SKColor(red: 0.20, green: 0.22, blue: 0.28, alpha: 1.0), shape: "rect"),
-            // Batu kecil kiri-tengah
-            Def(relX: 0.14, relY: 0.48, size: CGSize(width: 44, height: 44),
-                fill: SKColor(red: 0.48, green: 0.50, blue: 0.55, alpha: 1.0),
-                stroke: SKColor(red: 0.30, green: 0.32, blue: 0.38, alpha: 1.0), shape: "circle")
-        ]
+        // Hapus label ruangan lama agar tidak bertumpuk jika digambar ulang
+        self.children.filter { $0.name == "roomLabel" }.forEach { $0.removeFromParent() }
         
-        for def in defs {
-            let node: SKNode
-            switch def.shape {
-            case "circle":
-                let r = min(def.size.width, def.size.height) / 2
-                let s = SKShapeNode(circleOfRadius: r)
-                s.fillColor = def.fill
-                s.strokeColor = def.stroke
-                s.lineWidth = 2.0
-                node = s
-            case "tree":
-                let group = SKNode()
-                let canopy = SKShapeNode(circleOfRadius: def.size.width / 2)
-                canopy.fillColor = def.fill
-                canopy.strokeColor = def.stroke
-                canopy.lineWidth = 2.0
-                canopy.position = CGPoint.zero
-                group.addChild(canopy)
-                let trunk = SKShapeNode(rectOf: CGSize(width: 14, height: 22), cornerRadius: 3)
-                trunk.fillColor = SKColor(red: 0.45, green: 0.30, blue: 0.18, alpha: 1.0)
-                trunk.strokeColor = .clear
-                trunk.position = CGPoint(x: 0, y: -def.size.height / 2 + 8)
-                group.addChild(trunk)
-                node = group
-            default:
-                let s = SKShapeNode(rectOf: def.size, cornerRadius: 8)
-                s.fillColor = def.fill
-                s.strokeColor = def.stroke
-                s.lineWidth = 2.0
-                node = s
-            }
-            node.zPosition = 2
-            node.position = CGPoint(x: def.relX * self.size.width,
-                                    y: def.relY * self.size.height)
-            self.addChild(node)
-            obstacles.append(Obstacle(node: node, relX: def.relX, relY: def.relY, size: def.size))
-        }
+        // 1. Dinding Sleeping Room (Kiri / Spawn)
+        // minX = 200, maxX = 550, minY = 825, maxY = 1175
+        // Pintu kanan: Y [950, 1050]
+        addWall(from: CGPoint(x: 200, y: 825), to: CGPoint(x: 200, y: 1175)) // Kiri
+        addWall(from: CGPoint(x: 200, y: 1175), to: CGPoint(x: 550, y: 1175)) // Atas
+        addWall(from: CGPoint(x: 200, y: 825), to: CGPoint(x: 550, y: 825)) // Bawah
+        addWall(from: CGPoint(x: 550, y: 825), to: CGPoint(x: 550, y: 950)) // Kanan bawah
+        addWall(from: CGPoint(x: 550, y: 1050), to: CGPoint(x: 550, y: 1175)) // Kanan atas
+        addRoomLabel(text: "SLEEPING ROOM", position: CGPoint(x: 375, y: 1000))
+        
+        // 2. Dinding Engine Room (Tengah)
+        // minX = 800, maxX = 1200, minY = 800, maxY = 1200
+        // Pintu kiri: Y [950, 1050]
+        // Pintu atas: X [950, 1050]
+        // Pintu bawah: X [950, 1050]
+        addWall(from: CGPoint(x: 800, y: 800), to: CGPoint(x: 800, y: 950)) // Kiri bawah
+        addWall(from: CGPoint(x: 800, y: 1050), to: CGPoint(x: 800, y: 1200)) // Kiri atas
+        addWall(from: CGPoint(x: 1200, y: 800), to: CGPoint(x: 1200, y: 1200)) // Kanan
+        addWall(from: CGPoint(x: 800, y: 1200), to: CGPoint(x: 950, y: 1200)) // Atas kiri
+        addWall(from: CGPoint(x: 1050, y: 1200), to: CGPoint(x: 1200, y: 1200)) // Atas kanan
+        addWall(from: CGPoint(x: 800, y: 800), to: CGPoint(x: 950, y: 800)) // Bawah kiri
+        addWall(from: CGPoint(x: 1050, y: 800), to: CGPoint(x: 1200, y: 800)) // Bawah kanan
+        addRoomLabel(text: "ENGINE ROOM", position: CGPoint(x: 1000, y: 1000))
+        
+        // 3. Dinding Lab (Atas Kiri)
+        // minX = 200, maxX = 550, minY = 1425, maxY = 1775
+        // Pintu bawah: X [325, 425]
+        addWall(from: CGPoint(x: 200, y: 1425), to: CGPoint(x: 200, y: 1775)) // Kiri
+        addWall(from: CGPoint(x: 200, y: 1775), to: CGPoint(x: 550, y: 1775)) // Atas
+        addWall(from: CGPoint(x: 550, y: 1425), to: CGPoint(x: 550, y: 1775)) // Kanan
+        addWall(from: CGPoint(x: 200, y: 1425), to: CGPoint(x: 325, y: 1425)) // Bawah kiri
+        addWall(from: CGPoint(x: 425, y: 1425), to: CGPoint(x: 550, y: 1425)) // Bawah kanan
+        addRoomLabel(text: "LAB", position: CGPoint(x: 375, y: 1600))
+        
+        // 4. Dinding Kitchen (Bawah Kanan)
+        // minX = 1450, maxX = 1800, minY = 225, maxY = 575
+        // Pintu kiri: Y [350, 450]
+        addWall(from: CGPoint(x: 1800, y: 225), to: CGPoint(x: 1800, y: 575)) // Kanan
+        addWall(from: CGPoint(x: 1450, y: 575), to: CGPoint(x: 1800, y: 575)) // Atas
+        addWall(from: CGPoint(x: 1450, y: 225), to: CGPoint(x: 1800, y: 225)) // Bawah
+        addWall(from: CGPoint(x: 1450, y: 225), to: CGPoint(x: 1450, y: 350)) // Kiri bawah
+        addWall(from: CGPoint(x: 1450, y: 450), to: CGPoint(x: 1450, y: 575)) // Kiri atas
+        addRoomLabel(text: "KITCHEN", position: CGPoint(x: 1625, y: 400))
+        
+        // 5. Koridor Sleeping Room ke Engine Room
+        addWall(from: CGPoint(x: 550, y: 1050), to: CGPoint(x: 800, y: 1050)) // Atas
+        addWall(from: CGPoint(x: 550, y: 950), to: CGPoint(x: 800, y: 950)) // Bawah
+        
+        // 6. Koridor Lab ke Engine Room (L-shaped)
+        addWall(from: CGPoint(x: 325, y: 1425), to: CGPoint(x: 325, y: 1250))
+        addWall(from: CGPoint(x: 325, y: 1250), to: CGPoint(x: 950, y: 1250))
+        addWall(from: CGPoint(x: 950, y: 1250), to: CGPoint(x: 950, y: 1200))
+        
+        addWall(from: CGPoint(x: 425, y: 1425), to: CGPoint(x: 425, y: 1350))
+        addWall(from: CGPoint(x: 425, y: 1350), to: CGPoint(x: 1050, y: 1350))
+        addWall(from: CGPoint(x: 1050, y: 1350), to: CGPoint(x: 1050, y: 1200))
+        
+        // 7. Koridor Kitchen ke Engine Room (L-shaped)
+        addWall(from: CGPoint(x: 1450, y: 450), to: CGPoint(x: 1050, y: 450))
+        addWall(from: CGPoint(x: 1050, y: 450), to: CGPoint(x: 1050, y: 800))
+        
+        addWall(from: CGPoint(x: 1450, y: 350), to: CGPoint(x: 950, y: 350))
+        addWall(from: CGPoint(x: 950, y: 350), to: CGPoint(x: 950, y: 800))
     }
     
-    /// Mengatur ulang posisi rintangan visual ketika ukuran layar perangkat berubah (misal rotasi landscape/portrait).
+    /// Helper untuk menambahkan dinding solid (Obstacle) berbentuk garis lurus tebal.
+    private func addWall(from p1: CGPoint, to p2: CGPoint) {
+        let thickness: CGFloat = 16.0
+        let dx = p2.x - p1.x
+        let dy = p2.y - p1.y
+        let length = sqrt(dx*dx + dy*dy)
+        guard length > 0 else { return }
+        
+        let isHorizontal = abs(dx) > abs(dy)
+        let size = isHorizontal ? CGSize(width: length, height: thickness) : CGSize(width: thickness, height: length)
+        let px = (p1.x + p2.x) / 2
+        let py = (p1.y + p2.y) / 2
+        
+        let wallNode = SKShapeNode(rectOf: size, cornerRadius: 4)
+        wallNode.position = CGPoint(x: px, y: py)
+        wallNode.fillColor = SKColor(red: 0.28, green: 0.30, blue: 0.38, alpha: 1.0) // Slate gray wall
+        wallNode.strokeColor = SKColor(red: 0.40, green: 0.45, blue: 0.55, alpha: 1.0)
+        wallNode.lineWidth = 1.5
+        wallNode.zPosition = 2
+        
+        self.addChild(wallNode)
+        
+        let obstacle = Obstacle(node: wallNode, size: size, absPos: CGPoint(x: px, y: py))
+        obstacles.append(obstacle)
+    }
+    
+    /// Helper untuk menambahkan teks label nama ruangan di lantai.
+    private func addRoomLabel(text: String, position: CGPoint) {
+        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        label.text = text
+        label.fontSize = 20
+        label.fontColor = SKColor.white.withAlphaComponent(0.15)
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.position = position
+        label.zPosition = 0
+        label.name = "roomLabel"
+        self.addChild(label)
+    }
+    
+    /// Dinding saat ini bersifat absolut dan permanen di peta 2000x2000, tidak perlu reposisi dinamis.
     func repositionObstacles() {
-        for o in obstacles {
-            o.node.position = CGPoint(x: o.relX * self.size.width,
-                                      y: o.relY * self.size.height)
-        }
+        // Sengaja dibiarkan kosong karena dinding bernilai absolut
     }
     
     /// Membuat label petunjuk progres tantangan menggambar ("TANTANGAN: X/5") di bagian atas tengah layar.
     func createProgressLabel() {
         progressLabel?.removeFromParent()
+        
         let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
         label.fontSize = 18
         label.fontColor = .white
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
         label.zPosition = 15
-        label.position = CGPoint(x: self.size.width / 2, y: self.size.height - 40)
+        label.position = CGPoint(x: 0, y: self.size.height / 2 - 40)
         updateProgressLabel(label)
-        self.addChild(label)
+        cameraNode.addChild(label)
         progressLabel = label
     }
     
@@ -273,9 +326,11 @@ extension GameScene {
         
         let container = SKNode()
         staminaBarContainer = container
-        container.position = CGPoint(x: 20, y: self.size.height - 40)
+        let w = self.size.width
+        let h = self.size.height
+        container.position = CGPoint(x: -w / 2 + 20, y: h / 2 - 40)
         container.zPosition = 15
-        self.addChild(container)
+        cameraNode.addChild(container)
         
         // Teks "ENERGY" di atas bar
         let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
@@ -298,7 +353,6 @@ extension GameScene {
     }
     
     /// Memperbarui lebar dan warna isi dari progress bar stamina.
-    /// Warna disesuaikan otomatis: Hijau (>50%), Oranye (20%-50%), dan Merah (<20%).
     func updateStaminaBarFill() {
         guard let container = staminaBarContainer else { return }
         
@@ -336,8 +390,9 @@ extension GameScene {
         )
         let light = CandleLight(sceneSize: self.size, configuration: configuration)
         light.zPosition = 9.5
-        light.update(lightPosition: player.position)
-        self.addChild(light)
+        light.position = CGPoint(x: -self.size.width / 2, y: -self.size.height / 2)
+        light.update(lightPosition: CGPoint(x: self.size.width / 2, y: self.size.height / 2))
+        cameraNode.addChild(light)
         candleLight = light
     }
 }

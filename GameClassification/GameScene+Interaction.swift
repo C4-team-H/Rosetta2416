@@ -12,16 +12,23 @@ import UIKit
 // (easel gambar dan stasiun makanan), presentasi kanvas popup, serta status Game Over & Restart.
 extension GameScene {
     
-    /// Memeriksa jarak player ke papan lukis utama (Easel Tantangan).
-    /// Jika player berada dalam jarak <= 80 poin, munculkan tombol "DRAW" untuk menggambar.
+    /// Memeriksa jarak player ke seluruh papan lukis tantangan (Easel Tantangan).
+    /// Jika player berada dalam jarak <= 80 poin dari salah satunya, munculkan tombol "DRAW" untuk menggambar.
     func checkProximityToInteractiveObject() {
-        guard let player = player, let interactiveObject = interactiveObject else { return }
+        guard let player = player else { return }
         
-        let dx = player.position.x - interactiveObject.position.x
-        let dy = player.position.y - interactiveObject.position.y
-        let distance = sqrt(dx*dx + dy*dy)
+        var nearAny = false
+        for easel in challengeEasels {
+            let dx = player.position.x - easel.position.x
+            let dy = player.position.y - easel.position.y
+            let distance = sqrt(dx*dx + dy*dy)
+            if distance <= 80 {
+                nearAny = true
+                break
+            }
+        }
         
-        if distance <= 80 && challengesCompleted < totalChallenges {
+        if nearAny && challengesCompleted < totalChallenges {
             showInteractionButton()
         } else {
             hideInteractionButton()
@@ -44,7 +51,7 @@ extension GameScene {
         }
     }
     
-    /// Menampilkan tombol "DRAW" (berwarna jingga) untuk memulai tantangan gambar utama.
+    /// Menampilkan tombol "DRAW" (berwarna jingga) pada kamera untuk memulai tantangan gambar utama.
     /// Mematikan tombol "EAT" agar tombol aksi tidak saling bertabrakan/bertumpuk di layar.
     func showInteractionButton() {
         hideFoodInteractionButton()
@@ -56,7 +63,10 @@ extension GameScene {
         button.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0)
         button.strokeColor = .white
         button.lineWidth = 2.0
-        button.position = CGPoint(x: self.size.width - btnRadius - 50, y: joystickRadius + 70)
+        
+        let w = self.size.width
+        let h = self.size.height
+        button.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
         button.zPosition = 12
         button.name = "drawButton"
         
@@ -75,7 +85,7 @@ extension GameScene {
         let pulse = SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown]))
         button.run(pulse)
         
-        self.addChild(button)
+        cameraNode.addChild(button)
         actionButton = button
     }
     
@@ -86,7 +96,7 @@ extension GameScene {
         actionButton = nil
     }
     
-    /// Menampilkan tombol "EAT" (berwarna hijau) untuk memulai tantangan menggambar makanan.
+    /// Menampilkan tombol "EAT" (berwarna hijau) pada kamera untuk memulai tantangan menggambar makanan.
     /// Mematikan tombol "DRAW" agar tombol aksi tidak bertumpuk di layar.
     func showFoodInteractionButton() {
         hideInteractionButton()
@@ -98,7 +108,10 @@ extension GameScene {
         button.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0) // Hijau segar
         button.strokeColor = .white
         button.lineWidth = 2.0
-        button.position = CGPoint(x: self.size.width - btnRadius - 50, y: joystickRadius + 70)
+        
+        let w = self.size.width
+        let h = self.size.height
+        button.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
         button.zPosition = 12
         button.name = "foodDrawButton"
         
@@ -116,7 +129,7 @@ extension GameScene {
         let pulse = SKAction.repeatForever(SKAction.sequence([scaleUp, scaleDown]))
         button.run(pulse)
         
-        self.addChild(button)
+        cameraNode.addChild(button)
         foodActionButton = button
     }
     
@@ -192,8 +205,10 @@ extension GameScene {
         hideInteractionButton()
         
         if challengesCompleted >= totalChallenges {
-            // Semua tantangan selesai -> Ubah warna easel utama menjadi hijau permanen dan tampilkan banner final
-            interactiveObject.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            // Semua tantangan selesai -> Ubah warna semua easel tantangan menjadi hijau permanen dan tampilkan banner final
+            for easel in challengeEasels {
+                easel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            }
             
             let successLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
             successLabel.text = "SEMUA TANTANGAN BERHASIL!"
@@ -263,9 +278,9 @@ extension GameScene {
         gameOverNode?.removeFromParent()
         
         let container = SKNode()
-        container.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+        container.position = CGPoint.zero // camera center is (0, 0)
         container.zPosition = 30
-        self.addChild(container)
+        cameraNode.addChild(container)
         gameOverNode = container
         
         // Background hitam transparan menutup area layar
@@ -328,8 +343,10 @@ extension GameScene {
         updateStaminaBarFill()
         
         // Reset player & warna easel tantangan
-        player.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
-        interactiveObject.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1.0) // warna kayu
+        player.position = CGPoint(x: 375, y: 1000) // Reset ke Sleeping Room
+        for easel in challengeEasels {
+            easel.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1.0) // warna kayu
+        }
         
         self.isPaused = false
     }
