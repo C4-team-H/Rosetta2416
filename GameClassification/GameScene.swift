@@ -10,6 +10,8 @@ import SpriteKit
 class GameScene: SKScene {
     
     // MARK: - Properties
+    let cameraNode = SKCameraNode() // Kamera untuk mengikuti pergerakan player
+    var challengeEasels: [SKShapeNode] = [] // Daftar papan gambar tantangan
     
     // Karakter game (berbentuk lingkaran biasa)
     var player: SKShapeNode!
@@ -65,9 +67,8 @@ class GameScene: SKScene {
     // MARK: - Obstacles
     struct Obstacle {
         let node: SKNode
-        let relX: CGFloat
-        let relY: CGFloat
         let size: CGSize
+        let absPos: CGPoint // Menggunakan posisi absolut di map 2000x2000
     }
     var obstacles: [Obstacle] = []
     let playerRadius: CGFloat = 15
@@ -85,6 +86,11 @@ class GameScene: SKScene {
         // Mengatur warna background area game
         self.backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1.0)
         
+        // 0. Setup kamera terlebih dahulu agar HUD ditambahkan pada kamera
+        self.camera = cameraNode
+        self.addChild(cameraNode)
+        cameraNode.setScale(0.6) // Zoom agar map terasa besar dan bisa bergeser
+        
         // 1. Menggambar Lantai Grid Kotak Biasa
         createRegularGrid()
         
@@ -94,13 +100,13 @@ class GameScene: SKScene {
         // 3. Membuat Analog Joystick
         createJoystick()
         
-        // 4. Membuat Objek Interaktif Tantangan (Easel Utama)
+        // 4. Membuat Objek Interaktif Tantangan (Easel Utama & Lab)
         createInteractiveObject()
         
         // 5. Membuat Objek Interaktif Makanan
         createFoodObject()
         
-        // 6. Membuat Rintangan
+        // 6. Membuat Rintangan (Dinding dan Koridor Ruangan)
         createObstacles()
         
         // 7. Siapkan antrean tantangan acak & label progres
@@ -117,62 +123,51 @@ class GameScene: SKScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         
-        // 1. Gambar ulang grid lantai agar sesuai dengan ukuran layar yang baru
+        // 1. Gambar ulang grid lantai agar sesuai dengan ukuran map
         createRegularGrid()
         
-        // 2. Batasi karakter agar tetap berada di dalam layar baru (tidak terlempar keluar layar)
+        // 2. Batasi karakter agar tetap berada di dalam batas map 2000x2000
         if let player = player {
-            let newX = max(playerRadius, min(self.size.width - playerRadius, player.position.x))
-            let newY = max(playerRadius, min(self.size.height - playerRadius, player.position.y))
+            let newX = max(playerRadius, min(2000.0 - playerRadius, player.position.x))
+            let newY = max(playerRadius, min(2000.0 - playerRadius, player.position.y))
             player.position = CGPoint(x: newX, y: newY)
         }
         
-        // 3. Pastikan joystick tetap berada di pojok kiri bawah layar yang baru
+        // 3. Reposisi HUD pada kamera karena ukuran layar/viewport berubah
+        let w = self.size.width
+        let h = self.size.height
+        
         if let joystickBase = joystickBase {
-            joystickBase.position = CGPoint(x: joystickRadius + 50, y: joystickRadius + 70)
+            joystickBase.position = CGPoint(x: -w / 2 + joystickRadius + 50, y: -h / 2 + joystickRadius + 70)
         }
         
-        // 4. Reposisi objek interaktif easel utama
-        if let interactiveObject = interactiveObject {
-            interactiveObject.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.8)
-        }
-        
-        // 5. Reposisi tombol aksi jika sedang aktif
         if let actionButton = actionButton {
             let btnRadius: CGFloat = 40
-            actionButton.position = CGPoint(x: self.size.width - btnRadius - 50, y: joystickRadius + 70)
+            actionButton.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
         }
         
-        // 6. Reposisi objek interaktif makanan
-        if let foodObject = foodObject {
-            foodObject.position = CGPoint(x: self.size.width * 0.2, y: self.size.height * 0.3)
-        }
-        
-        // 7. Reposisi tombol makan jika sedang aktif
         if let foodActionButton = foodActionButton {
             let btnRadius: CGFloat = 40
-            foodActionButton.position = CGPoint(x: self.size.width - btnRadius - 50, y: joystickRadius + 70)
+            foodActionButton.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
         }
         
-        // 8. Reposisi label progres ronde
         if let progressLabel = progressLabel {
-            progressLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height - 40)
+            progressLabel.position = CGPoint(x: 0, y: h / 2 - 40)
         }
         
-        // 9. Reposisi progress bar stamina
         if let staminaBarContainer = staminaBarContainer {
-            staminaBarContainer.position = CGPoint(x: 20, y: self.size.height - 40)
+            staminaBarContainer.position = CGPoint(x: -w / 2 + 20, y: h / 2 - 40)
         }
         
-        // 10. Reposisi rintangan & resize cahaya
-        repositionObstacles()
+        // 4. Reposisi rintangan (tidak perlu reposisi karena posisi absolut), resize cahaya lilin
+        candleLight?.position = CGPoint(x: -w / 2, y: -h / 2)
         candleLight?.resize(to: self.size)
         
-        // 11. Reposisi layar Game Over
+        // 5. Reposisi layar Game Over pada kamera
         if let gameOverNode = gameOverNode {
-            gameOverNode.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+            gameOverNode.position = CGPoint.zero
             if let bg = gameOverNode.childNode(withName: "bg") as? SKShapeNode {
-                bg.path = CGPath(rect: CGRect(x: -self.size.width/2, y: -self.size.height/2, width: self.size.width, height: self.size.height), transform: nil)
+                bg.path = CGPath(rect: CGRect(x: -w/2, y: -h/2, width: w, height: h), transform: nil)
             }
         }
     }
@@ -200,6 +195,10 @@ class GameScene: SKScene {
         checkProximityToInteractiveObject()
         checkProximityToFoodObject()
         
-        candleLight?.update(lightPosition: player.position, currentTime: currentTime)
+        // Perbarui pencahayaan lilin relatif terhadap kamera (player selalu di tengah screen)
+        candleLight?.update(lightPosition: CGPoint(x: self.size.width / 2, y: self.size.height / 2), currentTime: currentTime)
+        
+        // Kamera mengikuti pergerakan player
+        cameraNode.position = player.position
     }
 }

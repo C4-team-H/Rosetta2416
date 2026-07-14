@@ -16,7 +16,8 @@ extension GameScene {
         guard !isGameOver else {
             for touch in touches {
                 let touchLocation = touch.location(in: self)
-                let nodesAtPoint = self.nodes(at: touchLocation)
+                let cameraTouchLocation = self.convert(touchLocation, to: cameraNode)
+                let nodesAtPoint = cameraNode.nodes(at: cameraTouchLocation)
                 for node in nodesAtPoint {
                     if node.name == "restartButton" {
                         restartGame()
@@ -29,10 +30,11 @@ extension GameScene {
         
         for touch in touches {
             let touchLocation = touch.location(in: self)
-            let nodesAtPoint = self.nodes(at: touchLocation)
+            let cameraTouchLocation = self.convert(touchLocation, to: cameraNode)
             
-            // 1. Deteksi klik pada tombol interaktif (DRAW untuk stasiun utama, EAT untuk stasiun makanan)
-            for node in nodesAtPoint {
+            // 1. Deteksi klik pada tombol interaktif (di bawah cameraNode)
+            let nodesAtCameraPoint = cameraNode.nodes(at: cameraTouchLocation)
+            for node in nodesAtCameraPoint {
                 if node.name == "drawButton" {
                     presentDrawingCanvas(isFood: false)
                     return
@@ -52,11 +54,11 @@ extension GameScene {
                 continue
             }
             
-            // 3. Deteksi input dari jari biasa untuk mengendalikan Joystick analog
-            if joystickBase.contains(touchLocation) {
+            // 3. Deteksi input dari jari biasa untuk mengendalikan Joystick analog (di bawah cameraNode)
+            if joystickBase.contains(cameraTouchLocation) {
                 isJoystickActive = true
                 joystickActiveTouch = touch
-                updateJoystickKnob(touchLocation: touchLocation)
+                updateJoystickKnob(touchLocation: cameraTouchLocation)
                 break
             }
         }
@@ -79,7 +81,8 @@ extension GameScene {
         guard isJoystickActive, let activeTouch = joystickActiveTouch else { return }
         if touches.contains(activeTouch) {
             let touchLocation = activeTouch.location(in: self)
-            updateJoystickKnob(touchLocation: touchLocation)
+            let cameraTouchLocation = self.convert(touchLocation, to: cameraNode)
+            updateJoystickKnob(touchLocation: cameraTouchLocation)
         }
     }
     
