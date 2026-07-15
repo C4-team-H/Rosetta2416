@@ -140,7 +140,7 @@ extension GameScene {
         foodActionButton = nil
     }
     
-    /// Membuka (present) pop-up canvas menggambar `DrawingViewController` secara modal.
+    /// Membuka pop-up canvas menggambar secara modal.
     /// - Parameter isFood: true jika menggambar makanan (stasiun makanan), false jika menggambar tantangan utama
     func presentDrawingCanvas(isFood: Bool) {
         // PERUBAHAN: Game tidak di-pause agar energy (stamina) tetap berkurang saat menggambar.
@@ -152,7 +152,7 @@ extension GameScene {
         
         guard let viewController = self.view?.window?.rootViewController else { return }
         
-        let drawingVC = DrawingViewController()
+        let drawingVC = DrawingChallengeViewController()
         
         if isFood {
             // Mode Makan: Pilih makanan acak dari daftar yang didukung oleh model CoreML
@@ -162,7 +162,7 @@ extension GameScene {
                 DrawingChallenge(label: "donut", displayName: "DONAT"),
                 DrawingChallenge(label: "pizza", displayName: "PIZZA")
             ]
-            let foodChallenge = foods.randomElement()!
+            guard let foodChallenge = foods.randomElement() else { return }
             drawingVC.challenge = foodChallenge
             drawingVC.challengeIndex = 1
             drawingVC.totalChallenges = 1 // Hanya 1 ronde untuk pengisian makanan
@@ -205,6 +205,8 @@ extension GameScene {
         hideInteractionButton()
         
         if challengesCompleted >= totalChallenges {
+            tacticalMapViewModel.completeActiveMissions()
+
             // Semua tantangan selesai -> Ubah warna semua easel tantangan menjadi hijau permanen dan tampilkan banner final
             for easel in challengeEasels {
                 easel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
@@ -263,6 +265,8 @@ extension GameScene {
     func triggerGameOver() {
         isGameOver = true
         self.isPaused = true
+        tacticalMapViewModel.closeMap()
+        sessionState.endGameplay()
         resetJoystick()
         pencilTouch = nil
         pencilTarget = nil
@@ -270,7 +274,7 @@ extension GameScene {
         
         // PERUBAHAN: Tutup paksa popup menggambar jika sedang aktif saat Game Over terjadi.
         if let rootVC = self.view?.window?.rootViewController {
-            if rootVC.presentedViewController is DrawingViewController {
+            if rootVC.presentedViewController is DrawingChallengeViewController {
                 rootVC.dismiss(animated: true, completion: nil)
             }
         }
@@ -339,11 +343,16 @@ extension GameScene {
         challengeQueue = DrawingChallenge.all.shuffled()
         
         // Update tampilan UI
-        updateProgressLabel(progressLabel!)
+        if let progressLabel {
+            updateProgressLabel(progressLabel)
+        }
         updateStaminaBarFill()
         
         // Reset player & warna easel tantangan
-        player.position = CGPoint(x: 375, y: 1000) // Reset ke Sleeping Room
+        player.position = GameMapLayout.playerSpawnPosition
+        tacticalMapViewModel.resetMissionMarkers()
+        sessionState.updateLocalPlayer(position: player.position)
+        sessionState.beginGameplay()
         for easel in challengeEasels {
             easel.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1.0) // warna kayu
         }

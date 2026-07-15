@@ -1,5 +1,5 @@
 //
-//  DrawingViewController.swift
+//  DrawingChallengeViewController.swift
 //  GameClassification
 //
 //  Created by Muhammad Muthi' Nuritzan on 13/07/26.
@@ -9,26 +9,7 @@ import UIKit
 import PencilKit
 import CoreML
 
-// Data untuk satu ronde tantangan gambar.
-// `label` = output CoreML (lowercase English) untuk verifikasi prediksi.
-// `displayName` = nama objek dalam Bahasa Indonesia untuk ditampilkan di UI.
-struct DrawingChallenge {
-    let label: String
-    let displayName: String
-}
-
-extension DrawingChallenge {
-    // Kelas yang didukung model HandwritingGameClassification (TU Berlin sketch dataset).
-    static let all: [DrawingChallenge] = [
-        DrawingChallenge(label: "book",      displayName: "BUKU"),
-        DrawingChallenge(label: "butterfly", displayName: "KUPU-KUPU"),
-        DrawingChallenge(label: "cactus",    displayName: "KAKTUS"),
-        DrawingChallenge(label: "candle",    displayName: "LILIN"),
-        DrawingChallenge(label: "fish",      displayName: "IKAN")
-    ]
-}
-
-class DrawingViewController: UIViewController, PKCanvasViewDelegate {
+class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     // MARK: - Callbacks
     var onSuccess: (() -> Void)?

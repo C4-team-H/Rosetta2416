@@ -26,9 +26,9 @@ extension GameScene {
         
         var newPosition = CGPoint(x: player.position.x + dx, y: player.position.y + dy)
         
-        // Map Boundary Check: Batasi agar karakter tidak keluar dari batas map 2000x2000
-        newPosition.x = max(playerRadius, min(2000.0 - playerRadius, newPosition.x))
-        newPosition.y = max(playerRadius, min(2000.0 - playerRadius, newPosition.y))
+        let worldSize = GameMapLayout.worldSize
+        newPosition.x = max(playerRadius, min(worldSize.width - playerRadius, newPosition.x))
+        newPosition.y = max(playerRadius, min(worldSize.height - playerRadius, newPosition.y))
         
         // Deteksi Obstacle: Cek benturan rintangan dengan slide-along physics
         newPosition = attemptMove(to: newPosition)
@@ -70,9 +70,9 @@ extension GameScene {
         var newPosition = CGPoint(x: player.position.x + nx * moveStep,
                                   y: player.position.y + ny * moveStep)
         
-        // Map Boundary Check: Batasi agar tidak keluar map 2000x2000
-        newPosition.x = max(playerRadius, min(2000.0 - playerRadius, newPosition.x))
-        newPosition.y = max(playerRadius, min(2000.0 - playerRadius, newPosition.y))
+        let worldSize = GameMapLayout.worldSize
+        newPosition.x = max(playerRadius, min(worldSize.width - playerRadius, newPosition.x))
+        newPosition.y = max(playerRadius, min(worldSize.height - playerRadius, newPosition.y))
         
         // Deteksi Obstacle dengan slide-along physics
         newPosition = attemptMove(to: newPosition)

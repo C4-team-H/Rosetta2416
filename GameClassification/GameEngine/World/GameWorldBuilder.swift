@@ -21,8 +21,8 @@ extension GameScene {
         self.addChild(container)
         
         let tileSize: CGFloat = 60 // Ukuran tiap petak grid lantai
-        let cols = Int(ceil(2000.0 / tileSize))
-        let rows = Int(ceil(2000.0 / tileSize))
+        let cols = Int(ceil(GameMapLayout.worldSize.width / tileSize))
+        let rows = Int(ceil(GameMapLayout.worldSize.height / tileSize))
         
         for row in 0..<rows {
             for col in 0..<cols {
@@ -52,7 +52,7 @@ extension GameScene {
         player.fillColor = SKColor(red: 0.9, green: 0.3, blue: 0.3, alpha: 1.0) // Merah menyala
         player.strokeColor = .white
         player.lineWidth = 2.0
-        player.position = CGPoint(x: 375, y: 1000) // Mulai di Sleeping Room
+        player.position = GameMapLayout.playerSpawnPosition
         player.zPosition = 1
         self.addChild(player)
     }
@@ -84,18 +84,14 @@ extension GameScene {
         challengeEasels.forEach { $0.removeFromParent() }
         challengeEasels.removeAll()
         
-        // 1. Easel di Engine Room (Center)
-        let easelEngine = createEasel(at: CGPoint(x: 1000, y: 1000))
-        self.addChild(easelEngine)
-        challengeEasels.append(easelEngine)
-        
-        // Simpan referensi ke interactiveObject agar tidak merusak kode lain (misal saat mengganti warnanya di handleDrawingSuccess)
-        interactiveObject = easelEngine
-        
-        // 2. Easel di Lab (Top-Left)
-        let easelLab = createEasel(at: CGPoint(x: 375, y: 1600))
-        self.addChild(easelLab)
-        challengeEasels.append(easelLab)
+        for position in GameMapLayout.challengeStationPositions {
+            let easel = createEasel(at: position)
+            addChild(easel)
+            challengeEasels.append(easel)
+        }
+
+        // Keep the first station as the legacy reference used by drawing success state.
+        interactiveObject = challengeEasels.first
     }
     
     /// Helper untuk membuat satu easel papan gambar tantangan.
@@ -147,7 +143,7 @@ extension GameScene {
         foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0) // Jingga kayu
         foodObject.strokeColor = .white
         foodObject.lineWidth = 2.0
-        foodObject.position = CGPoint(x: 1625, y: 400) // Di Kitchen
+        foodObject.position = GameMapLayout.foodStationPosition
         foodObject.zPosition = 2
         self.addChild(foodObject)
         
@@ -188,70 +184,17 @@ extension GameScene {
         
         // Hapus label ruangan lama agar tidak bertumpuk jika digambar ulang
         self.children.filter { $0.name == "roomLabel" }.forEach { $0.removeFromParent() }
-        
-        // 1. Dinding Sleeping Room (Kiri / Spawn)
-        // minX = 200, maxX = 550, minY = 825, maxY = 1175
-        // Pintu kanan: Y [950, 1050]
-        addWall(from: CGPoint(x: 200, y: 825), to: CGPoint(x: 200, y: 1175)) // Kiri
-        addWall(from: CGPoint(x: 200, y: 1175), to: CGPoint(x: 550, y: 1175)) // Atas
-        addWall(from: CGPoint(x: 200, y: 825), to: CGPoint(x: 550, y: 825)) // Bawah
-        addWall(from: CGPoint(x: 550, y: 825), to: CGPoint(x: 550, y: 950)) // Kanan bawah
-        addWall(from: CGPoint(x: 550, y: 1050), to: CGPoint(x: 550, y: 1175)) // Kanan atas
-        addRoomLabel(text: "SLEEPING ROOM", position: CGPoint(x: 375, y: 1000))
-        
-        // 2. Dinding Engine Room (Tengah)
-        // minX = 800, maxX = 1200, minY = 800, maxY = 1200
-        // Pintu kiri: Y [950, 1050]
-        // Pintu atas: X [950, 1050]
-        // Pintu bawah: X [950, 1050]
-        addWall(from: CGPoint(x: 800, y: 800), to: CGPoint(x: 800, y: 950)) // Kiri bawah
-        addWall(from: CGPoint(x: 800, y: 1050), to: CGPoint(x: 800, y: 1200)) // Kiri atas
-        addWall(from: CGPoint(x: 1200, y: 800), to: CGPoint(x: 1200, y: 1200)) // Kanan
-        addWall(from: CGPoint(x: 800, y: 1200), to: CGPoint(x: 950, y: 1200)) // Atas kiri
-        addWall(from: CGPoint(x: 1050, y: 1200), to: CGPoint(x: 1200, y: 1200)) // Atas kanan
-        addWall(from: CGPoint(x: 800, y: 800), to: CGPoint(x: 950, y: 800)) // Bawah kiri
-        addWall(from: CGPoint(x: 1050, y: 800), to: CGPoint(x: 1200, y: 800)) // Bawah kanan
-        addRoomLabel(text: "ENGINE ROOM", position: CGPoint(x: 1000, y: 1000))
-        
-        // 3. Dinding Lab (Atas Kiri)
-        // minX = 200, maxX = 550, minY = 1425, maxY = 1775
-        // Pintu bawah: X [325, 425]
-        addWall(from: CGPoint(x: 200, y: 1425), to: CGPoint(x: 200, y: 1775)) // Kiri
-        addWall(from: CGPoint(x: 200, y: 1775), to: CGPoint(x: 550, y: 1775)) // Atas
-        addWall(from: CGPoint(x: 550, y: 1425), to: CGPoint(x: 550, y: 1775)) // Kanan
-        addWall(from: CGPoint(x: 200, y: 1425), to: CGPoint(x: 325, y: 1425)) // Bawah kiri
-        addWall(from: CGPoint(x: 425, y: 1425), to: CGPoint(x: 550, y: 1425)) // Bawah kanan
-        addRoomLabel(text: "LAB", position: CGPoint(x: 375, y: 1600))
-        
-        // 4. Dinding Kitchen (Bawah Kanan)
-        // minX = 1450, maxX = 1800, minY = 225, maxY = 575
-        // Pintu kiri: Y [350, 450]
-        addWall(from: CGPoint(x: 1800, y: 225), to: CGPoint(x: 1800, y: 575)) // Kanan
-        addWall(from: CGPoint(x: 1450, y: 575), to: CGPoint(x: 1800, y: 575)) // Atas
-        addWall(from: CGPoint(x: 1450, y: 225), to: CGPoint(x: 1800, y: 225)) // Bawah
-        addWall(from: CGPoint(x: 1450, y: 225), to: CGPoint(x: 1450, y: 350)) // Kiri bawah
-        addWall(from: CGPoint(x: 1450, y: 450), to: CGPoint(x: 1450, y: 575)) // Kiri atas
-        addRoomLabel(text: "KITCHEN", position: CGPoint(x: 1625, y: 400))
-        
-        // 5. Koridor Sleeping Room ke Engine Room
-        addWall(from: CGPoint(x: 550, y: 1050), to: CGPoint(x: 800, y: 1050)) // Atas
-        addWall(from: CGPoint(x: 550, y: 950), to: CGPoint(x: 800, y: 950)) // Bawah
-        
-        // 6. Koridor Lab ke Engine Room (L-shaped)
-        addWall(from: CGPoint(x: 325, y: 1425), to: CGPoint(x: 325, y: 1250))
-        addWall(from: CGPoint(x: 325, y: 1250), to: CGPoint(x: 950, y: 1250))
-        addWall(from: CGPoint(x: 950, y: 1250), to: CGPoint(x: 950, y: 1200))
-        
-        addWall(from: CGPoint(x: 425, y: 1425), to: CGPoint(x: 425, y: 1350))
-        addWall(from: CGPoint(x: 425, y: 1350), to: CGPoint(x: 1050, y: 1350))
-        addWall(from: CGPoint(x: 1050, y: 1350), to: CGPoint(x: 1050, y: 1200))
-        
-        // 7. Koridor Kitchen ke Engine Room (L-shaped)
-        addWall(from: CGPoint(x: 1450, y: 450), to: CGPoint(x: 1050, y: 450))
-        addWall(from: CGPoint(x: 1050, y: 450), to: CGPoint(x: 1050, y: 800))
-        
-        addWall(from: CGPoint(x: 1450, y: 350), to: CGPoint(x: 950, y: 350))
-        addWall(from: CGPoint(x: 950, y: 350), to: CGPoint(x: 950, y: 800))
+
+        for wall in GameMapLayout.wallSegments {
+            addWall(from: wall.start, to: wall.end)
+        }
+
+        for room in GameMapLayout.rooms {
+            addRoomLabel(
+                text: room.name,
+                position: CGPoint(x: room.worldFrame.midX, y: room.worldFrame.midY)
+            )
+        }
     }
     
     /// Helper untuk menambahkan dinding solid (Obstacle) berbentuk garis lurus tebal.
@@ -378,7 +321,7 @@ extension GameScene {
     /// Mengaktifkan efek atmosferik overlay cahaya lilin hangat yang membatasi penglihatan layar luar (kegelapan).
     func enableCandleLight() {
         candleLight?.removeFromParent()
-        let configuration = CandleLight.Configuration(
+        let configuration = CandleLightNode.Configuration(
             radius: 180.0,
             darknessOpacity: 0.94,
             lightIntensity: 1.0,
@@ -388,7 +331,7 @@ extension GameScene {
             flickerAmount: 0.025,
             flickerSpeed: 1.0
         )
-        let light = CandleLight(sceneSize: self.size, configuration: configuration)
+        let light = CandleLightNode(sceneSize: self.size, configuration: configuration)
         light.zPosition = 9.5
         light.position = CGPoint(x: -self.size.width / 2, y: -self.size.height / 2)
         light.update(lightPosition: CGPoint(x: self.size.width / 2, y: self.size.height / 2))
