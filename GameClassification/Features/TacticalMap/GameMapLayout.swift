@@ -30,7 +30,7 @@ enum GameMapLayout {
 
     static let corridors = [
         CGRect(x: 550, y: 950, width: 250, height: 100),
-        CGRect(x: 325, y: 1_250, width: 100, height: 175),
+        CGRect(x: 325, y: 1_175, width: 100, height: 250),
         CGRect(x: 325, y: 1_250, width: 725, height: 100),
         CGRect(x: 950, y: 1_200, width: 100, height: 225),
         CGRect(x: 1_175, y: 1_550, width: 275, height: 100),
@@ -90,7 +90,8 @@ enum GameMapLayout {
         let endpoints: [(CGPoint, CGPoint)] = [
             // Sleeping Room
             (CGPoint(x: 200, y: 825), CGPoint(x: 200, y: 1_175)),
-            (CGPoint(x: 200, y: 1_175), CGPoint(x: 550, y: 1_175)),
+            (CGPoint(x: 200, y: 1_175), CGPoint(x: 325, y: 1_175)),
+            (CGPoint(x: 425, y: 1_175), CGPoint(x: 550, y: 1_175)),
             (CGPoint(x: 200, y: 825), CGPoint(x: 550, y: 825)),
             (CGPoint(x: 550, y: 825), CGPoint(x: 550, y: 950)),
             (CGPoint(x: 550, y: 1_050), CGPoint(x: 550, y: 1_175)),
@@ -136,10 +137,13 @@ enum GameMapLayout {
             // Corridors
             (CGPoint(x: 550, y: 1_050), CGPoint(x: 800, y: 1_050)),
             (CGPoint(x: 550, y: 950), CGPoint(x: 800, y: 950)),
-            (CGPoint(x: 325, y: 1_425), CGPoint(x: 325, y: 1_250)),
-            (CGPoint(x: 325, y: 1_250), CGPoint(x: 950, y: 1_250)),
+            // Direct Sleeping Room–Lab corridor. This route must remain open
+            // before the Engine Room is unlocked by the Laboratory chapter.
+            (CGPoint(x: 325, y: 1_175), CGPoint(x: 325, y: 1_425)),
+            (CGPoint(x: 425, y: 1_175), CGPoint(x: 425, y: 1_250)),
+            (CGPoint(x: 425, y: 1_350), CGPoint(x: 425, y: 1_425)),
+            (CGPoint(x: 425, y: 1_250), CGPoint(x: 950, y: 1_250)),
             (CGPoint(x: 950, y: 1_250), CGPoint(x: 950, y: 1_200)),
-            (CGPoint(x: 425, y: 1_425), CGPoint(x: 425, y: 1_350)),
             (CGPoint(x: 425, y: 1_350), CGPoint(x: 1_050, y: 1_350)),
             (CGPoint(x: 1_050, y: 1_350), CGPoint(x: 1_050, y: 1_200)),
             (CGPoint(x: 950, y: 1_200), CGPoint(x: 950, y: 1_425)),
