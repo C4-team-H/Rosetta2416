@@ -16,9 +16,9 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     var onCancel: (() -> Void)?
 
     // MARK: - Challenge Configuration
-    // Diset oleh GameScene sebelum present. Default = buku agar tetap aman bila
-    // VC di-present tanpa konfigurasi eksplisit.
-    var challenge: DrawingChallenge = DrawingChallenge.all[0]
+    // Diset oleh GameScene sebelum present. Default ini hanya placeholder dan
+    // selalu ditimpa oleh tantangan aktif sebelum controller ditampilkan.
+    var challenge: DrawingChallenge = DrawingChallenge.enginePool[0]
     var challengeIndex: Int = 1   // Ronde ke-berapa (1-based) untuk ditampilkan ke user
     var totalChallenges: Int = 5  // Total ronde tantangan
 
@@ -37,7 +37,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "TANTANGAN: GAMBAR BUKU"
+        label.text = ""
         label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
         label.textColor = .white
         label.textAlignment = .center
@@ -47,7 +47,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Gambarkan buku menggunakan jari/apple pencil pada kanvas putih di bawah."
+        label.text = ""
         label.font = UIFont.systemFont(ofSize: 13, weight: .regular)
         label.textColor = UIColor.white.withAlphaComponent(0.7)
         label.textAlignment = .center

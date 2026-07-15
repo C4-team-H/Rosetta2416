@@ -89,9 +89,6 @@ extension GameScene {
             addChild(easel)
             challengeEasels.append(easel)
         }
-
-        // Keep the first station as the legacy reference used by drawing success state.
-        interactiveObject = challengeEasels.first
     }
     
     /// Helper untuk membuat satu easel papan gambar tantangan.
@@ -260,7 +257,7 @@ extension GameScene {
     
     /// Memperbarui isi teks label progres ronde.
     func updateProgressLabel(_ label: SKLabelNode) {
-        label.text = "TANTANGAN: \(challengesCompleted)/\(totalChallenges)"
+        label.text = "ENGINE: \(engineChallengesCompleted)/5 | LAB: \(labChallengesCompleted)/5"
     }
     
     /// Membuat komponen HUD Progress Bar untuk menampilkan status stamina pemain secara visual di pojok kiri atas.

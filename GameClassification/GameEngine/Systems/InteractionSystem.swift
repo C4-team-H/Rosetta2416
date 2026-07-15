@@ -15,22 +15,36 @@ extension GameScene {
     /// Memeriksa jarak player ke seluruh papan lukis tantangan (Easel Tantangan).
     /// Jika player berada dalam jarak <= 80 poin dari salah satunya, munculkan tombol "DRAW" untuk menggambar.
     func checkProximityToInteractiveObject() {
-        guard let player = player else { return }
+        guard let player = player else {
+            activeEasel = nil
+            hideInteractionButton()
+            return
+        }
         
-        var nearAny = false
+        var nearEasel: SKShapeNode? = nil
         for easel in challengeEasels {
             let dx = player.position.x - easel.position.x
             let dy = player.position.y - easel.position.y
             let distance = sqrt(dx*dx + dy*dy)
             if distance <= 80 {
-                nearAny = true
+                nearEasel = easel
                 break
             }
         }
         
-        if nearAny && challengesCompleted < totalChallenges {
-            showInteractionButton()
+        if let easel = nearEasel {
+            let isLab = easel.position.y > 1300
+            let isCompleted = isLab ? (labChallengesCompleted >= 5) : (engineChallengesCompleted >= 5)
+            
+            if !isCompleted {
+                activeEasel = easel
+                showInteractionButton()
+            } else {
+                activeEasel = nil
+                hideInteractionButton()
+            }
         } else {
+            activeEasel = nil
             hideInteractionButton()
         }
     }
@@ -156,13 +170,7 @@ extension GameScene {
         
         if isFood {
             // Mode Makan: Pilih makanan acak dari daftar yang didukung oleh model CoreML
-            let foods = [
-                DrawingChallenge(label: "banana", displayName: "PISANG"),
-                DrawingChallenge(label: "apple", displayName: "APEL"),
-                DrawingChallenge(label: "donut", displayName: "DONAT"),
-                DrawingChallenge(label: "pizza", displayName: "PIZZA")
-            ]
-            guard let foodChallenge = foods.randomElement() else { return }
+            guard let foodChallenge = DrawingChallenge.foodPool.randomElement() else { return }
             drawingVC.challenge = foodChallenge
             drawingVC.challengeIndex = 1
             drawingVC.totalChallenges = 1 // Hanya 1 ronde untuk pengisian makanan
@@ -172,15 +180,30 @@ extension GameScene {
                 self.handleFoodDrawingSuccess()
             }
         } else {
-            // Mode Utama: Selesaikan daftar tantangan utama berurutan
-            guard challengesCompleted < totalChallenges else { return }
-            drawingVC.challenge = challengeQueue[challengesCompleted]
-            drawingVC.challengeIndex = challengesCompleted + 1
-            drawingVC.totalChallenges = totalChallenges
+            // Mode Utama: Selesaikan daftar tantangan utama berdasarkan ruangan
+            // Lab memiliki easel dengan koordinat Y > 1300
+            let isLab = (activeEasel?.position.y ?? 0) > 1300
             
-            drawingVC.onSuccess = { [weak self] in
-                guard let self = self, !self.isGameOver else { return }
-                self.handleDrawingSuccess()
+            if isLab {
+                guard labChallengesCompleted < 5 else { return }
+                drawingVC.challenge = labChallengeQueue[labChallengesCompleted]
+                drawingVC.challengeIndex = labChallengesCompleted + 1
+                drawingVC.totalChallenges = 5
+                
+                drawingVC.onSuccess = { [weak self] in
+                    guard let self = self, !self.isGameOver else { return }
+                    self.handleDrawingSuccess(room: "lab")
+                }
+            } else {
+                guard engineChallengesCompleted < 5 else { return }
+                drawingVC.challenge = engineChallengeQueue[engineChallengesCompleted]
+                drawingVC.challengeIndex = engineChallengesCompleted + 1
+                drawingVC.totalChallenges = 5
+                
+                drawingVC.onSuccess = { [weak self] in
+                    guard let self = self, !self.isGameOver else { return }
+                    self.handleDrawingSuccess(room: "engine")
+                }
             }
         }
         
@@ -195,8 +218,24 @@ extension GameScene {
     }
     
     /// Dipanggil saat user sukses menyelesaikan salah satu tantangan menggambar utama.
-    func handleDrawingSuccess() {
-        challengesCompleted += 1
+    func handleDrawingSuccess(room: String) {
+        if room == "lab" {
+            labChallengesCompleted += 1
+            if labChallengesCompleted >= 5 {
+                // Papan gambar Lab jadi hijau permanen
+                if let labEasel = challengeEasels.first(where: { $0.position.y > 1300 }) {
+                    labEasel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+                }
+            }
+        } else {
+            engineChallengesCompleted += 1
+            if engineChallengesCompleted >= 5 {
+                // Papan gambar Engine jadi hijau permanen
+                if let engineEasel = challengeEasels.first(where: { $0.position.y <= 1300 }) {
+                    engineEasel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+                }
+            }
+        }
         
         if let progressLabel = progressLabel {
             updateProgressLabel(progressLabel)
@@ -204,9 +243,8 @@ extension GameScene {
         
         hideInteractionButton()
         
-        if challengesCompleted >= totalChallenges {
+        if engineChallengesCompleted >= 5 && labChallengesCompleted >= 5 {
             tacticalMapViewModel.completeActiveMissions()
-
             // Semua tantangan selesai -> Ubah warna semua easel tantangan menjadi hijau permanen dan tampilkan banner final
             for easel in challengeEasels {
                 easel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
@@ -216,9 +254,9 @@ extension GameScene {
             successLabel.text = "SEMUA TANTANGAN BERHASIL!"
             successLabel.fontSize = 24
             successLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
-            successLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+            successLabel.position = CGPoint.zero
             successLabel.zPosition = 20
-            self.addChild(successLabel)
+            cameraNode.addChild(successLabel)
             
             let fadeOut = SKAction.fadeOut(withDuration: 3.5)
             let remove = SKAction.removeFromParent()
@@ -226,12 +264,14 @@ extension GameScene {
         } else {
             // Sukses ronde perantara -> Tampilkan banner ronde transisi
             let roundLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-            roundLabel.text = "RONDE \(challengesCompleted)/\(totalChallenges) SELESAI!"
+            let roomName = room == "lab" ? "LAB" : "ENGINE"
+            let comp = room == "lab" ? labChallengesCompleted : engineChallengesCompleted
+            roundLabel.text = "RONDE \(roomName) \(comp)/5 SELESAI!"
             roundLabel.fontSize = 22
             roundLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
-            roundLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+            roundLabel.position = CGPoint.zero
             roundLabel.zPosition = 20
-            self.addChild(roundLabel)
+            cameraNode.addChild(roundLabel)
             
             let fadeOut = SKAction.fadeOut(withDuration: 2.5)
             let remove = SKAction.removeFromParent()
@@ -239,19 +279,19 @@ extension GameScene {
         }
     }
     
-    /// Dipanggil saat user sukses menggambar makanan -> Mengisi stamina bertambah 20%.
+    /// Dipanggil saat user sukses menggambar makanan -> Mengisi stamina bertambah 50%.
     func handleFoodDrawingSuccess() {
-        // PERUBAHAN: Energi yang bertambah hanya 20% dari maxStamina (dibatasi hingga maksimum maxStamina).
-        stamina = min(maxStamina, stamina + 0.40 * maxStamina)
+        // PERUBAHAN: Energi yang bertambah hanya 50% dari maxStamina (dibatasi hingga maksimum maxStamina).
+        stamina = min(maxStamina, stamina + 0.50 * maxStamina)
         updateStaminaBarFill()
         
         let successLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        successLabel.text = "ENERGI BERTAMBAH 40%!"
+        successLabel.text = "ENERGI BERTAMBAH 50%!"
         successLabel.fontSize = 24
         successLabel.fontColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0)
-        successLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+        successLabel.position = CGPoint.zero
         successLabel.zPosition = 20
-        self.addChild(successLabel)
+        cameraNode.addChild(successLabel)
         
         let fadeOut = SKAction.fadeOut(withDuration: 2.5)
         let remove = SKAction.removeFromParent()
@@ -339,8 +379,10 @@ extension GameScene {
         
         // Setel ulang variabel internal
         stamina = maxStamina
-        challengesCompleted = 0
-        challengeQueue = DrawingChallenge.all.shuffled()
+        engineChallengesCompleted = 0
+        labChallengesCompleted = 0
+        engineChallengeQueue = DrawingChallenge.enginePool.shuffled()
+        labChallengeQueue = DrawingChallenge.labPool.shuffled()
         
         // Update tampilan UI
         if let progressLabel {
