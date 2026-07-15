@@ -1,30 +1,39 @@
-struct DrawingChallenge {
+struct DrawingChallenge: Equatable, Sendable {
+    let id: String
     let label: String
     let displayName: String
-}
+    let confidenceThreshold: Double
 
-extension DrawingChallenge {
-    static let enginePool: [DrawingChallenge] = [
-        DrawingChallenge(label: "book", displayName: "BUKU"),
-        DrawingChallenge(label: "alarm clock", displayName: "JAM WEKER"),
-        DrawingChallenge(label: "computer monitor", displayName: "MONITOR"),
-        DrawingChallenge(label: "door", displayName: "PINTU"),
-        DrawingChallenge(label: "eyeglasses", displayName: "KACAMATA")
-    ]
+    init(id: String, label: String, displayName: String, confidenceThreshold: Double = 0.50) {
+        self.id = id
+        self.label = label
+        self.displayName = displayName
+        self.confidenceThreshold = confidenceThreshold
+    }
 
-    // Lab memiliki 3 easel, masing-masing dengan objek tetap (tidak acak).
-    // Urutan ini cocok dengan labEaselPositions di GameMapLayout.
-    static let labEaselChallenges: [DrawingChallenge] = [
-        DrawingChallenge(label: "butterfly", displayName: "KUPU-KUPU"),
-        DrawingChallenge(label: "spider", displayName: "LABA-LABA"),
-        DrawingChallenge(label: "snake", displayName: "ULAR")
-    ]
+    init(objective: StoryObjectiveDefinition) {
+        guard case let .drawing(prompt) = objective.kind else {
+            preconditionFailure("DrawingChallenge requires a drawing objective")
+        }
+        self.init(
+            id: objective.id,
+            label: prompt.expectedLabel,
+            displayName: prompt.displayName,
+            confidenceThreshold: prompt.confidenceThreshold
+        )
+    }
 
     static let foodPool: [DrawingChallenge] = [
-        DrawingChallenge(label: "banana", displayName: "PISANG"),
-        DrawingChallenge(label: "apple", displayName: "APEL"),
-        DrawingChallenge(label: "donut", displayName: "DONAT"),
-        DrawingChallenge(label: "pizza", displayName: "PIZZA"),
-        DrawingChallenge(label: "carrot", displayName: "WORTEL")
+        DrawingChallenge(id: "kitchen-banana", label: "banana", displayName: "BANANA"),
+        DrawingChallenge(id: "kitchen-apple", label: "apple", displayName: "APPLE"),
+        DrawingChallenge(id: "kitchen-donut", label: "donut", displayName: "DONUT"),
+        DrawingChallenge(id: "kitchen-pizza", label: "pizza", displayName: "PIZZA"),
+        DrawingChallenge(id: "kitchen-carrot", label: "carrot", displayName: "CARROT")
     ]
+}
+
+struct DrawingSubmissionOutcome: Sendable {
+    let accepted: Bool
+    let message: String
+    let recognition: RecognitionResult?
 }

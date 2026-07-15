@@ -1,12 +1,12 @@
 import CoreGraphics
 
 struct MapRoom: Identifiable, Equatable {
-    let id: String
+    let id: RoomID
     let name: String
     let worldFrame: CGRect
 
-    init(name: String, worldFrame: CGRect) {
-        self.id = name
+    init(id: RoomID, name: String, worldFrame: CGRect) {
+        self.id = id
         self.name = name
         self.worldFrame = worldFrame
     }

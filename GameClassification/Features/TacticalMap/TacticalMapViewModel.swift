@@ -10,7 +10,6 @@ final class TacticalMapViewModel {
     private(set) var isMapPresented = false
     var gameplayMode: MapGameplayMode = .continueGameplay
     var showsTeammateOnMap = true
-    var markers = GameMapLayout.defaultMarkers
 
     init(sessionState: GameSessionState) {
         self.sessionState = sessionState
@@ -47,7 +46,7 @@ final class TacticalMapViewModel {
     }
 
     var visibleMarkers: [MapMarker] {
-        markers.filter(\.isVisible)
+        TacticalMapMarkerFactory.make(story: sessionState.storySystem).filter(\.isVisible)
     }
 
     var shouldRunLocalSimulation: Bool {
@@ -65,35 +64,6 @@ final class TacticalMapViewModel {
 
     func toggleMap() {
         isMapPresented ? closeMap() : openMap()
-    }
-
-    func completeActiveMissions() {
-        markers = markers.map { marker in
-            marker.type == .activeMission ? marker.replacingType(with: .completedMission) : marker
-        }
-    }
-
-    /// Mark a single lab easel marker as completed by its world position.
-    func completeLabEaselMarker(at position: CGPoint) {
-        markers = markers.map { marker in
-            (marker.type == .activeMission && marker.worldPosition == position)
-                ? marker.replacingType(with: .completedMission)
-                : marker
-        }
-    }
-
-    /// Unlock the engine marker (change from lockedArea to activeMission) when
-    /// AI Intelligence reaches the threshold.
-    func unlockEngineMarker() {
-        markers = markers.map { marker in
-            (marker.type == .lockedArea && marker.title == "Engine Sketch")
-                ? marker.replacingType(with: .activeMission)
-                : marker
-        }
-    }
-
-    func resetMissionMarkers() {
-        markers = GameMapLayout.defaultMarkers
     }
 
 #if DEBUG
