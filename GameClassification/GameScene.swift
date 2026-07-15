@@ -32,14 +32,17 @@ class GameScene: SKScene {
     var foodActionButton: SKShapeNode?
     
     // Status tantangan
-    let totalChallenges = 10
+    let totalChallenges = 8
     var engineChallengesCompleted = 0
     var labChallengesCompleted = 0
     var challengesCompleted: Int {
         return engineChallengesCompleted + labChallengesCompleted
     }
     
-
+    var completedLabEasels: Set<String> = []
+    var aiIntelligence: CGFloat = 10.0
+    let maxAiIntelligence: CGFloat = 100.0
+    var aiIntelligenceBarContainer: SKNode?
     
     var engineChallengeQueue: [DrawingChallenge] = []
     var labChallengeQueue: [DrawingChallenge] = []
@@ -117,13 +120,13 @@ class GameScene: SKScene {
         // 6. Membuat Rintangan (Dinding dan Koridor Ruangan)
         createObstacles()
         
-        // 7. Siapkan antrean tantangan acak & label progres
+        // 7. Siapkan antrean tantangan acak
         engineChallengeQueue = DrawingChallenge.enginePool.shuffled()
         labChallengeQueue = DrawingChallenge.labPool.shuffled()
-        createProgressLabel()
         
-        // 8. Membuat Progress Bar Stamina
+        // 8. Membuat Progress Bar Stamina & AI Intelligence
         createStaminaBar()
+        createAiIntelligenceBar()
         
         // 9. Aktifkan overlay cahaya lilin
         enableCandleLight()
@@ -160,12 +163,12 @@ class GameScene: SKScene {
             foodActionButton.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
         }
         
-        if let progressLabel = progressLabel {
-            progressLabel.position = CGPoint(x: 0, y: h / 2 - 40)
-        }
-        
         if let staminaBarContainer = staminaBarContainer {
             staminaBarContainer.position = CGPoint(x: -w / 2 + 20, y: h / 2 - 40)
+        }
+        
+        if let aiIntelligenceBarContainer = aiIntelligenceBarContainer {
+            aiIntelligenceBarContainer.position = CGPoint(x: w / 2 - 200, y: h / 2 - 40)
         }
         
         // 4. Reposisi rintangan (tidak perlu reposisi karena posisi absolut), resize cahaya lilin

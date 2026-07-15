@@ -86,13 +86,26 @@ extension GameScene {
         
         // 1. Easel di Engine Room (Center)
         let easelEngine = createEasel(at: CGPoint(x: 1000, y: 1000))
+        easelEngine.name = "easel_engine"
         self.addChild(easelEngine)
         challengeEasels.append(easelEngine)
         
-        // 2. Easel di Lab (Top-Left)
-        let easelLab = createEasel(at: CGPoint(x: 375, y: 1600))
-        self.addChild(easelLab)
-        challengeEasels.append(easelLab)
+        // 2. Tiga Easel di Lab (Top-Left)
+        // Ditempatkan agar membentuk segitiga simetris di dalam ruangan Lab
+        let easelButterfly = createEasel(at: CGPoint(x: 300, y: 1620))
+        easelButterfly.name = "easel_lab_butterfly"
+        self.addChild(easelButterfly)
+        challengeEasels.append(easelButterfly)
+        
+        let easelSpider = createEasel(at: CGPoint(x: 375, y: 1680))
+        easelSpider.name = "easel_lab_spider"
+        self.addChild(easelSpider)
+        challengeEasels.append(easelSpider)
+        
+        let easelSnake = createEasel(at: CGPoint(x: 450, y: 1620))
+        easelSnake.name = "easel_lab_snake"
+        self.addChild(easelSnake)
+        challengeEasels.append(easelSnake)
     }
     
     /// Helper untuk membuat satu easel papan gambar tantangan.
@@ -296,25 +309,64 @@ extension GameScene {
         // Sengaja dibiarkan kosong karena dinding bernilai absolut
     }
     
-    /// Membuat label petunjuk progres tantangan menggambar ("TANTANGAN: X/5") di bagian atas tengah layar.
-    func createProgressLabel() {
-        progressLabel?.removeFromParent()
+    /// Membuat komponen HUD Progress Bar untuk menampilkan status kemajuan AI Intelligence secara visual di pojok kanan atas.
+    func createAiIntelligenceBar() {
+        aiIntelligenceBarContainer?.removeFromParent()
         
+        let container = SKNode()
+        aiIntelligenceBarContainer = container
+        let w = self.size.width
+        let h = self.size.height
+        container.position = CGPoint(x: w / 2 - 200, y: h / 2 - 40)
+        container.zPosition = 15
+        cameraNode.addChild(container)
+        
+        // Teks "AI INTELLIGENCE" di atas bar
         let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        label.fontSize = 18
-        label.fontColor = .white
-        label.horizontalAlignmentMode = .center
-        label.verticalAlignmentMode = .center
-        label.zPosition = 15
-        label.position = CGPoint(x: 0, y: self.size.height / 2 - 40)
-        updateProgressLabel(label)
-        cameraNode.addChild(label)
-        progressLabel = label
+        label.text = "AI INTELLIGENCE"
+        label.fontSize = 11
+        label.fontColor = SKColor(red: 0.2, green: 0.8, blue: 1.0, alpha: 1.0)
+        label.position = CGPoint(x: 0, y: 10)
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .bottom
+        container.addChild(label)
+        
+        // Bingkai luar bar (border putih, background hitam transparan)
+        let bgBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: 150, height: 12), cornerRadius: 6)
+        bgBar.fillColor = SKColor.black.withAlphaComponent(0.4)
+        bgBar.strokeColor = .white
+        bgBar.lineWidth = 1.5
+        container.addChild(bgBar)
+        
+        updateAiIntelligenceBarFill()
     }
     
-    /// Memperbarui isi teks label progres ronde.
-    func updateProgressLabel(_ label: SKLabelNode) {
-        label.text = "ENGINE: \(engineChallengesCompleted)/5 | LAB: \(labChallengesCompleted)/5"
+    /// Memperbarui lebar dan persentase teks isi dari progress bar AI Intelligence.
+    func updateAiIntelligenceBarFill() {
+        guard let container = aiIntelligenceBarContainer else { return }
+        
+        container.childNode(withName: "aiFillBar")?.removeFromParent()
+        container.childNode(withName: "aiPercentLabel")?.removeFromParent()
+        
+        let fillWidth = 150 * (aiIntelligence / maxAiIntelligence)
+        
+        if fillWidth > 0 {
+            let fillBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: fillWidth, height: 12), cornerRadius: 6)
+            fillBar.fillColor = SKColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0) // Cyan/Blue
+            fillBar.strokeColor = .clear
+            fillBar.name = "aiFillBar"
+            container.addChild(fillBar)
+        }
+        
+        let percentLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        percentLabel.text = "\(Int(round(aiIntelligence)))%"
+        percentLabel.fontSize = 11
+        percentLabel.fontColor = .white
+        percentLabel.position = CGPoint(x: 160, y: -4)
+        percentLabel.horizontalAlignmentMode = .left
+        percentLabel.verticalAlignmentMode = .bottom
+        percentLabel.name = "aiPercentLabel"
+        container.addChild(percentLabel)
     }
     
     /// Membuat komponen HUD Progress Bar untuk menampilkan status stamina pemain secara visual di pojok kiri atas.

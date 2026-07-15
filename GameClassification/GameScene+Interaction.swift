@@ -33,15 +33,30 @@ extension GameScene {
         }
         
         if let easel = nearEasel {
+            let name = easel.name ?? ""
             let isLab = easel.position.y > 1300
-            let isCompleted = isLab ? (labChallengesCompleted >= 5) : (engineChallengesCompleted >= 5)
             
-            if !isCompleted {
-                activeEasel = easel
-                showInteractionButton()
+            if isLab {
+                let isCompleted = completedLabEasels.contains(name)
+                if !isCompleted {
+                    activeEasel = easel
+                    showInteractionButton()
+                } else {
+                    activeEasel = nil
+                    hideInteractionButton()
+                }
             } else {
-                activeEasel = nil
-                hideInteractionButton()
+                // Engine room easel
+                let isEngineLocked = aiIntelligence < 40.0
+                let isCompleted = engineChallengesCompleted >= 5
+                
+                if !isCompleted && !isEngineLocked {
+                    activeEasel = easel
+                    showInteractionButton()
+                } else {
+                    activeEasel = nil
+                    hideInteractionButton()
+                }
             }
         } else {
             activeEasel = nil
@@ -186,14 +201,26 @@ extension GameScene {
             let isLab = (activeEasel?.position.y ?? 0) > 1300
             
             if isLab {
-                guard labChallengesCompleted < 5 else { return }
-                drawingVC.challenge = labChallengeQueue[labChallengesCompleted]
-                drawingVC.challengeIndex = labChallengesCompleted + 1
-                drawingVC.totalChallenges = 5
+                guard let easelName = activeEasel?.name else { return }
+                let challenge: DrawingChallenge
+                switch easelName {
+                case "easel_lab_butterfly":
+                    challenge = DrawingChallenge(label: "butterfly", displayName: "KUPU-KUPU")
+                case "easel_lab_spider":
+                    challenge = DrawingChallenge(label: "spider", displayName: "LABA-LABA")
+                case "easel_lab_snake":
+                    challenge = DrawingChallenge(label: "snake", displayName: "ULAR")
+                default:
+                    return
+                }
+                
+                drawingVC.challenge = challenge
+                drawingVC.challengeIndex = completedLabEasels.count + 1
+                drawingVC.totalChallenges = 3
                 
                 drawingVC.onSuccess = { [weak self] in
                     guard let self = self, !self.isGameOver else { return }
-                    self.handleDrawingSuccess(room: "lab")
+                    self.handleLabDrawingSuccess(easelName: easelName)
                 }
             } else {
                 guard engineChallengesCompleted < 5 else { return }
@@ -218,34 +245,72 @@ extension GameScene {
         viewController.present(drawingVC, animated: true, completion: nil)
     }
     
-    /// Dipanggil saat user sukses menyelesaikan salah satu tantangan menggambar utama.
+    /// Dipanggil saat sukses menggambar salah satu dari 3 lukisan di Lab.
+    func handleLabDrawingSuccess(easelName: String) {
+        completedLabEasels.insert(easelName)
+        labChallengesCompleted = completedLabEasels.count
+        
+        if let easel = challengeEasels.first(where: { $0.name == easelName }) {
+            easel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+        }
+        
+        aiIntelligence = min(maxAiIntelligence, aiIntelligence + 10.0)
+        updateAiIntelligenceBarFill()
+        
+        hideInteractionButton()
+        
+        let roundLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        roundLabel.text = "LAB: \(labChallengesCompleted)/3 SELESAI!"
+        roundLabel.fontSize = 22
+        roundLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+        roundLabel.position = CGPoint.zero
+        roundLabel.zPosition = 20
+        cameraNode.addChild(roundLabel)
+        
+        let fadeOut = SKAction.fadeOut(withDuration: 2.5)
+        let remove = SKAction.removeFromParent()
+        roundLabel.run(SKAction.sequence([fadeOut, remove]))
+        
+        checkGameCompletion()
+    }
+    
+    /// Dipanggil saat user sukses menyelesaikan salah satu tantangan menggambar utama di Engine Room.
     func handleDrawingSuccess(room: String) {
-        if room == "lab" {
-            labChallengesCompleted += 1
-            if labChallengesCompleted >= 5 {
-                // Papan gambar Lab jadi hijau permanen
-                if let labEasel = challengeEasels.first(where: { $0.position.y > 1300 }) {
-                    labEasel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
-                }
-            }
-        } else {
+        if room == "engine" {
             engineChallengesCompleted += 1
+            aiIntelligence = min(maxAiIntelligence, aiIntelligence + 12.0)
+            updateAiIntelligenceBarFill()
+            
             if engineChallengesCompleted >= 5 {
-                // Papan gambar Engine jadi hijau permanen
-                if let engineEasel = challengeEasels.first(where: { $0.position.y <= 1300 }) {
+                if let engineEasel = challengeEasels.first(where: { $0.name == "easel_engine" }) {
                     engineEasel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
                 }
             }
         }
         
-        if let progressLabel = progressLabel {
-            updateProgressLabel(progressLabel)
-        }
-        
         hideInteractionButton()
         
-        if engineChallengesCompleted >= 5 && labChallengesCompleted >= 5 {
-            // Semua tantangan selesai -> Ubah warna semua easel tantangan menjadi hijau permanen dan tampilkan banner final
+        if engineChallengesCompleted >= 5 && labChallengesCompleted >= 3 {
+            checkGameCompletion()
+        } else {
+            // Sukses ronde perantara -> Tampilkan banner ronde transisi
+            let roundLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            roundLabel.text = "RONDE ENGINE \(engineChallengesCompleted)/5 SELESAI!"
+            roundLabel.fontSize = 22
+            roundLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+            roundLabel.position = CGPoint.zero
+            roundLabel.zPosition = 20
+            cameraNode.addChild(roundLabel)
+            
+            let fadeOut = SKAction.fadeOut(withDuration: 2.5)
+            let remove = SKAction.removeFromParent()
+            roundLabel.run(SKAction.sequence([fadeOut, remove]))
+        }
+    }
+    
+    /// Memeriksa status penyelesaian game secara keseluruhan.
+    func checkGameCompletion() {
+        if engineChallengesCompleted >= 5 && labChallengesCompleted >= 3 {
             for easel in challengeEasels {
                 easel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
             }
@@ -261,21 +326,6 @@ extension GameScene {
             let fadeOut = SKAction.fadeOut(withDuration: 3.5)
             let remove = SKAction.removeFromParent()
             successLabel.run(SKAction.sequence([fadeOut, remove]))
-        } else {
-            // Sukses ronde perantara -> Tampilkan banner ronde transisi
-            let roundLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-            let roomName = room == "lab" ? "LAB" : "ENGINE"
-            let comp = room == "lab" ? labChallengesCompleted : engineChallengesCompleted
-            roundLabel.text = "RONDE \(roomName) \(comp)/5 SELESAI!"
-            roundLabel.fontSize = 22
-            roundLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
-            roundLabel.position = CGPoint.zero
-            roundLabel.zPosition = 20
-            cameraNode.addChild(roundLabel)
-            
-            let fadeOut = SKAction.fadeOut(withDuration: 2.5)
-            let remove = SKAction.removeFromParent()
-            roundLabel.run(SKAction.sequence([fadeOut, remove]))
         }
     }
     
@@ -379,12 +429,14 @@ extension GameScene {
         stamina = maxStamina
         engineChallengesCompleted = 0
         labChallengesCompleted = 0
+        completedLabEasels.removeAll()
+        aiIntelligence = 10.0
         engineChallengeQueue = DrawingChallenge.enginePool.shuffled()
         labChallengeQueue = DrawingChallenge.labPool.shuffled()
         
         // Update tampilan UI
-        updateProgressLabel(progressLabel!)
         updateStaminaBarFill()
+        updateAiIntelligenceBarFill()
         
         // Reset player & warna easel tantangan
         player.position = CGPoint(x: 375, y: 1000) // Reset ke Sleeping Room
