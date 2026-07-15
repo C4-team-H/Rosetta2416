@@ -7,20 +7,21 @@
 
 import UIKit
 import PencilKit
-import CoreML
 
 class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     // MARK: - Callbacks
     var onSuccess: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onSubmit: ((PKDrawing) async -> DrawingSubmissionOutcome)?
 
     // MARK: - Challenge Configuration
     // Diset oleh GameScene sebelum present. Default ini hanya placeholder dan
     // selalu ditimpa oleh tantangan aktif sebelum controller ditampilkan.
-    var challenge: DrawingChallenge = DrawingChallenge.enginePool[0]
+    var challenge: DrawingChallenge = DrawingChallenge.foodPool[0]
     var challengeIndex: Int = 1   // Ronde ke-berapa (1-based) untuk ditampilkan ke user
     var totalChallenges: Int = 5  // Total ronde tantangan
+    private lazy var challengeViewModel = DrawingChallengeViewModel(challenge: challenge)
 
     // MARK: - UI Components
     private let containerView: UIView = {
@@ -225,135 +226,28 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     }
 
     @objc private func submitTapped() {
-        // 1. Validasi jika canvas kosong
         guard !canvasView.drawing.bounds.isEmpty else {
             showAlert(title: "Kanvas Kosong", message: "Silakan gambar \(challenge.displayName) terlebih dahulu sebelum menekan Kirim.")
             return
         }
-        
-        // Disable tombol untuk mencegah klik ganda selama klasifikasi
+        guard let onSubmit else {
+            showAlert(title: "Kesalahan", message: "Tantangan belum dikonfigurasi.")
+            return
+        }
+
         submitButton.isEnabled = false
-        
-        // 2. Render gambar dengan latar belakang putih murni
-        guard let drawingImage = renderDrawingWithWhiteBackground() else {
-            showAlert(title: "Kesalahan", message: "Gagal memproses gambar coretan.")
-            submitButton.isEnabled = true
-            return
-        }
-        
-        // 3. Konversi ke CVPixelBuffer berukuran 360x360
-        guard let pixelBuffer = convertToPixelBuffer(image: drawingImage) else {
-            showAlert(title: "Kesalahan", message: "Gagal membuat pixel buffer gambar.")
-            submitButton.isEnabled = true
-            return
-        }
-        
-        // 4. Lakukan klasifikasi menggunakan CoreML model
-        do {
-            let config = MLModelConfiguration()
-            let model = try HandwritingGameClassification(configuration: config)
-            let input = HandwritingGameClassificationInput(image: pixelBuffer)
-            
-            let output = try model.prediction(input: input)
-            let predictedLabel = output.target.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-            let probability = output.targetProbability[output.target] ?? 0.0
-            
-            print("Predicted Class: \(predictedLabel), Confidence: \(probability)")
-            
-            // Verifikasi label: cocokkan prediksi model dengan label tantangan aktif.
-            if predictedLabel == challenge.label {
+        challengeViewModel.submissionHandler = onSubmit
+
+        let drawing = canvasView.drawing
+        Task { [weak self] in
+            guard let self else { return }
+            let outcome = await challengeViewModel.submit(drawing)
+            if outcome.accepted {
                 showSuccessAlert()
             } else {
-                showFailureAlert()
+                showFailureAlert(message: outcome.message)
             }
-            
-        } catch {
-            print("CoreML Error: \(error)")
-            let nsError = error as NSError
-            let detail = "Domain: \(nsError.domain)\nCode: \(nsError.code)\nMessage: \(nsError.localizedDescription)\nUserInfo: \(nsError.userInfo)"
-            showAlert(title: "Gagal Prediksi", message: "Terjadi kesalahan saat memproses model ML:\n\n\(detail)")
-            submitButton.isEnabled = true
         }
-    }
-
-    // MARK: - Image Processing Helpers
-    
-    // Merender coretan (PKDrawing) di atas latar putih solid (bukan transparan)
-    private func renderDrawingWithWhiteBackground() -> UIImage? {
-        let drawingBounds = canvasView.bounds
-        
-        // Memaksa light mode trait collection agar coretan dirender sebagai warna hitam (bukan putih karena dark mode)
-        var drawingImage: UIImage? = nil
-        if #available(iOS 13.0, *) {
-            UITraitCollection(userInterfaceStyle: .light).performAsCurrent {
-                drawingImage = canvasView.drawing.image(from: drawingBounds, scale: 1.0)
-            }
-        } else {
-            drawingImage = canvasView.drawing.image(from: drawingBounds, scale: 1.0)
-        }
-        
-        guard let image = drawingImage else { return nil }
-        
-        UIGraphicsBeginImageContextWithOptions(drawingBounds.size, true, 1.0)
-        defer { UIGraphicsEndImageContext() }
-        
-        guard let context = UIGraphicsGetCurrentContext() else { return nil }
-        
-        // Isi dengan warna putih solid
-        context.setFillColor(UIColor.white.cgColor)
-        context.fill(CGRect(origin: .zero, size: drawingBounds.size))
-        
-        // Gambar lukisan di atasnya
-        image.draw(in: CGRect(origin: .zero, size: drawingBounds.size))
-        
-        return UIGraphicsGetImageFromCurrentImageContext()
-    }
-    
-    // Mengonversi dan meresize image menjadi CVPixelBuffer 360x360
-    private func convertToPixelBuffer(image: UIImage) -> CVPixelBuffer? {
-        let targetSize = CGSize(width: 360, height: 360)
-        
-        let attrs = [
-            kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
-            kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue
-        ] as CFDictionary
-        
-        var pixelBuffer: CVPixelBuffer? = nil
-        let status = CVPixelBufferCreate(kCFAllocatorDefault, Int(targetSize.width), Int(targetSize.height), kCVPixelFormatType_32BGRA, attrs, &pixelBuffer)
-        
-        guard status == kCVReturnSuccess, let buffer = pixelBuffer else {
-            return nil
-        }
-        
-        CVPixelBufferLockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
-        let pixelData = CVPixelBufferGetBaseAddress(buffer)
-        
-        let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-        let context = CGContext(
-            data: pixelData,
-            width: Int(targetSize.width),
-            height: Int(targetSize.height),
-            bitsPerComponent: 8,
-            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
-            space: rgbColorSpace,
-            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
-        )
-        
-        guard let ctx = context else {
-            CVPixelBufferUnlockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
-            return nil
-        }
-        
-        // Membalik sistem koordinat CGContext agar sesuai dengan UIKit
-        ctx.translateBy(x: 0, y: targetSize.height)
-        ctx.scaleBy(x: 1.0, y: -1.0)
-        
-        UIGraphicsPushContext(ctx)
-        image.draw(in: CGRect(origin: .zero, size: targetSize))
-        UIGraphicsPopContext()
-        CVPixelBufferUnlockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
-        
-        return buffer
     }
 
     // MARK: - Alerts
@@ -381,9 +275,10 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         present(alert, animated: true, completion: nil)
     }
 
-    private func showFailureAlert() {
-        let alert = UIAlertController(title: "Kurang Tepat", message: "Gambar Anda belum terdeteksi sebagai \(challenge.displayName). Silakan gambar ulang.", preferredStyle: .alert)
+    private func showFailureAlert(message: String? = nil) {
+        let alert = UIAlertController(title: "Kurang Tepat", message: message ?? "Gambar Anda belum terdeteksi sebagai \(challenge.displayName). Silakan gambar ulang.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Coba Lagi", style: .default, handler: { [weak self] _ in
+            self?.challengeViewModel.retry()
             self?.submitButton.isEnabled = true
             self?.clearTapped()
         }))

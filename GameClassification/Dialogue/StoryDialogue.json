@@ -1,0 +1,13 @@
+[
+  {"id":"intro-1","chapter":"sleepingRoom","trigger":"chapter","text":"Sys... systems damaged. Solar... flare impact detected. Find... laboratory.","priority":100},
+  {"id":"lab-complete","chapter":"enginePhaseOne","trigger":"chapter","text":"Communication restored. The primary engine is offline. Proceed to the Engine Room.","priority":100},
+  {"id":"power-basic","chapter":"enginePhaseTwo","trigger":"power","value":"basicPower","text":"Primary power relay restored. Basic lighting is now online.","priority":100},
+  {"id":"power-disrupted","chapter":"enginePhaseTwo","trigger":"power","value":"disrupted","text":"Warning. Engine repair has destabilized the power grid. Continue carefully.","priority":100},
+  {"id":"storage-route","chapter":"engineBlocked","trigger":"chapter","text":"Repair progress halted. Retrieve advanced calibration tools from Storage.","priority":100},
+  {"id":"tools-acquired","chapter":"engineFinal","trigger":"chapter","text":"Advanced repair tools acquired. Return to the Engine Room.","priority":100},
+  {"id":"engine-complete","chapter":"cockpit","trigger":"chapter","text":"Engine restoration complete. My cognitive systems are fully operational. Cockpit access restored.","priority":100},
+  {"id":"deny-engine-fragmented","chapter":"sleepingRoom","trigger":"roomDenied","value":"engine","text":"Engine... sealed. Need... laboratory memory repair first.","priority":80,"maximumIntelligence":39},
+  {"id":"deny-storage-analytical","chapter":"enginePhaseTwo","trigger":"roomDenied","value":"storage","text":"Storage authorization depends on a stable 60 percent engine feed. Current access conditions are unmet.","priority":80,"minimumIntelligence":40,"maximumIntelligence":99},
+  {"id":"deny-cockpit-confident","chapter":"engineFinal","trigger":"roomDenied","value":"cockpit","text":"Cockpit lock is functioning correctly. Complete full Engine and Intelligence restoration before entry.","priority":80,"minimumIntelligence":60},
+  {"id":"victory","chapter":"completed","trigger":"victory","text":"All systems restored. Navigation control is responding. You brought us back online.","priority":100}
+]

@@ -18,6 +18,10 @@ final class MapOverlayContainerView: UIView {
             return super.hitTest(point, with: event)
         }
 
+        if viewModel.sessionState.phase == .gameOver || viewModel.sessionState.phase == .victory {
+            return super.hitTest(point, with: event)
+        }
+
         guard viewModel.isGameplayActive else { return nil }
         return mapButtonHitArea.contains(point) ? super.hitTest(point, with: event) : nil
     }

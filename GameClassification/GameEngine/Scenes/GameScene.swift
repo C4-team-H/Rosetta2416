@@ -1,17 +1,59 @@
-//
-//  GameScene.swift
-//  GameClassification
-//
-//  Created by Muhammad Muthi' Nuritzan on 09/07/26.
-//
-
 import SpriteKit
 
-class GameScene: SKScene {
+@MainActor
+protocol GameSceneEventDelegate: AnyObject {
+    func gameScene(_ scene: GameScene, didEnter room: RoomID)
+    func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String)
+    func gameSceneDidRequestFoodChallenge(_ scene: GameScene)
+    func gameSceneDidReachGameOver(_ scene: GameScene)
+}
 
+final class GameScene: SKScene {
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel
+    weak var eventDelegate: GameSceneEventDelegate?
+
+    let cameraNode = SKCameraNode()
+    var player: SKShapeNode!
+    var joystickBase: SKShapeNode!
+    var joystickKnob: SKShapeNode!
+    var gridContainer: SKNode?
+    var actionButton: SKShapeNode?
+    var foodActionButton: SKShapeNode?
+    var foodObject: SKShapeNode!
+    var stationNodes: [String: SKShapeNode] = [:]
+    var activeStationID: String?
+    var doorNodes: [String: SKShapeNode] = [:]
+    var lastDeniedStationID: String?
+    var lastDeniedDoorID: String?
+
+    var isJoystickActive = false
+    var joystickVector = CGPoint.zero
+    var joystickActiveTouch: UITouch?
+    let joystickRadius: CGFloat = 60
+    let playerSpeed: CGFloat = 4
+
+    var pencilTouch: UITouch?
+    var pencilTarget: CGPoint?
+    var pencilSpeedMultiplier: CGFloat = 1
+    var targetMarker: SKShapeNode?
+    let arrivalThreshold: CGFloat = 4
+
+    struct Obstacle {
+        let node: SKNode
+        let size: CGSize
+        let absPos: CGPoint
+    }
+    var obstacles: [Obstacle] = []
+    let playerRadius: CGFloat = 15
+
+    var candleLight: CandleLightNode?
+    let lightingSystem = LightingSystem()
+
     private var wasMapInputSuspended = false
+    private var previousUpdateTime: TimeInterval?
+    private var currentRoom: RoomID?
+    private var didNotifyGameOver = false
 
     init(size: CGSize, sessionState: GameSessionState, tacticalMapViewModel: TacticalMapViewModel) {
         self.sessionState = sessionState
@@ -22,189 +64,56 @@ class GameScene: SKScene {
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    // MARK: - Properties
-    let cameraNode = SKCameraNode() // Kamera untuk mengikuti pergerakan player
-    var challengeEasels: [SKShapeNode] = [] // Daftar papan gambar tantangan
-    
-    // Karakter game (berbentuk lingkaran biasa)
-    var player: SKShapeNode!
-    
-    // Node untuk Joystick (lingkaran luar & tombol kontrol di dalam)
-    var joystickBase: SKShapeNode!
-    var joystickKnob: SKShapeNode!
-    
-    // Container untuk grid ubin lantai agar mudah dihapus/dibuat ulang saat ukuran layar berubah
-    var gridContainer: SKNode?
-    
-    
-    // Tombol "DRAW" di pojok kanan bawah
-    var actionButton: SKShapeNode?
-    
-    // Objek interaktif Makanan
-    var foodObject: SKShapeNode!
-    var foodActionButton: SKShapeNode?
-    
-    // Status tantangan
-    let totalChallenges = 8
-    var engineChallengesCompleted = 0
-    var challengesCompleted: Int {
-        return engineChallengesCompleted + labChallengesCompleted
-    }
-    
-    var completedLabEasels: Set<String> = []
-    var labChallengesCompleted: Int { completedLabEasels.count }
-    var aiIntelligence: CGFloat = 10.0
-    let maxAiIntelligence: CGFloat = 100.0
-    let aiIntelligencePerLabEasel: CGFloat = 10.0
-    let aiIntelligenceEngineUnlockThreshold: CGFloat = 40.0
-    var aiIntelligenceBarContainer: SKNode?
-    
-    var engineChallengeQueue: [DrawingChallenge] = []
-    // Map easel name → challenge untuk lab easel (fixed, bukan queue).
-    var labEaselChallengesMap: [String: DrawingChallenge] = [:]
-    var activeEasel: SKShapeNode?
-    
-    // Label progres ronde di bagian atas layar
-    var progressLabel: SKLabelNode?
-    
-    // Fitur Stamina Progress Bar
-    var stamina: CGFloat = 100.0
-    let maxStamina: CGFloat = 100.0
-    let staminaDecayRate: CGFloat = 0.005 // berkurang perlahan setiap frame update
-    var staminaBarContainer: SKNode?
-    
-    // Status joystick & arah pergerakan
-    var isJoystickActive = false
-    var joystickVector = CGPoint.zero // Vektor arah pergerakan (-1.0 sampai 1.0)
-    var joystickActiveTouch: UITouch? // Menyimpan touch aktif yang mengontrol joystick
-    
-    // Batas radius pergeseran tombol joystick (knob)
-    let joystickRadius: CGFloat = 60
-    
-    // Kecepatan gerak karakter
-    let playerSpeed: CGFloat = 4.0
-    
-    // MARK: - Apple Pencil Pointer Navigation (tap-to-move)
-    var pencilTouch: UITouch?       // Touch Pencil yang sedang aktif
-    var pencilTarget: CGPoint?      // Titik tujuan karakter
-    var pencilSpeedMultiplier: CGFloat = 1.0
-    var targetMarker: SKShapeNode?  // Marker visual lingkaran di titik tujuan
-    let arrivalThreshold: CGFloat = 4.0
-    
-    // MARK: - Obstacles
-    struct Obstacle {
-        let node: SKNode
-        let size: CGSize
-        let absPos: CGPoint // Menggunakan posisi absolut di map 2000x2000
-    }
-    var obstacles: [Obstacle] = []
-    let playerRadius: CGFloat = 15
-    
-    // MARK: - Candle-Light Overlay
-    var candleLight: CandleLightNode?
-    
-    // MARK: - GameOver UI
-    var isGameOver = false
-    var gameOverNode: SKNode?
-    
-    // MARK: - Scene Lifecycle
-    
+
     override func didMove(to view: SKView) {
-        sessionState.updateLocalPlayer(position: GameMapLayout.playerSpawnPosition)
         sessionState.beginGameplay()
-        // Mengatur warna background area game
-        self.backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1.0)
-        
-        // 0. Setup kamera terlebih dahulu agar HUD ditambahkan pada kamera
-        self.camera = cameraNode
-        self.addChild(cameraNode)
-        cameraNode.setScale(0.6) // Zoom agar map terasa besar dan bisa bergeser
-        
-        // 1. Menggambar Lantai Grid Kotak Biasa
+        backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1)
+        camera = cameraNode
+        addChild(cameraNode)
+        cameraNode.setScale(0.6)
+
         createRegularGrid()
-        
-        // 2. Membuat Karakter Player
         createPlayer()
-        
-        // 3. Membuat Analog Joystick
         createJoystick()
-        
-        // 4. Membuat Objek Interaktif Tantangan (Easel Utama & Lab)
-        createInteractiveObject()
-        
-        // 5. Membuat Objek Interaktif Makanan
+        createInteractiveStations()
         createFoodObject()
-        
-        // 6. Membuat Rintangan (Dinding dan Koridor Ruangan)
         createObstacles()
-        
-        // 7. Siapkan antrean tantangan engine (lab memakai challenge tetap per easel)
-        engineChallengeQueue = DrawingChallenge.enginePool.shuffled()
-        
-        // 8. Membuat Progress Bar Stamina & AI Intelligence
-        createStaminaBar()
-        createAiIntelligenceBar()
-        
-        // 9. Aktifkan overlay cahaya lilin
         enableCandleLight()
+        refreshStoryVisuals()
+        player.position = sessionState.localPlayer.worldPosition
+        cameraNode.position = player.position
+        detectRoomChange()
     }
-    
+
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        
-        // 1. Gambar ulang grid lantai agar sesuai dengan ukuran map
         createRegularGrid()
-        
-        // 2. Batasi karakter agar tetap berada di dalam batas map 2000x2000
-        if let player = player {
-            let worldSize = GameMapLayout.worldSize
-            let newX = max(playerRadius, min(worldSize.width - playerRadius, player.position.x))
-            let newY = max(playerRadius, min(worldSize.height - playerRadius, player.position.y))
-            player.position = CGPoint(x: newX, y: newY)
+        let worldSize = GameMapLayout.worldSize
+        if let player {
+            player.position.x = max(playerRadius, min(worldSize.width - playerRadius, player.position.x))
+            player.position.y = max(playerRadius, min(worldSize.height - playerRadius, player.position.y))
         }
-        
-        // 3. Reposisi HUD pada kamera karena ukuran layar/viewport berubah
-        let w = self.size.width
-        let h = self.size.height
-        
-        if let joystickBase = joystickBase {
-            joystickBase.position = CGPoint(x: -w / 2 + joystickRadius + 50, y: -h / 2 + joystickRadius + 70)
-        }
-        
-        if let actionButton = actionButton {
-            let btnRadius: CGFloat = 40
-            actionButton.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
-        }
-        
-        if let foodActionButton = foodActionButton {
-            let btnRadius: CGFloat = 40
-            foodActionButton.position = CGPoint(x: w / 2 - btnRadius - 50, y: -h / 2 + joystickRadius + 70)
-        }
-        
-        if let staminaBarContainer = staminaBarContainer {
-            staminaBarContainer.position = CGPoint(x: -w / 2 + 20, y: h / 2 - 40)
-        }
-        
-        if let aiIntelligenceBarContainer = aiIntelligenceBarContainer {
-            aiIntelligenceBarContainer.position = CGPoint(x: w / 2 - 200, y: h / 2 - 40)
-        }
-        
-        // 4. Reposisi rintangan (tidak perlu reposisi karena posisi absolut), resize cahaya lilin
-        candleLight?.position = CGPoint(x: -w / 2, y: -h / 2)
-        candleLight?.resize(to: self.size)
-        
-        // 5. Reposisi layar Game Over pada kamera
-        if let gameOverNode = gameOverNode {
-            gameOverNode.position = CGPoint.zero
-            if let bg = gameOverNode.childNode(withName: "bg") as? SKShapeNode {
-                bg.path = CGPath(rect: CGRect(x: -w/2, y: -h/2, width: w, height: h), transform: nil)
-            }
-        }
+        joystickBase?.position = CGPoint(x: -size.width / 2 + joystickRadius + 50, y: -size.height / 2 + joystickRadius + 70)
+        positionActionButtons()
+        candleLight?.position = CGPoint(x: -size.width / 2, y: -size.height / 2)
+        candleLight?.resize(to: size)
     }
-    
+
     override func update(_ currentTime: TimeInterval) {
-        guard !isGameOver else { return }
+        let rawDelta = previousUpdateTime.map { currentTime - $0 } ?? 0
+        previousUpdateTime = currentTime
+        let deltaTime = min(max(rawDelta, 0), 0.25)
+
+        guard sessionState.phase != .gameOver, sessionState.phase != .victory else {
+            resetJoystick()
+            pencilTarget = nil
+            return
+        }
+        if case .cutscene = sessionState.phase {
+            resetJoystick()
+            pencilTarget = nil
+            return
+        }
 
         if tacticalMapViewModel.isMapPresented {
             if !wasMapInputSuspended {
@@ -217,43 +126,80 @@ class GameScene: SKScene {
         } else {
             wasMapInputSuspended = false
         }
-        
-        // Prioritas pergerakan
-        if !tacticalMapViewModel.isMapPresented, pencilTarget != nil {
+
+        let isMoving = !tacticalMapViewModel.isMapPresented
+            && (pencilTarget != nil || (isJoystickActive && joystickVector != .zero))
+
+        if isMoving, pencilTarget != nil {
             movePlayerTowardTarget()
-        } else if !tacticalMapViewModel.isMapPresented, isJoystickActive && joystickVector != CGPoint.zero {
+        } else if isMoving {
             movePlayer()
         }
-        
-        // pauseLocalGameplay pauses local simulation only; SpriteKit and networking still run.
-        if tacticalMapViewModel.shouldRunLocalSimulation && !self.isPaused {
-            stamina = max(0, stamina - staminaDecayRate)
-            updateStaminaBarFill()
-            
-            if stamina <= 0 {
-                triggerGameOver()
+
+        if tacticalMapViewModel.shouldRunLocalSimulation && !isPaused {
+            sessionState.updateEnergy(deltaTime: deltaTime, isMoving: isMoving)
+            if sessionState.phase == .gameOver, !didNotifyGameOver {
+                didNotifyGameOver = true
+                eventDelegate?.gameSceneDidReachGameOver(self)
             }
-        }
-        
-        if tacticalMapViewModel.shouldRunLocalSimulation {
             checkProximityToInteractiveObject()
             checkProximityToFoodObject()
+            checkProximityToLockedDoor()
+            detectRoomChange()
         }
-        
-        // Perbarui pencahayaan lilin relatif terhadap kamera (player selalu di tengah screen)
-        candleLight?.update(lightPosition: CGPoint(x: self.size.width / 2, y: self.size.height / 2), currentTime: currentTime)
-        
-        // Kamera mengikuti pergerakan player
-        cameraNode.position = player.position
 
-        // The map always has the latest position when opened. Observation only invalidates views
-        // that currently read this value, so publishing while the overlay is closed stays cheap.
+        candleLight?.update(
+            lightPosition: CGPoint(x: size.width / 2, y: size.height / 2),
+            currentTime: currentTime
+        )
+        cameraNode.position = player.position
         sessionState.updateLocalPlayer(position: player.position)
+        lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
     }
 
     override func willMove(from view: SKView) {
         tacticalMapViewModel.closeMap()
         sessionState.endGameplay()
         super.willMove(from: view)
+    }
+
+    func applyStoryEffects(_ effects: [StoryEffect]) {
+        guard !effects.isEmpty else { return }
+        refreshStoryVisuals()
+        for effect in effects {
+            switch effect {
+            case let .powerChanged(power):
+                lightingSystem.transition(to: power, in: self)
+            case let .objectiveCompleted(id):
+                animateCompletedStation(id: id)
+            case .doorAccessChanged, .stationVisualChanged:
+                refreshStoryVisuals()
+            case .cutscene:
+                resetJoystick()
+                pencilTarget = nil
+                run(.sequence([
+                    .wait(forDuration: 1.0),
+                    .run { [weak self] in self?.sessionState.endCutscene() }
+                ]), withKey: "storyCutscene")
+            case .victory:
+                lightingSystem.playVictory(in: self)
+            default:
+                break
+            }
+        }
+    }
+
+    func restorePlayerFromSession() {
+        didNotifyGameOver = false
+        player.position = sessionState.localPlayer.worldPosition
+        cameraNode.position = player.position
+        refreshStoryVisuals()
+    }
+
+    private func detectRoomChange() {
+        let detected = GameMapLayout.room(containing: player.position)
+        guard detected != currentRoom else { return }
+        currentRoom = detected
+        if let detected { eventDelegate?.gameScene(self, didEnter: detected) }
     }
 }

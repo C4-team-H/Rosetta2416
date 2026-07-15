@@ -2,49 +2,112 @@ import SwiftUI
 
 struct GameplayHUDView: View {
     let viewModel: TacticalMapViewModel
+    let session: GameSessionState
+    let onRetryCheckpoint: () -> Void
+    let onReplay: () -> Void
+    let onMainMenu: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var feedbackTrigger = 0
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack {
             if viewModel.isGameplayActive && !viewModel.isMapPresented {
+                StoryProgressHUDView(session: session)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.top, 16)
+                    .padding(.leading, 16)
+
                 MapButton(action: openMap)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(.top, 80)
                     .padding(.trailing, 16)
-                    .transition(.opacity)
+            }
+
+            if let line = session.currentDialogue, session.phase != .gameOver, session.phase != .victory {
+                AIDialogueOverlay(line: line)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                    .task(id: line.id) {
+                        try? await Task.sleep(for: .seconds(5))
+                        session.dismissDialogue()
+                    }
+            }
+
+            if let message = session.transientMessage, session.phase != .gameOver {
+                Text(message)
+                    .font(.callout.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.black.opacity(0.75), in: .capsule)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 132)
+                    .task(id: message) {
+                        try? await Task.sleep(for: .seconds(3))
+                        session.clearTransientPresentation()
+                    }
+            }
+
+            if let checkpoint = session.checkpointNotice, session.phase == .playing {
+                Label("CHECKPOINT  \(checkpoint.displayName)", systemImage: "flag.checkered")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.blue.opacity(0.85), in: .capsule)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 88)
+                    .task(id: checkpoint) {
+                        try? await Task.sleep(for: .seconds(2.5))
+                        session.dismissCheckpointNotice()
+                    }
             }
 
             if viewModel.isMapPresented {
                 TacticalMapView(viewModel: viewModel, onClose: closeMap)
                     .transition(mapTransition)
-                    .zIndex(1)
+                    .zIndex(2)
+            }
+
+            if session.phase == .gameOver || session.phase == .victory {
+                StoryTerminalOverlay(
+                    session: session,
+                    onRetry: onRetryCheckpoint,
+                    onReplay: onReplay,
+                    onMainMenu: onMainMenu
+                )
+                .zIndex(3)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         .animation(overlayAnimation, value: viewModel.isMapPresented)
         .sensoryFeedback(.impact(weight: .light), trigger: feedbackTrigger)
     }
 
     private var overlayAnimation: Animation {
-        reduceMotion
-            ? .linear(duration: 0.12)
-            : .easeInOut(duration: MapDesignTokens.overlayAnimationDuration)
+        reduceMotion ? .linear(duration: 0.12) : .easeInOut(duration: MapDesignTokens.overlayAnimationDuration)
     }
 
     private var mapTransition: AnyTransition {
-        reduceMotion
-            ? .opacity
-            : .opacity.combined(with: .scale(scale: 0.96))
+        reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96))
     }
 
-    private func openMap() {
-        feedbackTrigger += 1
-        viewModel.openMap()
-    }
+    private func openMap() { feedbackTrigger += 1; viewModel.openMap() }
+    private func closeMap() { feedbackTrigger += 1; viewModel.closeMap() }
+}
 
-    private func closeMap() {
-        feedbackTrigger += 1
-        viewModel.closeMap()
+private extension CheckpointID {
+    var displayName: String {
+        switch self {
+        case .sleepingRoom: "Sleeping Room"
+        case .laboratory: "Laboratory"
+        case .enginePhaseOne: "Engine"
+        case .engineDisruption: "Power Disruption"
+        case .engineBlocked: "Engine Blocked"
+        case .storage: "Storage"
+        case .engineFinal: "Final Engine"
+        case .cockpit: "Cockpit"
+        }
     }
 }

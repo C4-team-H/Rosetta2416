@@ -13,21 +13,7 @@ extension GameScene {
     /// Dipanggil saat jari atau Apple Pencil pertama kali menyentuh layar.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !tacticalMapViewModel.isMapPresented else { return }
-        // Jika status Game Over, sentuhan hanya mendeteksi tombol restart
-        guard !isGameOver else {
-            for touch in touches {
-                let touchLocation = touch.location(in: self)
-                let cameraTouchLocation = self.convert(touchLocation, to: cameraNode)
-                let nodesAtPoint = cameraNode.nodes(at: cameraTouchLocation)
-                for node in nodesAtPoint {
-                    if node.name == "restartButton" {
-                        restartGame()
-                        return
-                    }
-                }
-            }
-            return
-        }
+        guard sessionState.phase == .playing else { return }
         
         for touch in touches {
             let touchLocation = touch.location(in: self)
@@ -37,10 +23,10 @@ extension GameScene {
             let nodesAtCameraPoint = cameraNode.nodes(at: cameraTouchLocation)
             for node in nodesAtCameraPoint {
                 if node.name == "drawButton" {
-                    presentDrawingCanvas(isFood: false)
+                    requestActiveStationInteraction()
                     return
                 } else if node.name == "foodDrawButton" {
-                    presentDrawingCanvas(isFood: true)
+                    requestFoodInteraction()
                     return
                 }
             }
@@ -68,7 +54,7 @@ extension GameScene {
     /// Dipanggil saat jari atau Apple Pencil bergeser di atas layar.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !tacticalMapViewModel.isMapPresented else { return }
-        guard !isGameOver else { return }
+        guard sessionState.phase == .playing else { return }
         
         // Geser Apple Pencil -> Pindahkan titik koordinat target bergerak
         if let activePencil = pencilTouch, touches.contains(activePencil) {

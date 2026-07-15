@@ -14,8 +14,8 @@ extension GameScene {
     /// Memindahkan player menggunakan input dari Joystick analog jari.
     /// Dipanggil setiap frame pada method `update(_:)` jika joystick aktif.
     func movePlayer() {
-        // Karakter tidak boleh bergerak jika energi (stamina) habis
-        guard stamina > 0 else { return }
+        // Karakter tidak boleh bergerak jika Energy habis.
+        guard sessionState.energy > 0 else { return }
         
         let jx = joystickVector.x
         let jy = joystickVector.y
@@ -42,8 +42,8 @@ extension GameScene {
     func movePlayerTowardTarget() {
         guard let target = pencilTarget else { return }
         
-        // Hentikan pergerakan jika stamina habis
-        guard stamina > 0 else {
+        // Hentikan pergerakan jika Energy habis.
+        guard sessionState.energy > 0 else {
             pencilTarget = nil
             hideTargetMarker()
             return

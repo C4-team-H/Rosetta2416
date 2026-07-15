@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MapMockMovementDemo: View {
     @State private var viewModel: TacticalMapViewModel
+    @State private var session: GameSessionState
 
     init() {
         let sessionState = GameSessionState(
@@ -14,12 +15,19 @@ struct MapMockMovementDemo: View {
                 isConnected: true
             )
         )
+        _session = State(initialValue: sessionState)
         _viewModel = State(initialValue: TacticalMapViewModel(sessionState: sessionState))
     }
     @State private var startedAt = Date.now
 
     var body: some View {
-        GameplayHUDView(viewModel: viewModel)
+        GameplayHUDView(
+            viewModel: viewModel,
+            session: session,
+            onRetryCheckpoint: {},
+            onReplay: {},
+            onMainMenu: {}
+        )
             .background(.black)
             .task {
                 await runDemo()

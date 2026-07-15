@@ -1,21 +1,44 @@
+import PencilKit
 import SpriteKit
+import UIKit
 
 @MainActor
 final class GameplayCoordinator {
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel
+    let authority: StoryAuthority
+    let missionSystem: MissionSystem
+
+    weak var presentingViewController: UIViewController?
+    private weak var activeGameScene: GameScene?
 
     init() {
-        let sessionState = GameSessionState(
+        let repository: StoryProgressRepository
+        do {
+            repository = try LocalStoryProgressRepository()
+        } catch {
+            repository = InMemoryStoryProgressRepository()
+        }
+
+        let storySystem = StoryProgressionSystem()
+        let session = GameSessionState(
             localPlayer: PlayerState(
                 id: "local-player",
                 name: "You",
                 worldPosition: GameMapLayout.playerSpawnPosition,
                 isConnected: true
-            )
+            ),
+            storySystem: storySystem,
+            repository: repository
         )
-        self.sessionState = sessionState
-        tacticalMapViewModel = TacticalMapViewModel(sessionState: sessionState)
+        sessionState = session
+        tacticalMapViewModel = TacticalMapViewModel(sessionState: session)
+        missionSystem = MissionSystem(story: storySystem)
+        authority = LocalStoryAuthority(sessionState: session, recognizer: CoreMLDoodleRecognizer())
+    }
+
+    func loadProgress() async {
+        await sessionState.loadProgress()
     }
 
     func makeMainMenuScene(size: CGSize) -> MainMenuScene {
@@ -23,6 +46,97 @@ final class GameplayCoordinator {
     }
 
     func makeGameScene(size: CGSize) -> GameScene {
-        GameScene(size: size, sessionState: sessionState, tacticalMapViewModel: tacticalMapViewModel)
+        let scene = GameScene(size: size, sessionState: sessionState, tacticalMapViewModel: tacticalMapViewModel)
+        scene.eventDelegate = self
+        activeGameScene = scene
+        return scene
+    }
+
+    func retryCheckpoint() {
+        _ = sessionState.handle(.checkpointRetryRequested)
+        presentingViewController?.dismiss(animated: true)
+        activeGameScene?.restorePlayerFromSession()
+    }
+
+    func replayStory() {
+        sessionState.startNewSession()
+        presentingViewController?.dismiss(animated: true)
+        activeGameScene?.restorePlayerFromSession()
+    }
+
+    func returnToMainMenu() {
+        presentingViewController?.dismiss(animated: true)
+        guard let scene = activeGameScene, let view = scene.view else { return }
+        sessionState.endGameplay()
+        let menu = makeMainMenuScene(size: scene.size)
+        menu.scaleMode = .resizeFill
+        view.presentScene(menu, transition: .fade(withDuration: 0.6))
+    }
+
+    private func presentDrawingChallenge(_ challenge: DrawingChallenge, in scene: GameScene, chapterCount: Int, chapterIndex: Int) {
+        guard let presenter = presentingViewController, presenter.presentedViewController == nil else { return }
+        sessionState.beginDrawing(objectiveID: challenge.id)
+
+        let controller = DrawingChallengeViewController()
+        controller.challenge = challenge
+        controller.challengeIndex = chapterIndex
+        controller.totalChallenges = chapterCount
+        controller.modalPresentationStyle = .overFullScreen
+        controller.modalTransitionStyle = .crossDissolve
+
+        controller.onSubmit = { [weak self, weak scene] drawing in
+            guard let self else {
+                return DrawingSubmissionOutcome(accepted: false, message: "Game session ended.", recognition: nil)
+            }
+            let command = StoryCommand.submitDrawing(
+                commandID: UUID(),
+                objectiveID: challenge.id,
+                drawingData: drawing.dataRepresentation(),
+                playerID: sessionState.localPlayer.id
+            )
+            let result = await authority.execute(command)
+            scene?.applyStoryEffects(result.effects)
+            return DrawingSubmissionOutcome(accepted: result.accepted, message: result.message, recognition: result.recognition)
+        }
+
+        controller.onSuccess = { [weak self, weak scene] in
+            self?.sessionState.endDrawing()
+            scene?.refreshStoryVisuals()
+        }
+        controller.onCancel = { [weak self] in self?.sessionState.endDrawing() }
+        presenter.present(controller, animated: true)
+    }
+}
+
+extension GameplayCoordinator: GameSceneEventDelegate {
+    func gameScene(_ scene: GameScene, didEnter room: RoomID) {
+        scene.applyStoryEffects(sessionState.handle(.roomEntered(room)))
+    }
+
+    func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String) {
+        guard let definition = missionSystem.interactableObjective(
+            id: objectiveID,
+            from: GameMapLayout.room(containing: sessionState.localPlayer.worldPosition)
+        ),
+              case .drawing = definition.kind else { return }
+        let chapterObjectives = StoryContent.objectives.filter { $0.chapter == definition.chapter }
+        let index = (chapterObjectives.firstIndex(where: { $0.id == objectiveID }) ?? 0) + 1
+        presentDrawingChallenge(
+            DrawingChallenge(objective: definition),
+            in: scene,
+            chapterCount: chapterObjectives.count,
+            chapterIndex: index
+        )
+    }
+
+    func gameSceneDidRequestFoodChallenge(_ scene: GameScene) {
+        guard let challenge = DrawingChallenge.foodPool.randomElement() else { return }
+        presentDrawingChallenge(challenge, in: scene, chapterCount: 1, chapterIndex: 1)
+    }
+
+    func gameSceneDidReachGameOver(_ scene: GameScene) {
+        if presentingViewController?.presentedViewController is DrawingChallengeViewController {
+            presentingViewController?.dismiss(animated: true)
+        }
     }
 }

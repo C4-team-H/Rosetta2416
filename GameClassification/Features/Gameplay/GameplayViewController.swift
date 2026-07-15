@@ -16,6 +16,7 @@ class GameViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        coordinator.presentingViewController = self
 
         guard let spriteView = view as? SKView else {
             assertionFailure("GameViewController requires an SKView root view")
@@ -30,11 +31,18 @@ class GameViewController: UIViewController {
         spriteView.showsNodeCount = true
 
         installGameplayOverlay()
+        Task { await coordinator.loadProgress() }
     }
 
     private func installGameplayOverlay() {
         let viewModel = coordinator.tacticalMapViewModel
-        let controller = UIHostingController(rootView: GameplayHUDView(viewModel: viewModel))
+        let controller = UIHostingController(rootView: GameplayHUDView(
+            viewModel: viewModel,
+            session: coordinator.sessionState,
+            onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
+            onReplay: { [weak coordinator] in coordinator?.replayStory() },
+            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
+        ))
         controller.view.backgroundColor = .clear
         controller.view.translatesAutoresizingMaskIntoConstraints = false
 
