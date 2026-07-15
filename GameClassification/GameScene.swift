@@ -23,8 +23,7 @@ class GameScene: SKScene {
     // Container untuk grid ubin lantai agar mudah dihapus/dibuat ulang saat ukuran layar berubah
     var gridContainer: SKNode?
     
-    // Objek interaktif (easel papan gambar)
-    var interactiveObject: SKShapeNode!
+    
     // Tombol "DRAW" di pojok kanan bawah
     var actionButton: SKShapeNode?
     
@@ -33,17 +32,26 @@ class GameScene: SKScene {
     var foodActionButton: SKShapeNode?
     
     // Status tantangan
-    let totalChallenges = 5
-    var challengesCompleted = 0
-    // Antrean tantangan acak (shuffled) — tiap objek muncul sekali dalam 5 ronde.
-    var challengeQueue: [DrawingChallenge] = []
+    let totalChallenges = 10
+    var engineChallengesCompleted = 0
+    var labChallengesCompleted = 0
+    var challengesCompleted: Int {
+        return engineChallengesCompleted + labChallengesCompleted
+    }
+    
+
+    
+    var engineChallengeQueue: [DrawingChallenge] = []
+    var labChallengeQueue: [DrawingChallenge] = []
+    var activeEasel: SKShapeNode?
+    
     // Label progres ronde di bagian atas layar
     var progressLabel: SKLabelNode?
     
     // Fitur Stamina Progress Bar
     var stamina: CGFloat = 100.0
     let maxStamina: CGFloat = 100.0
-    let staminaDecayRate: CGFloat = 0.025 // berkurang perlahan setiap frame update
+    let staminaDecayRate: CGFloat = 0.005 // berkurang perlahan setiap frame update
     var staminaBarContainer: SKNode?
     
     // Status joystick & arah pergerakan
@@ -110,7 +118,8 @@ class GameScene: SKScene {
         createObstacles()
         
         // 7. Siapkan antrean tantangan acak & label progres
-        challengeQueue = DrawingChallenge.all.shuffled()
+        engineChallengeQueue = DrawingChallenge.enginePool.shuffled()
+        labChallengeQueue = DrawingChallenge.labPool.shuffled()
         createProgressLabel()
         
         // 8. Membuat Progress Bar Stamina

@@ -89,9 +89,6 @@ extension GameScene {
         self.addChild(easelEngine)
         challengeEasels.append(easelEngine)
         
-        // Simpan referensi ke interactiveObject agar tidak merusak kode lain (misal saat mengganti warnanya di handleDrawingSuccess)
-        interactiveObject = easelEngine
-        
         // 2. Easel di Lab (Top-Left)
         let easelLab = createEasel(at: CGPoint(x: 375, y: 1600))
         self.addChild(easelLab)
@@ -317,7 +314,7 @@ extension GameScene {
     
     /// Memperbarui isi teks label progres ronde.
     func updateProgressLabel(_ label: SKLabelNode) {
-        label.text = "TANTANGAN: \(challengesCompleted)/\(totalChallenges)"
+        label.text = "ENGINE: \(engineChallengesCompleted)/5 | LAB: \(labChallengesCompleted)/5"
     }
     
     /// Membuat komponen HUD Progress Bar untuk menampilkan status stamina pemain secara visual di pojok kiri atas.
