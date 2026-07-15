@@ -1,3 +1,4 @@
+<<<<<<< ours
 # Drawing Space — Folder Structure & Architecture
 
 ## 1. Ringkasan Proyek
@@ -1373,3 +1374,288 @@ Pembagian utamanya:
 - **Repository dan protocol** menjaga implementasi mudah diganti dan diuji.
 
 Dengan struktur ini, Drawing Space dapat berkembang dari single-player MVP menjadi game co-op dua pemain tanpa menulis ulang fondasi utama project.
+=======
+# Drawing Space — Arsitektur dan Struktur Folder
+
+Dokumen ini menjelaskan susunan proyek, aliran data, dan tanggung jawab komponen utama **Drawing Space**.
+
+Dokumentasi alur permainan dan daftar misi tersedia di [game-description.md](game-description.md).
+
+## 1. Teknologi
+
+| Teknologi | Kegunaan |
+|---|---|
+| UIKit | Menjadi host aplikasi dan mengatur presentasi layar. |
+| SpriteKit | Menampilkan dunia, pemain, ruangan, pintu, stasiun, dan efek. |
+| SwiftUI | Menampilkan HUD, objective tracker, dialogue, dan tactical map. |
+| PencilKit | Menyediakan kanvas menggambar dengan jari atau Apple Pencil. |
+| Core ML | Mengenali gambar pemain. |
+| SwiftData | Menyimpan progres terbaru dan checkpoint. |
+| Observation | Membuat perubahan `GameSessionState` langsung terbaca oleh UI. |
+
+## 2. Pola Arsitektur
+
+Game memakai gabungan pola berikut:
+
+- **Coordinator** menghubungkan UIKit, SpriteKit, drawing challenge, dan game state.
+- **Event-driven progression** memproses kejadian menjadi efek game.
+- **Observable state** menjadi sumber data utama untuk HUD dan tactical map.
+- **Repository** memisahkan penyimpanan SwiftData dari logika game.
+- **Authority boundary** memastikan setiap perintah divalidasi melalui jalur yang sama.
+
+```mermaid
+flowchart LR
+    Input["GameScene / HUD"] --> Coordinator["GameplayCoordinator"]
+    Coordinator --> Authority["LocalStoryAuthority"]
+    Authority --> Progression["StoryProgressionSystem"]
+    Progression --> Session["GameSessionState"]
+    Session --> Output["Scene / HUD / Map"]
+    Session --> Repository["StoryProgressRepository"]
+    Repository --> SwiftData["SwiftData"]
+```
+
+Aturan utamanya: `GameScene` tidak boleh langsung menambah Intelligence, Engine Progress, atau menyelesaikan objective.
+
+## 3. Aliran Data Gameplay
+
+1. `GameScene` mendeteksi pemain masuk ruangan atau mendekati stasiun.
+2. Event dikirim ke `GameplayCoordinator`.
+3. Coordinator memeriksa misi melalui `MissionSystem` dan membuka drawing challenge.
+4. Gambar dikirim sebagai `StoryCommand` ke `LocalStoryAuthority`.
+5. Authority menjalankan Core ML dan memvalidasi hasilnya.
+6. `StoryProgressionSystem` memperbarui cerita dan menghasilkan `StoryEffect`.
+7. `GameSessionState` menerapkan Energy, statistik, dialogue, checkpoint, dan penyimpanan.
+8. Scene, HUD, dan tactical map menampilkan state terbaru.
+
+Perubahan state bergerak satu arah sehingga mudah diperiksa dan diuji.
+
+## 4. Struktur Folder
+
+```text
+GameClassification/
+├── App/
+│   ├── AppDelegate.swift
+│   ├── SceneDelegate.swift
+│   └── Info.plist
+│
+├── Core/
+│   └── Extensions/
+│
+├── Features/
+│   ├── Gameplay/
+│   │   ├── GameplayCoordinator.swift
+│   │   ├── GameplayViewController.swift
+│   │   ├── HUD/
+│   │   └── Input/
+│   ├── DrawingChallenge/
+│   ├── Story/
+│   └── TacticalMap/
+│
+├── GameEngine/
+│   ├── Scenes/
+│   ├── State/
+│   ├── Story/
+│   ├── Systems/
+│   ├── World/
+│   └── Nodes/Effects/
+│
+├── Drawing/
+│   ├── Preprocessing/
+│   └── Recognition/
+│
+├── Dialogue/
+│   ├── AIDialogueManager.swift
+│   └── StoryDialogue.json
+│
+├── Data/
+│   ├── Repositories/
+│   └── Persistence/
+│
+└── Resources/
+    ├── Assets.xcassets
+    ├── MLModels/
+    ├── SpriteKit/
+    └── Storyboards/
+
+GameClassificationTests/
+├── StoryProgressionSystemTests.swift
+├── StoryIntegrationTests.swift
+├── EnergySystemTests.swift
+├── PersistenceAndMapTests.swift
+├── MapLayoutReachabilityTests.swift
+└── CoreMLLabelCompatibilityTests.swift
+```
+
+## 5. Tanggung Jawab Setiap Bagian
+
+### App
+
+Titik masuk aplikasi. Bagian ini membuat window, view controller, dan coordinator.
+
+### Features
+
+Berisi tampilan dan interaksi pengguna:
+
+- `Gameplay` mengatur layar utama dan input pemain.
+- `DrawingChallenge` mengatur kanvas, submit, loading, gagal, dan retry.
+- `Story` menampilkan objective, dialogue, checkpoint, Game Over, dan Victory.
+- `TacticalMap` menampilkan ruangan, stasiun, status pintu, dan posisi pemain.
+
+### GameEngine
+
+Berisi aturan dan simulasi game:
+
+- `Scenes` menangani dunia SpriteKit dan deteksi interaksi.
+- `State` menyimpan session, pemain, dan fase game.
+- `Story` menyimpan model, katalog objective, event, effect, authority, dan progression.
+- `Systems` memisahkan movement, interaction, mission, Energy, dan lighting.
+- `World` berisi definisi ruangan, pintu, stasiun, dinding, dan spawn.
+
+### Drawing
+
+Mengubah `PKDrawing` menjadi input model dan membaca hasil Core ML. Bagian ini tidak menentukan reward cerita.
+
+### Dialogue
+
+Membaca dialogue dari JSON, memilih teks sesuai trigger dan tingkat Intelligence, lalu mencegah dialogue lama muncul kembali.
+
+### Data
+
+Menyimpan dan memuat progres melalui protocol `StoryProgressRepository`. Implementasi utama memakai SwiftData; implementasi in-memory dipakai saat fallback dan pengujian.
+
+### Resources
+
+Berisi aset visual, storyboard, file SpriteKit, model Core ML, dan resource lain yang dibundel ke aplikasi.
+
+## 6. Komponen Utama
+
+| Komponen | Tanggung jawab |
+|---|---|
+| `GameplayCoordinator` | Membuat dependency, menerima event scene, dan membuka drawing challenge. |
+| `GameSessionState` | Menjadi aggregate state yang diamati HUD, map, dan scene. |
+| `StoryProgressionSystem` | Satu-satunya otoritas untuk objective, reward, chapter, pintu, dan checkpoint. |
+| `LocalStoryAuthority` | Memvalidasi command dan hasil pengenalan gambar. |
+| `GameScene` | Menangani gerakan, proximity, room entry, collision, dan rendering. |
+| `MissionSystem` | Menentukan apakah objective dapat diinteraksikan. |
+| `EnergySystem` | Mengurangi dan memulihkan Energy berdasarkan waktu. |
+| `LightingSystem` | Merender keadaan listrik kapal. |
+| `CoreMLDoodleRecognizer` | Memuat satu model Core ML dan mengenali doodle secara async. |
+| `LocalStoryProgressRepository` | Menyimpan snapshot terbaru dan checkpoint ke SwiftData. |
+
+## 7. Pembagian State
+
+### SharedStoryState
+
+Menyimpan progres cerita bersama:
+
+- chapter;
+- objective yang selesai;
+- Intelligence;
+- Engine Progress;
+- advanced tools;
+- keadaan listrik;
+- dialogue yang sudah tampil;
+- command yang sudah diproses;
+- checkpoint terbaru.
+
+State ini menjadi bagian yang dapat disinkronkan jika multiplayer ditambahkan.
+
+### PlayerSurvivalState
+
+Menyimpan `playerID` dan Energy. Energy bersifat lokal untuk setiap pemain dan tidak dicampur dengan progres kapal.
+
+### GameSessionState
+
+Menggabungkan state cerita dan survival untuk kebutuhan aplikasi. Class ini juga menyimpan posisi pemain, fase game, dialogue aktif, notifikasi, statistik, dan snapshot checkpoint.
+
+### GamePhase
+
+Menjelaskan keadaan layar saat ini, misalnya bermain, menggambar, cutscene, Game Over, atau Victory.
+
+## 8. Event, Command, dan Effect
+
+- `StoryEvent` adalah kejadian internal, seperti masuk ruangan, gambar tervalidasi, atau Energy habis.
+- `StoryCommand` adalah permintaan dari pemain dan selalu memiliki ID unik.
+- `StoryEffect` adalah hasil yang perlu ditampilkan, seperti perubahan chapter, pintu terbuka, dialogue, checkpoint, atau Victory.
+
+ID command dan ID objective membuat proses bersifat idempotent. Permintaan yang sama tidak memberi reward dua kali.
+
+## 9. Drawing dan Core ML
+
+Alur pengenalan gambar:
+
+1. Pemain menggambar menggunakan PencilKit.
+2. Area gambar yang tidak kosong dirender dan dinormalisasi.
+3. `CoreMLDoodleRecognizer` menjalankan model `HandwritingGameClassificationV2`.
+4. Model mengembalikan label, confidence, dan alternatif.
+5. Authority membandingkan label dengan prompt objective.
+6. Objective diterima jika label cocok dan confidence memenuhi batas minimum.
+
+Kesalahan atau confidence rendah tidak mengubah progres dan pemain dapat mencoba kembali.
+
+## 10. World dan Tactical Map
+
+`GameMapLayout` menjadi sumber definisi dunia, termasuk:
+
+- ukuran map;
+- posisi dan batas ruangan;
+- pintu dan aturan akses;
+- stasiun objective;
+- dinding dan jalur yang bisa dilewati;
+- safe spawn setiap checkpoint.
+
+`GameScene` dan tactical map membaca definisi yang sama. Karena itu, posisi map dan dunia game tetap konsisten tanpa memakai perkiraan koordinat terpisah.
+
+## 11. Penyimpanan
+
+SwiftData menyimpan satu record progres yang berisi:
+
+- snapshot terbaru;
+- snapshot checkpoint;
+- versi schema;
+- waktu penyimpanan;
+- state cerita, survival, safe spawn, dan statistik.
+
+Saat retry setelah Game Over, game memakai snapshot checkpoint. Saat aplikasi dibuka kembali, game memakai snapshot terbaru. Save dengan versi yang tidak didukung akan ditolak dengan aman.
+
+## 12. Batas Multiplayer
+
+Versi sekarang memakai `LocalStoryAuthority` dan belum memiliki transport multiplayer.
+
+Fondasinya sudah disiapkan:
+
+- hanya `SharedStoryState` yang perlu disinkronkan;
+- Energy tetap milik masing-masing pemain;
+- client mengirim command, bukan status objective selesai;
+- authority memvalidasi akses, urutan objective, dan drawing;
+- command ID mencegah pemrosesan berulang.
+
+Transport seperti GameKit dapat ditambahkan nanti tanpa memindahkan aturan progres ke UI atau scene.
+
+## 13. Pengujian
+
+Test target mencakup:
+
+- urutan chapter dan objective;
+- pintu serta jalur map;
+- label Core ML yang dipakai objective;
+- Energy dan Game Over;
+- checkpoint dan persistence;
+- marker tactical map;
+- alur lengkap dari interaksi sampai save.
+
+Test progression tidak perlu menjalankan SpriteKit scene karena aturan cerita berada di class terpisah.
+
+## 14. Aturan Menambah Fitur
+
+Saat mengembangkan game:
+
+1. Tambahkan objective dan reward di `StoryContent.swift`.
+2. Tambahkan ruangan, pintu, atau stasiun melalui definisi `GameMapLayout`.
+3. Jangan mengubah progres langsung dari view atau `GameScene`.
+4. Kirim perubahan melalui `StoryCommand`, `StoryEvent`, dan `StoryEffect`.
+5. Simpan state baru dalam model yang `Codable`, `Equatable`, dan `Sendable` bila perlu dipersistenkan.
+6. Tambahkan test untuk gate, reward, duplikasi, save, dan efek UI terkait.
+
+Dengan aturan ini, setiap bagian tetap kecil, tanggung jawabnya jelas, dan fitur baru lebih aman ditambahkan.
+>>>>>>> theirs

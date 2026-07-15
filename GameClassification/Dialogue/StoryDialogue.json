@@ -1,8 +1,8 @@
 [
   {"id":"intro-1","chapter":"sleepingRoom","trigger":"chapter","text":"Sys... systems damaged. Solar... flare impact detected. Find... laboratory.","priority":100},
   {"id":"lab-complete","chapter":"enginePhaseOne","trigger":"chapter","text":"Communication restored. The primary engine is offline. Proceed to the Engine Room.","priority":100},
-  {"id":"power-basic","chapter":"enginePhaseTwo","trigger":"power","value":"basicPower","text":"Primary power relay restored. Basic lighting is now online.","priority":100},
-  {"id":"power-disrupted","chapter":"enginePhaseTwo","trigger":"power","value":"disrupted","text":"Warning. Engine repair has destabilized the power grid. Continue carefully.","priority":100},
+  {"id":"power-basic","chapter":"enginePhaseTwo","trigger":"power","value":"basicPower","text":"Primary lighting restored. Flashlight no longer required.","priority":100},
+  {"id":"power-disrupted","chapter":"enginePhaseTwo","trigger":"power","value":"disrupted","text":"Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.","priority":100},
   {"id":"storage-route","chapter":"engineBlocked","trigger":"chapter","text":"Repair progress halted. Retrieve advanced calibration tools from Storage.","priority":100},
   {"id":"tools-acquired","chapter":"engineFinal","trigger":"chapter","text":"Advanced repair tools acquired. Return to the Engine Room.","priority":100},
   {"id":"engine-complete","chapter":"cockpit","trigger":"chapter","text":"Engine restoration complete. My cognitive systems are fully operational. Cockpit access restored.","priority":100},

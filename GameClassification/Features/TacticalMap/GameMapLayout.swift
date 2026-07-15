@@ -31,8 +31,7 @@ enum GameMapLayout {
     static let corridors = [
         CGRect(x: 550, y: 950, width: 250, height: 100),
         CGRect(x: 325, y: 1_175, width: 100, height: 250),
-        CGRect(x: 325, y: 1_250, width: 725, height: 100),
-        CGRect(x: 950, y: 1_200, width: 100, height: 225),
+        CGRect(x: 925, y: 1_200, width: 150, height: 225),
         CGRect(x: 1_175, y: 1_550, width: 275, height: 100),
         CGRect(x: 1_050, y: 350, width: 400, height: 100),
         CGRect(x: 950, y: 350, width: 100, height: 450)
@@ -68,7 +67,7 @@ enum GameMapLayout {
 
     static let doorDefinitions = [
         DoorDefinition(id: "engine-west-door", roomID: .engine, worldPosition: CGPoint(x: 800, y: 1_000), size: CGSize(width: 20, height: 100)),
-        DoorDefinition(id: "storage-south-door", roomID: .storage, worldPosition: CGPoint(x: 1_000, y: 1_425), size: CGSize(width: 100, height: 20)),
+        DoorDefinition(id: "storage-south-door", roomID: .storage, worldPosition: CGPoint(x: 1_000, y: 1_425), size: CGSize(width: 150, height: 20)),
         DoorDefinition(id: "cockpit-west-door", roomID: .cockpit, worldPosition: CGPoint(x: 1_450, y: 1_600), size: CGSize(width: 20, height: 100))
     ]
 
@@ -113,12 +112,15 @@ enum GameMapLayout {
             (CGPoint(x: 425, y: 1_425), CGPoint(x: 550, y: 1_425)),
 
             // Storage
-            (CGPoint(x: 825, y: 1_425), CGPoint(x: 950, y: 1_425)),
-            (CGPoint(x: 1_050, y: 1_425), CGPoint(x: 1_175, y: 1_425)),
+            // Keep both entrances wider than the player's collision diameter.
+            // South/front entrance: x 925...1,075.
+            (CGPoint(x: 825, y: 1_425), CGPoint(x: 925, y: 1_425)),
+            (CGPoint(x: 1_075, y: 1_425), CGPoint(x: 1_175, y: 1_425)),
             (CGPoint(x: 825, y: 1_425), CGPoint(x: 825, y: 1_775)),
             (CGPoint(x: 825, y: 1_775), CGPoint(x: 1_175, y: 1_775)),
-            (CGPoint(x: 1_175, y: 1_425), CGPoint(x: 1_175, y: 1_550)),
-            (CGPoint(x: 1_175, y: 1_650), CGPoint(x: 1_175, y: 1_775)),
+            // East/side entrance: y 1,525...1,675.
+            (CGPoint(x: 1_175, y: 1_425), CGPoint(x: 1_175, y: 1_525)),
+            (CGPoint(x: 1_175, y: 1_675), CGPoint(x: 1_175, y: 1_775)),
 
             // Cockpit
             (CGPoint(x: 1_450, y: 1_425), CGPoint(x: 1_800, y: 1_425)),
@@ -140,16 +142,13 @@ enum GameMapLayout {
             // Direct Sleeping Room–Lab corridor. This route must remain open
             // before the Engine Room is unlocked by the Laboratory chapter.
             (CGPoint(x: 325, y: 1_175), CGPoint(x: 325, y: 1_425)),
-            (CGPoint(x: 425, y: 1_175), CGPoint(x: 425, y: 1_250)),
-            (CGPoint(x: 425, y: 1_350), CGPoint(x: 425, y: 1_425)),
-            (CGPoint(x: 425, y: 1_250), CGPoint(x: 950, y: 1_250)),
-            (CGPoint(x: 950, y: 1_250), CGPoint(x: 950, y: 1_200)),
-            (CGPoint(x: 425, y: 1_350), CGPoint(x: 1_050, y: 1_350)),
-            (CGPoint(x: 1_050, y: 1_350), CGPoint(x: 1_050, y: 1_200)),
-            (CGPoint(x: 950, y: 1_200), CGPoint(x: 950, y: 1_425)),
-            (CGPoint(x: 1_050, y: 1_200), CGPoint(x: 1_050, y: 1_425)),
-            (CGPoint(x: 1_175, y: 1_550), CGPoint(x: 1_450, y: 1_550)),
-            (CGPoint(x: 1_175, y: 1_650), CGPoint(x: 1_450, y: 1_650)),
+            // Keep this side closed so there is no direct Lab–Storage branch.
+            (CGPoint(x: 425, y: 1_175), CGPoint(x: 425, y: 1_425)),
+            // Engine–Storage corridor.
+            (CGPoint(x: 925, y: 1_200), CGPoint(x: 925, y: 1_425)),
+            (CGPoint(x: 1_075, y: 1_200), CGPoint(x: 1_075, y: 1_425)),
+            (CGPoint(x: 1_175, y: 1_525), CGPoint(x: 1_450, y: 1_525)),
+            (CGPoint(x: 1_175, y: 1_675), CGPoint(x: 1_450, y: 1_675)),
             (CGPoint(x: 1_450, y: 450), CGPoint(x: 1_050, y: 450)),
             (CGPoint(x: 1_050, y: 450), CGPoint(x: 1_050, y: 800)),
             (CGPoint(x: 1_450, y: 350), CGPoint(x: 950, y: 350)),

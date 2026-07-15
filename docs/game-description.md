@@ -1,273 +1,246 @@
-# Drawing Space — Deskripsi dan Definisi Game
+# Drawing Space — Dokumentasi Game
 
-## Identitas Game
+## Ringkasan
 
-| Elemen | Definisi |
+**Drawing Space** adalah game petualangan 2D top-down untuk iPhone dan iPad. Pemain terbangun di kapal luar angkasa yang rusak dan harus memperbaiki sistem kapal dengan menjelajah ruangan serta menyelesaikan tantangan menggambar.
+
+Gambar pemain dikenali oleh model Core ML. Setiap gambar yang benar akan memperbaiki sistem tertentu dan membuka bagian cerita berikutnya.
+
+## Tujuan Utama
+
+Pemain harus:
+
+1. Masuk ke Laboratory.
+2. Memulihkan Intelligence AI.
+3. Memperbaiki Engine secara bertahap.
+4. Mengambil advanced tools dari Storage.
+5. Menyelesaikan perbaikan Engine hingga 100%.
+6. Memperbaiki Cockpit dan menyelesaikan permainan.
+
+## Ruangan
+
+| Ruangan | Fungsi | Syarat akses |
+|---|---|---|
+| Sleeping Room | Lokasi awal pemain | Terbuka sejak awal |
+| Laboratory | Memulihkan AI | Terbuka sejak awal melalui jalur Sleeping Room |
+| Engine Room | Memperbaiki mesin kapal | Intelligence 40 dan seluruh misi Lab selesai |
+| Kitchen | Memulihkan Energy | Terbuka sejak awal |
+| Storage | Mendapatkan advanced tools | Engine Progress 60 |
+| Cockpit | Menyelesaikan penerbangan | Intelligence 100 dan Engine Progress 100 |
+
+Tidak ada jalan langsung dari Laboratory ke Storage. Pemain harus melewati Sleeping Room dan Engine Room untuk menuju Storage.
+
+## Kontrol
+
+### Menggunakan jari
+
+- Gerakkan joystick di kiri bawah untuk berjalan.
+- Dekati stasiun untuk menampilkan tombol `REPAIR`.
+- Tekan tombol map untuk membuka tactical map.
+
+### Menggunakan Apple Pencil
+
+- Sentuh titik tujuan untuk menggerakkan karakter.
+- Tekanan ringan membuat karakter bergerak lebih lambat.
+- Tekanan kuat membuat karakter bergerak lebih cepat.
+
+### Tantangan menggambar
+
+- Gambar dapat dibuat dengan jari atau Apple Pencil.
+- Tekan submit untuk memeriksa gambar.
+- Gambar diterima jika label sesuai dan confidence minimal 50%.
+- Jika gagal, pemain dapat mencoba kembali tanpa kehilangan progres.
+
+## Status Pemain dan Kapal
+
+HUD menampilkan tiga nilai utama:
+
+| Status | Rentang | Keterangan |
+|---|---:|---|
+| Energy | 0–100 | Kondisi pemain |
+| Intelligence | 10–100 | Kemampuan AI kapal |
+| Engine Progress | 0–100 | Kondisi mesin kapal |
+
+Energy bersifat lokal untuk pemain. Intelligence dan Engine Progress merupakan progres cerita kapal.
+
+## Sistem Energy
+
+- Energy maksimum: **100**.
+- Energy berkurang **0,08 per detik**.
+- Saat bergerak, konsumsi Energy menjadi **1,5 kali**.
+- Gangguan listrik mengurangi **5 Energy**.
+- Makanan memulihkan **40 Energy**.
+- Nilai Energy tidak dapat melebihi 100.
+- Energy 0 menyebabkan **Game Over**.
+
+## Kitchen
+
+Kitchen menyediakan tantangan menggambar yang dapat diulang:
+
+- `BANANA`
+- `APPLE`
+- `DONUT`
+- `PIZZA`
+- `CARROT`
+
+Menyelesaikan tantangan Kitchen hanya memulihkan Energy. Kitchen tidak menambah Intelligence atau Engine Progress.
+
+## Alur Cerita dan Misi
+
+### 1. Sleeping Room
+
+Tujuan awal adalah menemukan dan memasuki Laboratory.
+
+| Misi | Aksi |
 |---|---|
-| Judul | **Drawing Space** |
-| Genre | Eksplorasi 2D, drawing challenge, dan casual survival |
-| Perspektif | Top-down 2D |
-| Platform | iOS dan iPadOS |
-| Mode permainan | Single-player pada implementasi saat ini, dengan fondasi tactical map untuk co-op dua pemain |
-| Teknologi utama | SpriteKit, SwiftUI, PencilKit, dan Core ML |
-| Durasi sesi | Sesi pendek berbasis penyelesaian lima tantangan gambar |
+| Reach the Laboratory | Masuk ke Laboratory |
 
-## Definisi Game
+### 2. Laboratory
 
-**Drawing Space** adalah game eksplorasi 2D yang mengajak pemain menjelajahi sebuah stasiun gelap, menemukan lokasi misi, dan menyelesaikan tantangan dengan menggambar objek menggunakan jari atau Apple Pencil. Setiap gambar dianalisis secara langsung oleh model klasifikasi Core ML. Pemain harus menyelesaikan seluruh tantangan sebelum energi karakter habis.
+Ketiga misi dapat diselesaikan dalam urutan bebas.
 
-Game ini menggabungkan tiga aktivitas utama: navigasi ruang, kreativitas menggambar, dan pengelolaan energi. Eksplorasi menentukan lokasi yang harus dicapai, tantangan menggambar menjadi cara utama menyelesaikan misi, sedangkan energi memberikan tekanan waktu dan risiko `Game Over`.
+| Misi | Gambar | Reward |
+|---|---|---:|
+| Repair Communication Terminal | `RADIO` | +10 Intelligence |
+| Repair Memory Processor | `BRAIN` | +10 Intelligence |
+| Repair Navigation Scanner | `BINOCULARS` | +10 Intelligence |
 
-## Deskripsi Singkat
+Setelah semuanya selesai, Intelligence menjadi 40 dan pintu Engine Room terbuka.
 
-Jelajahi stasiun yang gelap, temukan titik misi, lalu gambarkan objek yang diminta sebelum energimu habis. Gunakan tactical map untuk membaca ruangan dan jalur, isi kembali energi di Kitchen, dan selesaikan lima tantangan gambar untuk memenangkan permainan.
+### 3. Engine Phase One
 
-## Elevator Pitch
+Misi harus diselesaikan sesuai urutan.
 
-> **Drawing Space** adalah game eksplorasi top-down di mana kemampuan menggambar menjadi alat utama untuk bertahan hidup dan menyelesaikan misi.
+| Urutan | Misi | Gambar | Reward |
+|---:|---|---|---:|
+| 1 | Reconnect Power Connector | `POWER OUTLET` | +5 Engine |
+| 2 | Repair Ignition Coil | `LIGHTBULB` | +5 Engine |
 
-## Premis Permainan
+Engine Progress 10 mengaktifkan basic power.
 
-Pemain berada di dalam sebuah stasiun yang terdiri dari beberapa ruangan dan koridor. Jarak pandang dibatasi oleh pencahayaan seperti cahaya lilin, sehingga pemain perlu mengingat jalur atau membuka tactical map untuk memahami posisi ruangan, pintu, misi, dan objek penting.
+### 4. Engine Phase Two
 
-Di beberapa lokasi terdapat easel atau stasiun tantangan. Ketika pemain mendekatinya, tombol interaksi akan muncul dan membuka kanvas menggambar. Pemain harus menggambar objek yang diminta dengan cukup jelas agar model Core ML dapat mengenalinya.
+| Urutan | Misi | Gambar | Reward |
+|---:|---|---|---:|
+| 1 | Restore Cooling Valve | `FAN` | +10 Engine, +3 Intelligence |
+| 2 | Repair Control Relay | `COMPUTER MONITOR` | +10 Engine, +3 Intelligence |
+| 3 | Reconnect Reactor Link | `SATELLITE` | +10 Engine, +4 Intelligence |
+| 4 | Repair Pressure Feed | `FIRE HYDRANT` | +10 Engine, +5 Intelligence |
+| 5 | Calibrate Engine Port | `SCREWDRIVER` | +10 Engine, +5 Intelligence |
 
-Energi pemain terus berkurang selama permainan. Jika energi habis sebelum seluruh misi selesai, permainan berakhir. Pemain dapat menuju Kitchen dan menyelesaikan tantangan menggambar makanan untuk memulihkan energi.
+Pada Engine Progress 40 terjadi gangguan listrik. Setelah seluruh misi selesai, Engine Progress dan Intelligence menjadi 60.
 
-## Tujuan Pemain
+Perbaikan berikutnya diblokir sampai pemain mengambil advanced tools dari Storage.
 
-Tujuan utama pemain adalah menyelesaikan **lima tantangan gambar** sebelum energi mencapai nol.
+### 5. Storage
 
-Daftar tantangan utama saat ini adalah:
+Storage hanya dapat dicapai melalui jalur Engine–Storage.
 
-1. Buku
-2. Kupu-kupu
-3. Kaktus
-4. Lilin
-5. Ikan
+| Urutan | Misi | Gambar |
+|---:|---|---|
+| 1 | Repair Storage Controller | `KEY` |
+| 2 | Repair Tool Terminal | `CALCULATOR` |
+| 3 | Repair Robotic Arm | `HAND` |
+| 4 | Repair Calibration Unit | `SCREWDRIVER` |
 
-Urutan tantangan diacak pada setiap sesi permainan.
+Misi terakhir memberikan advanced tools. Pemain kemudian harus kembali ke Engine Room.
 
-## Core Gameplay Loop
+### 6. Engine Final
 
-```text
-Membaca map dan lingkungan
-        ↓
-Menjelajahi ruangan
-        ↓
-Menemukan stasiun misi
-        ↓
-Menggambar objek yang diminta
-        ↓
-Core ML memeriksa hasil gambar
-        ↓
-Misi berhasil atau pemain mencoba kembali
-        ↓
-Mengelola energi dan menuju misi berikutnya
-```
+| Urutan | Misi | Gambar | Reward |
+|---:|---|---|---:|
+| 1 | Stabilize the Reactor | `SUN` | +8 Engine, +8 Intelligence |
+| 2 | Reconnect Engine Core | `POWER OUTLET` | +8 Engine, +8 Intelligence |
+| 3 | Calibrate Propulsion | `ROCKET` | +8 Engine, +8 Intelligence |
+| 4 | Restart Cooling | `FAN` | +8 Engine, +8 Intelligence |
+| 5 | Synchronize Navigation | `SATELLITE` | +8 Engine, +8 Intelligence |
 
-Dalam bentuk singkat:
+Setelah semuanya selesai, Intelligence dan Engine Progress menjadi 100. Main power pulih dan Cockpit terbuka.
 
-> **Explore → Find → Draw → Recognize → Survive → Repeat**
+### 7. Cockpit
 
-## Mekanik Utama
+| Urutan | Misi | Gambar |
+|---:|---|---|
+| 1 | Restore Navigation Control | `SHIP` |
+| 2 | Reconnect Communications | `RADIO` |
+| 3 | Calibrate Flight Console | `COMPUTER KEYBOARD` |
 
-### 1. Eksplorasi Top-Down
+Masuk ke Cockpit belum menyelesaikan game. Victory hanya terjadi setelah ketiga misi Cockpit selesai.
 
-Pemain bergerak di dunia 2D berukuran `2000 × 2000` yang memiliki dinding, pintu, koridor, dan beberapa ruangan utama:
+## Keadaan Listrik
 
-- Sleeping Room sebagai lokasi awal pemain;
-- Engine Room sebagai salah satu lokasi tantangan;
-- Lab sebagai lokasi tantangan lainnya;
-- Kitchen sebagai lokasi pemulihan energi.
-
-Kamera mengikuti posisi pemain dan menampilkan sebagian kecil lingkungan di sekitarnya.
-
-### 2. Sistem Pergerakan
-
-Pemain dapat bergerak menggunakan:
-
-- joystick virtual untuk kontrol arah secara langsung;
-- Apple Pencil untuk menentukan target pergerakan;
-- tekanan Apple Pencil untuk memengaruhi kecepatan gerak menuju target.
-
-Pergerakan dibatasi oleh ukuran dunia dan sistem tabrakan dinding. Saat menyentuh dinding, karakter mencoba bergerak mengikuti sisi dinding agar kontrol tetap terasa halus.
-
-### 3. Tantangan Menggambar
-
-Ketika pemain berada cukup dekat dengan easel, tombol `DRAW` akan muncul. Tombol tersebut membuka kanvas PencilKit tempat pemain dapat menggambar dengan jari atau Apple Pencil.
-
-Setelah gambar dikirim:
-
-1. gambar dirender dengan latar putih;
-2. gambar diproses oleh model Core ML;
-3. hasil prediksi dibandingkan dengan objek yang sedang diminta;
-4. tantangan dinyatakan berhasil jika label prediksi sesuai;
-5. jika belum sesuai, pemain dapat menghapus atau menggambar ulang.
-
-### 4. Sistem Energi
-
-Pemain memulai permainan dengan energi penuh. Energi berkurang secara terus-menerus selama simulasi permainan berlangsung.
-
-Konsekuensi energi:
-
-- energi di atas 50% ditampilkan dengan warna hijau;
-- energi antara 20%–50% ditampilkan dengan warna oranye;
-- energi di bawah 20% ditampilkan dengan warna merah;
-- energi 0% menyebabkan `Game Over` dan menghentikan pergerakan pemain.
-
-### 5. Pemulihan Energi
-
-Kitchen memiliki stasiun makanan yang menampilkan tombol `EAT`. Untuk memperoleh energi, pemain tetap harus menyelesaikan tantangan menggambar makanan.
-
-Objek makanan dipilih secara acak dari:
-
-- pisang;
-- apel;
-- donat;
-- pizza.
-
-Gambar makanan yang berhasil dikenali akan memulihkan **40% dari energi maksimum**, tanpa melewati batas energi penuh.
-
-### 6. Tactical Map
-
-Tombol map berada di bagian kanan atas layar gameplay. Map ditampilkan sebagai overlay layar penuh dan memperlihatkan:
-
-- bentuk seluruh ruangan dan koridor;
-- dinding dan pintu;
-- posisi pemain lokal;
-- posisi teammate jika tersedia dan diizinkan oleh level;
-- misi aktif dan misi selesai;
-- area terkunci;
-- objek penting;
-- checkpoint.
-
-Posisi dunia SpriteKit dikonversi menjadi posisi map SwiftUI dengan normalisasi koordinat, aspect-fit, padding, pembalikan sumbu Y, dan pembatasan marker agar tidak keluar dari area map.
-
-Saat map terbuka, input pergerakan pemain lokal dihentikan. Simulasi SpriteKit dan pembaruan multiplayer dapat tetap berjalan agar satu pemain tidak menghentikan permainan pemain lainnya.
-
-### 7. Visibilitas Terbatas
-
-Efek pencahayaan lilin membatasi area yang terlihat di sekitar pemain. Mekanik ini memberikan fungsi penting kepada tactical map dan membuat eksplorasi terasa lebih menegangkan.
-
-## Kontrol Permainan
-
-| Kontrol | Fungsi |
+| Keadaan | Efek |
 |---|---|
-| Joystick virtual | Menggerakkan karakter secara bebas |
-| Tap atau drag Apple Pencil | Menentukan tujuan gerak karakter |
-| Tekanan Apple Pencil | Mengatur pengali kecepatan menuju target |
-| Tombol `DRAW` | Membuka tantangan menggambar utama |
-| Tombol `EAT` | Membuka tantangan makanan untuk memulihkan energi |
-| Tombol map | Membuka tactical map layar penuh |
-| `Batal` | Menutup kanvas tanpa mengirim gambar |
-| `Hapus` | Menghapus seluruh gambar pada kanvas |
-| `Kirim` | Mengirim gambar untuk diklasifikasikan |
+| Emergency | Lingkungan gelap dengan cahaya darurat |
+| Basic Power | Pada Engine 10%, vignette dimatikan dan seluruh map menjadi terang |
+| Disrupted | Pada Engine 40%, vignette menyala kembali, map menjadi gelap, dan Energy berkurang |
+| Fully Restored | Pencahayaan penuh dan sistem kapal aktif |
 
-## Kondisi Menang
+## Objective dan Tactical Map
 
-Pemain memenangkan sesi ketika seluruh lima tantangan gambar berhasil diselesaikan. Sistem kemudian:
+Objective tracker menunjukkan misi aktif dan progresnya. Tactical map menampilkan:
 
-- mengubah stasiun tantangan menjadi status selesai;
-- memperbarui marker misi pada tactical map;
-- menampilkan pesan `SEMUA TANTANGAN BERHASIL!`.
+- ruangan;
+- posisi pemain;
+- stasiun aktif dan selesai;
+- pintu terkunci atau terbuka;
+- Kitchen, Storage, dan Cockpit;
+- posisi teammate jika tersedia.
 
-## Kondisi Kalah
+Map dan collision dunia menggunakan data layout yang sama agar posisi dinding, pintu, dan koridor tetap konsisten.
 
-Pemain kalah ketika energi mencapai nol sebelum seluruh tantangan selesai. Karakter tidak lagi dapat bergerak dan layar `GAME OVER` ditampilkan bersama tombol untuk memulai ulang permainan.
+## Checkpoint dan Penyimpanan
 
-Ketika permainan dimulai ulang:
+Checkpoint tersedia di:
 
-- energi kembali penuh;
-- progres tantangan kembali ke nol;
-- urutan tantangan diacak ulang;
-- posisi pemain kembali ke Sleeping Room;
-- marker misi kembali menjadi aktif.
+- Sleeping Room;
+- Laboratory;
+- Engine Phase One;
+- gangguan listrik;
+- Engine Progress 60;
+- Storage;
+- Engine Final;
+- Cockpit.
 
-## Pilar Desain
+Progres disimpan otomatis menggunakan SwiftData. Save berisi progres terbaru dan snapshot checkpoint.
 
-### Eksplorasi
+Saat memilih retry setelah Game Over:
 
-Pemain harus memahami hubungan antar-ruangan, mencari jalur yang dapat dilewati, dan menggunakan map untuk merencanakan perjalanan.
+- progres kembali ke checkpoint terakhir;
+- pemain kembali ke safe spawn;
+- perubahan setelah checkpoint dibatalkan;
+- Energy dipulihkan minimal menjadi 50.
 
-### Kreativitas yang Terukur
+## Game Over dan Victory
 
-Menggambar bukan aktivitas dekoratif. Bentuk yang dibuat pemain menjadi input gameplay dan harus cukup terbaca oleh model klasifikasi.
+### Game Over
 
-### Tekanan Waktu Tidak Langsung
+Game Over terjadi saat Energy mencapai 0. Drawing challenge yang sedang terbuka akan ditutup dan pemain dapat mengulang dari checkpoint.
 
-Tidak ada penghitung waktu tradisional. Energi yang terus berkurang berfungsi sebagai batas waktu sekaligus sumber daya yang harus dikelola.
+### Victory
 
-### Informasi dan Koordinasi
+Victory menampilkan ringkasan:
 
-Tactical map menyatukan informasi lokasi, status misi, dan posisi pemain. Fondasi ini disiapkan untuk mendukung koordinasi dua pemain pada pengembangan multiplayer selanjutnya.
+- waktu bermain;
+- jumlah percobaan menggambar;
+- objective yang selesai;
+- jumlah pemulihan di Kitchen;
+- Energy terakhir.
 
-## Pengalaman yang Ingin Dihasilkan
+Pemain dapat kembali ke Main Menu atau memilih `PLAY AGAIN`. Opsi ini menghapus save dan memulai kembali dari Sleeping Room.
 
-Game dirancang untuk menghasilkan kombinasi pengalaman berikut:
+Main Menu menyediakan dua pilihan:
 
-- rasa ingin tahu ketika menjelajahi area gelap;
-- urgensi karena energi terus berkurang;
-- kepuasan ketika gambar berhasil dikenali;
-- perencanaan ketika memilih antara melanjutkan misi atau mencari energi;
-- koordinasi posisi dan tujuan ketika mode co-op diaktifkan.
+- `CONTINUE GAME` untuk melanjutkan save terakhir;
+- `NEW GAME` untuk menghapus progres lama dan memulai dari awal.
 
-## Target Pemain
+## Teknologi
 
-Drawing Space cocok untuk:
+- **UIKit** sebagai host aplikasi.
+- **SpriteKit** untuk dunia game, gerakan, collision, dan efek.
+- **SwiftUI** untuk HUD dan tactical map.
+- **PencilKit** untuk kanvas menggambar.
+- **Core ML** untuk pengenalan doodle.
+- **SwiftData** untuk penyimpanan progres.
 
-- pemain casual yang menyukai sesi permainan singkat;
-- pemain yang menikmati aktivitas menggambar;
-- pengguna iPad dan Apple Pencil;
-- pemain yang menyukai eksplorasi dan penyelesaian misi ringan;
-- dua pemain yang ingin bekerja sama setelah sistem multiplayer terhubung sepenuhnya.
-
-## Gaya Visual
-
-Visual game menggunakan pendekatan 2D sederhana dan mudah dibaca:
-
-- lingkungan berwarna gelap dengan grid lantai;
-- dinding dan ruangan menggunakan warna slate;
-- cahaya lilin menciptakan area pandang terbatas;
-- objek interaktif memiliki glow dan animasi pulse;
-- warna hijau menandakan keberhasilan atau energi aman;
-- warna oranye menandakan makanan dan kondisi waspada;
-- warna merah menandakan energi kritis atau kegagalan;
-- tactical map menggunakan panel dark navy, garis cyan, dan marker berkontras tinggi.
-
-## Nilai Pembeda
-
-Keunikan Drawing Space berasal dari hubungan langsung antara menggambar dan eksplorasi. Pemain tidak menyelesaikan misi dengan memilih jawaban atau menekan tombol biasa, tetapi dengan membuat gambar yang benar-benar dinilai oleh model machine learning pada perangkat.
-
-Kombinasi tersebut menghasilkan identitas yang jelas:
-
-> **Game eksplorasi di mana kemampuan menggambar menjadi cara pemain berinteraksi, bertahan, dan menyelesaikan misi.**
-
-## Status Implementasi Saat Ini
-
-Fitur yang telah tersedia:
-
-- menu utama dan transisi menuju gameplay;
-- eksplorasi top-down dengan kamera mengikuti pemain;
-- joystick dan navigasi Apple Pencil;
-- collision dinding dan batas dunia;
-- lima tantangan gambar utama;
-- klasifikasi gambar menggunakan Core ML;
-- stasiun makanan dan pemulihan energi;
-- sistem energi, progres, menang, kalah, dan restart;
-- pencahayaan lilin;
-- tactical map layar penuh;
-- marker pemain, teammate, pintu, misi, objek penting, dan checkpoint;
-- state teammate untuk connected, reconnecting, dan disconnected.
-
-Fitur yang fondasinya telah disiapkan tetapi belum terlihat terhubung sepenuhnya pada implementasi saat ini:
-
-- sinkronisasi jaringan real-time untuk pemain kedua;
-- gameplay co-op end-to-end;
-- zoom dan pan interaktif pada tactical map;
-- audio dan musik permainan;
-- progression antarsesi atau penyimpanan progres permanen.
-
-## Definisi Produk Akhir
-
-Drawing Space dapat dikembangkan sebagai game co-op eksplorasi kreatif untuk iPad, di mana dua pemain menjelajahi stasiun, berbagi informasi melalui tactical map, mengelola energi, dan menyelesaikan misi dengan menggambar objek menggunakan Apple Pencil. Model machine learning lokal memberikan respons langsung tanpa menjadikan koneksi internet sebagai syarat untuk memeriksa gambar.
+Versi saat ini memakai authority lokal. Fondasi command dan shared state telah disiapkan untuk multiplayer, tetapi transport jaringan belum diimplementasikan.

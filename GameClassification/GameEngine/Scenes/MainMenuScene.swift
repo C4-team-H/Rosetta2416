@@ -7,10 +7,11 @@
 
 import SpriteKit
 
-class MainMenuScene: SKScene {
-    
+final class MainMenuScene: SKScene {
+
     private var titleLabel: SKLabelNode!
     private var startButton: SKShapeNode!
+    private var newGameButton: SKShapeNode!
     private let coordinator: GameplayCoordinator
 
     init(size: CGSize, coordinator: GameplayCoordinator) {
@@ -31,44 +32,30 @@ class MainMenuScene: SKScene {
         titleLabel.text = "DRAWING SPACE"
         titleLabel.fontSize = 36
         titleLabel.fontColor = .white
-        titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.6)
+        titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.68)
         titleLabel.horizontalAlignmentMode = .center
         titleLabel.verticalAlignmentMode = .center
         self.addChild(titleLabel)
         
-        // 3. Membuat Tombol Start Game (Menggunakan ShapeNode berbentuk rounded rect)
-        let buttonWidth: CGFloat = 200
-        let buttonHeight: CGFloat = 60
-        startButton = SKShapeNode(rectOf: CGSize(width: buttonWidth, height: buttonHeight), cornerRadius: 12)
-        startButton.name = "startButton"
-        startButton.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.4)
-        startButton.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0) // Vibrant green
-        startButton.strokeColor = .white
-        startButton.lineWidth = 2
-        
-        // 4. Menambahkan teks di dalam tombol Start
-        let startLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        startLabel.text = "START GAME"
-        startLabel.fontSize = 20
-        startLabel.fontColor = .white
-        startLabel.name = "startButton" // Nama harus sama agar klik di bagian teks juga dideteksi
-        startLabel.horizontalAlignmentMode = .center
-        startLabel.verticalAlignmentMode = .center
-        
-        // Memasukkan teks sebagai child dari tombol agar posisinya relatif terhadap tombol
-        startButton.addChild(startLabel)
+        startButton = makeButton(
+            name: "startButton",
+            title: "CONTINUE GAME",
+            color: SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1)
+        )
+        newGameButton = makeButton(
+            name: "newGameButton",
+            title: "NEW GAME",
+            color: SKColor(red: 0.16, green: 0.44, blue: 0.72, alpha: 1)
+        )
+        positionMenuNodes()
         self.addChild(startButton)
+        self.addChild(newGameButton)
     }
     
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         
-        if titleLabel != nil {
-            titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.6)
-        }
-        if startButton != nil {
-            startButton.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.4)
-        }
+        positionMenuNodes()
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -76,22 +63,51 @@ class MainMenuScene: SKScene {
         let location = touch.location(in: self)
         let nodesAtPoint = self.nodes(at: location)
         
-        // 5. Cek apakah pengguna mengklik node bernama "startButton"
         for node in nodesAtPoint {
-            if node.name == "startButton" {
+            switch node.name {
+            case "startButton":
                 startGame()
-                break
+                return
+            case "newGameButton":
+                startNewGame()
+                return
+            default:
+                continue
             }
         }
     }
-    
+
     private func startGame() {
-        // 6. Transisi ke GameScene secara programmatic
-        let gameScene = coordinator.makeGameScene(size: self.size)
-        gameScene.scaleMode = .resizeFill
-        
-        // Efek transisi pudar (fade) selama 1 detik
-        let transition = SKTransition.fade(withDuration: 1.0)
-        self.view?.presentScene(gameScene, transition: transition)
+        guard let view else { return }
+        coordinator.continueGame(in: view, size: size)
+    }
+
+    private func startNewGame() {
+        guard let view else { return }
+        coordinator.startNewGame(in: view, size: size)
+    }
+
+    private func makeButton(name: String, title: String, color: SKColor) -> SKShapeNode {
+        let button = SKShapeNode(rectOf: CGSize(width: 220, height: 58), cornerRadius: 12)
+        button.name = name
+        button.fillColor = color
+        button.strokeColor = .white
+        button.lineWidth = 2
+
+        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        label.text = title
+        label.fontSize = 18
+        label.fontColor = .white
+        label.name = name
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        button.addChild(label)
+        return button
+    }
+
+    private func positionMenuNodes() {
+        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
+        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.48)
+        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.28)
     }
 }

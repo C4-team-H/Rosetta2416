@@ -12,16 +12,22 @@ final class LightingSystem {
         switch powerState {
         case .emergency:
             scene.candleLight?.alpha = 1
+            scene.gridContainer?.alpha = 1
             scene.backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1)
         case .basicPower:
-            scene.candleLight?.alpha = 0.18
-            scene.backgroundColor = SKColor(red: 0.20, green: 0.24, blue: 0.32, alpha: 1)
+            // Engine 10% reward: room lighting replaces the flashlight.
+            scene.candleLight?.alpha = 0
+            scene.gridContainer?.alpha = 0.28
+            scene.backgroundColor = SKColor(red: 0.42, green: 0.48, blue: 0.58, alpha: 1)
         case .disrupted:
+            // Engine 40% disruption: emergency darkness and flashlight return.
             scene.candleLight?.alpha = 1
+            scene.gridContainer?.alpha = 1
             scene.backgroundColor = SKColor(red: 0.10, green: 0.11, blue: 0.16, alpha: 1)
         case .fullyRestored:
             scene.candleLight?.alpha = 0
-            scene.backgroundColor = SKColor(red: 0.24, green: 0.29, blue: 0.38, alpha: 1)
+            scene.gridContainer?.alpha = 0.22
+            scene.backgroundColor = SKColor(red: 0.46, green: 0.53, blue: 0.64, alpha: 1)
             activateEngineGlow(in: scene)
             activateEngineParticles(in: scene)
             activateMachinery(in: scene)

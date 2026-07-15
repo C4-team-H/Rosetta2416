@@ -15,6 +15,43 @@ struct MapLayoutReachabilityTests {
         ))
     }
 
+    @Test("Laboratory has no direct corridor toward Storage")
+    func laboratoryStorageCorridorIsRemoved() {
+        let removedCorridor = CGRect(x: 325, y: 1_250, width: 725, height: 100)
+        #expect(!GameMapLayout.corridors.contains(removedCorridor))
+        #expect(GameMapLayout.wallSegments.contains { wall in
+            wall.start == CGPoint(x: 425, y: 1_175)
+                && wall.end == CGPoint(x: 425, y: 1_425)
+        })
+    }
+
+    @Test("Storage is reachable through its front entrance when unlocked")
+    func storageFrontEntranceIsClear() {
+        var unlockedStory = SharedStoryState.initial
+        unlockedStory.currentChapter = .engineBlocked
+        unlockedStory.engineProgress = 60
+
+        #expect(StoryContent.roomRules.first(where: { $0.roomID == .storage })!.allows(unlockedStory))
+        #expect(routeExists(
+            from: CGPoint(x: 1_000, y: 1_000),
+            to: GameMapLayout.rooms.first(where: { $0.id == .storage })!.worldFrame,
+            story: unlockedStory
+        ))
+    }
+
+    @Test("Storage side entrance has no wall across the doorway")
+    func storageSideEntranceIsClear() {
+        var unlockedStory = SharedStoryState.initial
+        unlockedStory.currentChapter = .engineBlocked
+        unlockedStory.engineProgress = 60
+
+        #expect(routeExists(
+            from: CGPoint(x: 1_300, y: 1_600),
+            to: GameMapLayout.rooms.first(where: { $0.id == .storage })!.worldFrame,
+            story: unlockedStory
+        ))
+    }
+
     private func routeExists(from start: CGPoint, to destination: CGRect, story: SharedStoryState) -> Bool {
         let step: CGFloat = 20
         let radius: CGFloat = 15

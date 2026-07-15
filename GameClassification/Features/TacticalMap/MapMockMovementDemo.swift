@@ -25,7 +25,7 @@ struct MapMockMovementDemo: View {
             viewModel: viewModel,
             session: session,
             onRetryCheckpoint: {},
-            onReplay: {},
+            onPlayAgain: {},
             onMainMenu: {}
         )
             .background(.black)
