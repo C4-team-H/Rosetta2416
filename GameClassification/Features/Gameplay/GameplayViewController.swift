@@ -40,7 +40,7 @@ class GameViewController: UIViewController {
             viewModel: viewModel,
             session: coordinator.sessionState,
             onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
-            onReplay: { [weak coordinator] in coordinator?.replayStory() },
+            onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
             onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
         ))
         controller.view.backgroundColor = .clear

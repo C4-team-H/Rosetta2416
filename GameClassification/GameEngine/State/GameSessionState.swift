@@ -19,6 +19,7 @@ final class GameSessionState {
     private let dialogueManager: AIDialogueManager
     private let repository: StoryProgressRepository
     private var checkpointSnapshot: StorySaveSnapshot
+    private var sessionRevision = 0
 
     init(
         localPlayer: PlayerState,
@@ -159,8 +160,10 @@ final class GameSessionState {
     }
 
     func loadProgress() async {
+        let revisionAtLoadStart = sessionRevision
         do {
             guard let persisted = try await repository.load() else { return }
+            guard revisionAtLoadStart == sessionRevision else { return }
             storySystem.restore(persisted.latest.sharedStory)
             energySystem.restore(persisted.latest.localSurvival)
             localPlayer.worldPosition = safeSpawn(for: persisted.latest.sharedStory.latestCheckpoint)
@@ -183,6 +186,7 @@ final class GameSessionState {
     }
 
     func startNewSession(clearSavedProgress: Bool = true) {
+        sessionRevision += 1
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
         localPlayer.worldPosition = safeSpawn(for: .sleepingRoom)
@@ -190,12 +194,19 @@ final class GameSessionState {
         phase = .playing
         currentDialogue = nil
         transientMessage = nil
-        checkpointSnapshot = makeSnapshot()
-        if clearSavedProgress {
-            Task { try? await repository.clear() }
+        checkpointNotice = nil
+
+        if let line = dialogueManager.nextLine(for: .chapterEntered(.sleepingRoom), story: storySystem.state) {
+            currentDialogue = line
+            storySystem.markDialogueDelivered(id: line.id)
         }
-        applyEffects([.dialogue(.chapterEntered(.sleepingRoom))])
-        persistLatest()
+
+        checkpointSnapshot = makeSnapshot(safeSpawn: safeSpawn(for: .sleepingRoom))
+        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSnapshot)
+        Task {
+            if clearSavedProgress { try? await repository.clear() }
+            try? await repository.save(progress)
+        }
     }
 
     private var isDrawing: Bool {

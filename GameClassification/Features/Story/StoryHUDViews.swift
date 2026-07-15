@@ -85,7 +85,7 @@ struct AIDialogueOverlay: View {
 struct StoryTerminalOverlay: View {
     let session: GameSessionState
     let onRetry: () -> Void
-    let onReplay: () -> Void
+    let onPlayAgain: () -> Void
     let onMainMenu: () -> Void
 
     var body: some View {
@@ -119,7 +119,7 @@ struct StoryTerminalOverlay: View {
                     if session.phase == .gameOver {
                         Button("RETRY CHECKPOINT", action: onRetry).buttonStyle(.borderedProminent)
                     } else {
-                        Button("REPLAY STORY", action: onReplay).buttonStyle(.borderedProminent)
+                        Button("PLAY AGAIN", action: onPlayAgain).buttonStyle(.borderedProminent)
                     }
                     Button("MAIN MENU", action: onMainMenu).buttonStyle(.bordered)
                 }

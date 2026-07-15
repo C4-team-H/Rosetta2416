@@ -4,7 +4,7 @@ struct GameplayHUDView: View {
     let viewModel: TacticalMapViewModel
     let session: GameSessionState
     let onRetryCheckpoint: () -> Void
-    let onReplay: () -> Void
+    let onPlayAgain: () -> Void
     let onMainMenu: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -75,7 +75,7 @@ struct GameplayHUDView: View {
                 StoryTerminalOverlay(
                     session: session,
                     onRetry: onRetryCheckpoint,
-                    onReplay: onReplay,
+                    onPlayAgain: onPlayAgain,
                     onMainMenu: onMainMenu
                 )
                 .zIndex(3)

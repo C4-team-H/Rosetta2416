@@ -94,6 +94,40 @@ struct StoryIntegrationTests {
         #expect(session.localPlayer.worldPosition == GameMapLayout.safeSpawn(for: .laboratory))
     }
 
+    @Test("New Game resets story, survival, statistics, position, and persisted progress")
+    func newGameReset() async throws {
+        let repository = InMemoryStoryProgressRepository()
+        let session = makeSession(repository: repository)
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        _ = session.handle(.drawingValidated(
+            objectiveID: "lab-terminal-repair",
+            result: RecognitionResult(label: "radio", confidence: 1, alternatives: [])
+        ))
+        session.beginDrawing(objectiveID: "lab-memory-repair")
+        session.endDrawing()
+        session.updateEnergy(deltaTime: 100, isMoving: true)
+
+        session.startNewSession()
+        await Task.yield()
+        await Task.yield()
+
+        #expect(session.phase == .playing)
+        #expect(session.sharedStory.currentChapter == .sleepingRoom)
+        #expect(session.sharedStory.completedObjectiveIDs.isEmpty)
+        #expect(session.sharedStory.intelligence == 10)
+        #expect(session.sharedStory.engineProgress == 0)
+        #expect(session.sharedStory.powerState == .emergency)
+        #expect(session.energy == 100)
+        #expect(session.stats == GameSessionStats())
+        #expect(session.localPlayer.worldPosition == GameMapLayout.playerSpawnPosition)
+
+        let saved = try await repository.load()
+        #expect(saved?.latest.sharedStory.currentChapter == .sleepingRoom)
+        #expect(saved?.latest.sharedStory.completedObjectiveIDs.isEmpty == true)
+        #expect(saved?.latest.localSurvival.energy == 100)
+    }
+
     private func makeSession(repository: StoryProgressRepository? = nil) -> GameSessionState {
         GameSessionState(
             localPlayer: PlayerState(

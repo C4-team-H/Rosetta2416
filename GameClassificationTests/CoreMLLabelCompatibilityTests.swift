@@ -20,4 +20,17 @@ struct CoreMLLabelCompatibilityTests {
         #expect(modelLabels.count == 172)
         #expect((storyLabels + kitchenLabels).allSatisfy(modelLabels.contains))
     }
+
+    @Test("Cockpit navigation uses the ship model label")
+    func cockpitNavigationUsesShip() throws {
+        let objective = try #require(StoryContent.definition(id: "cockpit-navigation-control"))
+        let kind = objective.kind
+        guard case let .drawing(prompt) = kind else {
+            Issue.record("Cockpit navigation must remain a drawing objective")
+            return
+        }
+
+        #expect(prompt.expectedLabel == "ship")
+        #expect(prompt.displayName == "SHIP")
+    }
 }

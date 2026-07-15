@@ -28,7 +28,7 @@ enum StoryContent {
         objective("engine-cooling-restart", .engineFinal, .engine, "Restart Cooling", "Draw a fan to restart cooling.", ["engine-propulsion-calibration"], reward(ai: 8, engine: 8), drawing("fan", "FAN")),
         objective("engine-navigation-sync", .engineFinal, .engine, "Synchronize Navigation", "Draw a satellite to finish navigation synchronization.", ["engine-cooling-restart"], reward(ai: 8, engine: 8), drawing("satellite", "SATELLITE")),
 
-        objective("cockpit-navigation-control", .cockpit, .cockpit, "Restore Navigation Control", "Draw an airplane to activate navigation.", [], .none, drawing("airplane", "AIRPLANE")),
+        objective("cockpit-navigation-control", .cockpit, .cockpit, "Restore Navigation Control", "Draw a ship to activate navigation.", [], .none, drawing("ship", "SHIP")),
         objective("cockpit-communications", .cockpit, .cockpit, "Reconnect Communications", "Draw a radio to restore communications.", ["cockpit-navigation-control"], .none, drawing("radio", "RADIO")),
         objective("cockpit-flight-console", .cockpit, .cockpit, "Calibrate Flight Console", "Draw a computer keyboard to complete recovery.", ["cockpit-communications"], .none, drawing("keyboard-computer", "COMPUTER KEYBOARD"))
     ]

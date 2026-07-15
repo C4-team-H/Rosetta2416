@@ -52,16 +52,28 @@ final class GameplayCoordinator {
         return scene
     }
 
+    func continueGame(in view: SKView, size: CGSize) {
+        presentFreshGameScene(in: view, size: size)
+    }
+
+    func startNewGame(in view: SKView, size: CGSize) {
+        tacticalMapViewModel.closeMap()
+        sessionState.startNewSession()
+        presentFreshGameScene(in: view, size: size)
+    }
+
     func retryCheckpoint() {
         _ = sessionState.handle(.checkpointRetryRequested)
         presentingViewController?.dismiss(animated: true)
         activeGameScene?.restorePlayerFromSession()
     }
 
-    func replayStory() {
+    func playAgain() {
+        guard let scene = activeGameScene, let view = scene.view else { return }
+        tacticalMapViewModel.closeMap()
         sessionState.startNewSession()
         presentingViewController?.dismiss(animated: true)
-        activeGameScene?.restorePlayerFromSession()
+        presentFreshGameScene(in: view, size: scene.size)
     }
 
     func returnToMainMenu() {
@@ -71,6 +83,12 @@ final class GameplayCoordinator {
         let menu = makeMainMenuScene(size: scene.size)
         menu.scaleMode = .resizeFill
         view.presentScene(menu, transition: .fade(withDuration: 0.6))
+    }
+
+    private func presentFreshGameScene(in view: SKView, size: CGSize) {
+        let gameScene = makeGameScene(size: size)
+        gameScene.scaleMode = .resizeFill
+        view.presentScene(gameScene, transition: .fade(withDuration: 0.8))
     }
 
     private func presentDrawingChallenge(_ challenge: DrawingChallenge, in scene: GameScene, chapterCount: Int, chapterIndex: Int) {
