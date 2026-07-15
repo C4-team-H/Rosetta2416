@@ -33,14 +33,14 @@ actor CoreMLDoodleRecognizer: DoodleRecognizer {
 /// the recognizer actor serializes all requests made to it.
 @MainActor
 private final class GeneratedDoodleModelRunner {
-    private var model: HandwritingGameClassification?
+    private var model: HandwritingGameClassificationV2?
 
     func recognize(_ drawing: PKDrawing) async throws -> RecognitionResult {
         guard let pixelBuffer = DrawingImageRenderer.pixelBuffer(from: drawing) else {
             throw DoodleRecognitionError.emptyDrawing
         }
         let model = try cachedModel()
-        let input = HandwritingGameClassificationInput(image: pixelBuffer)
+        let input = HandwritingGameClassificationV2Input(image: pixelBuffer)
         let output = try await model.prediction(input: input)
         let target = output.target
         let probabilities = output.targetProbability
@@ -55,11 +55,11 @@ private final class GeneratedDoodleModelRunner {
         )
     }
 
-    private func cachedModel() throws -> HandwritingGameClassification {
+    private func cachedModel() throws -> HandwritingGameClassificationV2 {
         if let model { return model }
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .all
-        let model = try HandwritingGameClassification(configuration: configuration)
+        let model = try HandwritingGameClassificationV2(configuration: configuration)
         self.model = model
         return model
     }
