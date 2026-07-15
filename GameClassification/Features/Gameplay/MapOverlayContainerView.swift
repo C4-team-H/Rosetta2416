@@ -26,7 +26,7 @@ final class MapOverlayContainerView: UIView {
         let hitSize: CGFloat = 84
         return CGRect(
             x: bounds.maxX - safeAreaInsets.right - hitSize,
-            y: safeAreaInsets.top,
+            y: safeAreaInsets.top + 68,
             width: hitSize,
             height: hitSize
         )

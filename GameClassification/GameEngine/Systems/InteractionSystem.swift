@@ -34,14 +34,32 @@ extension GameScene {
         
         if let easel = nearEasel {
             let isLab = easel.position.y > 1300
-            let isCompleted = isLab ? (labChallengesCompleted >= 5) : (engineChallengesCompleted >= 5)
             
-            if !isCompleted {
-                activeEasel = easel
-                showInteractionButton()
+            if isLab {
+                // Lab easel: cek apakah easel ini sudah selesai (per-easel tracking).
+                let isCompleted = completedLabEasels.contains(easel.name ?? "")
+                if !isCompleted {
+                    activeEasel = easel
+                    showInteractionButton()
+                } else {
+                    activeEasel = nil
+                    hideInteractionButton()
+                }
             } else {
-                activeEasel = nil
-                hideInteractionButton()
+                // Engine easel: terkunci sampai AI Intelligence >= 40%.
+                let isCompleted = engineChallengesCompleted >= 5
+                if isCompleted {
+                    activeEasel = nil
+                    hideInteractionButton()
+                } else if aiIntelligence < aiIntelligenceEngineUnlockThreshold {
+                    // Engine belum dibuka — tampilkan pesan terkunci.
+                    activeEasel = nil
+                    hideInteractionButton()
+                    showEngineLockedMessage()
+                } else {
+                    activeEasel = easel
+                    showInteractionButton()
+                }
             }
         } else {
             activeEasel = nil
@@ -108,6 +126,26 @@ extension GameScene {
         guard let button = actionButton else { return }
         button.removeFromParent()
         actionButton = nil
+    }
+    
+    /// Menampilkan pesan "Engine terkunci" singkat di tengah layar saat player mendekati engine
+    /// tetapi AI Intelligence belum mencapai 40%.
+    func showEngineLockedMessage() {
+        // Hanya tampilkan satu pesan pada satu waktu.
+        if childNode(withName: "//engineLockedMsg") != nil { return }
+        
+        let msg = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        msg.text = "ENGINE TERKUNCI! Selesaikan Lab dulu (AI Intel ≥ 40%)"
+        msg.fontSize = 16
+        msg.fontColor = SKColor(red: 0.74, green: 0.25, blue: 0.25, alpha: 1.0)
+        msg.position = CGPoint.zero
+        msg.zPosition = 20
+        msg.name = "engineLockedMsg"
+        cameraNode.addChild(msg)
+        
+        let fadeOut = SKAction.fadeOut(withDuration: 2.5)
+        let remove = SKAction.removeFromParent()
+        msg.run(SKAction.sequence([fadeOut, remove]))
     }
     
     /// Menampilkan tombol "EAT" (berwarna hijau) pada kamera untuk memulai tantangan menggambar makanan.
@@ -180,21 +218,26 @@ extension GameScene {
                 self.handleFoodDrawingSuccess()
             }
         } else {
-            // Mode Utama: Selesaikan daftar tantangan utama berdasarkan ruangan
-            // Lab memiliki easel dengan koordinat Y > 1300
+            // Mode Utama: Selesaikan tantangan berdasarkan ruangan
             let isLab = (activeEasel?.position.y ?? 0) > 1300
             
             if isLab {
-                guard labChallengesCompleted < 5 else { return }
-                drawingVC.challenge = labChallengeQueue[labChallengesCompleted]
+                // Lab: tiap easel punya challenge tetap (butterfly, spider, snake).
+                guard let easelName = activeEasel?.name,
+                      let challenge = labEaselChallengesMap[easelName],
+                      !completedLabEasels.contains(easelName) else { return }
+                
+                drawingVC.challenge = challenge
                 drawingVC.challengeIndex = labChallengesCompleted + 1
-                drawingVC.totalChallenges = 5
+                drawingVC.totalChallenges = 3
                 
                 drawingVC.onSuccess = { [weak self] in
                     guard let self = self, !self.isGameOver else { return }
-                    self.handleDrawingSuccess(room: "lab")
+                    self.handleDrawingSuccess(room: "lab", easelName: easelName)
                 }
             } else {
+                // Engine: terkunci sampai AI Intelligence >= 40%.
+                guard aiIntelligence >= aiIntelligenceEngineUnlockThreshold else { return }
                 guard engineChallengesCompleted < 5 else { return }
                 drawingVC.challenge = engineChallengeQueue[engineChallengesCompleted]
                 drawingVC.challengeIndex = engineChallengesCompleted + 1
@@ -202,7 +245,7 @@ extension GameScene {
                 
                 drawingVC.onSuccess = { [weak self] in
                     guard let self = self, !self.isGameOver else { return }
-                    self.handleDrawingSuccess(room: "engine")
+                    self.handleDrawingSuccess(room: "engine", easelName: nil)
                 }
             }
         }
@@ -218,20 +261,42 @@ extension GameScene {
     }
     
     /// Dipanggil saat user sukses menyelesaikan salah satu tantangan menggambar utama.
-    func handleDrawingSuccess(room: String) {
+    func handleDrawingSuccess(room: String, easelName: String?) {
         if room == "lab" {
-            labChallengesCompleted += 1
-            if labChallengesCompleted >= 5 {
-                // Papan gambar Lab jadi hijau permanen
-                if let labEasel = challengeEasels.first(where: { $0.position.y > 1300 }) {
-                    labEasel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
-                }
+            // Lab: tandai easel ini selesai + tambah AI Intelligence 10%.
+            if let name = easelName {
+                completedLabEasels.insert(name)
+            }
+            aiIntelligence = min(maxAiIntelligence, aiIntelligence + aiIntelligencePerLabEasel)
+            updateAiIntelligenceBarFill()
+            
+            // Ubah warna easel yang baru saja selesai menjadi hijau.
+            if let name = easelName, let easel = challengeEasels.first(where: { $0.name == name }) {
+                easel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
+                // Update marker di tactical map: tandai easel ini selesai.
+                tacticalMapViewModel.completeLabEaselMarker(at: easel.position)
+            }
+            
+            if labChallengesCompleted >= 3 {
+                // Semua easel Lab selesai -> unlock engine marker di peta + tampilkan banner.
+                tacticalMapViewModel.unlockEngineMarker()
+                let unlockLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+                unlockLabel.text = "LAB SELESAI! ENGINE TERBUKA!"
+                unlockLabel.fontSize = 22
+                unlockLabel.fontColor = SKColor(red: 0.2, green: 0.7, blue: 1.0, alpha: 1.0)
+                unlockLabel.position = CGPoint.zero
+                unlockLabel.zPosition = 20
+                cameraNode.addChild(unlockLabel)
+                
+                let fadeOut = SKAction.fadeOut(withDuration: 3.0)
+                let remove = SKAction.removeFromParent()
+                unlockLabel.run(SKAction.sequence([fadeOut, remove]))
             }
         } else {
             engineChallengesCompleted += 1
             if engineChallengesCompleted >= 5 {
                 // Papan gambar Engine jadi hijau permanen
-                if let engineEasel = challengeEasels.first(where: { $0.position.y <= 1300 }) {
+                if let engineEasel = challengeEasels.first(where: { $0.name == "engineEasel" }) {
                     engineEasel.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
                 }
             }
@@ -243,7 +308,7 @@ extension GameScene {
         
         hideInteractionButton()
         
-        if engineChallengesCompleted >= 5 && labChallengesCompleted >= 5 {
+        if engineChallengesCompleted >= 5 && labChallengesCompleted >= 3 {
             tacticalMapViewModel.completeActiveMissions()
             // Semua tantangan selesai -> Ubah warna semua easel tantangan menjadi hijau permanen dan tampilkan banner final
             for easel in challengeEasels {
@@ -266,7 +331,8 @@ extension GameScene {
             let roundLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
             let roomName = room == "lab" ? "LAB" : "ENGINE"
             let comp = room == "lab" ? labChallengesCompleted : engineChallengesCompleted
-            roundLabel.text = "RONDE \(roomName) \(comp)/5 SELESAI!"
+            let total = room == "lab" ? 3 : 5
+            roundLabel.text = "RONDE \(roomName) \(comp)/\(total) SELESAI!"
             roundLabel.fontSize = 22
             roundLabel.fontColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0)
             roundLabel.position = CGPoint.zero
@@ -380,15 +446,16 @@ extension GameScene {
         // Setel ulang variabel internal
         stamina = maxStamina
         engineChallengesCompleted = 0
-        labChallengesCompleted = 0
+        completedLabEasels.removeAll()
+        aiIntelligence = 10.0 // Reset AI Intelligence ke 10% (awal)
         engineChallengeQueue = DrawingChallenge.enginePool.shuffled()
-        labChallengeQueue = DrawingChallenge.labPool.shuffled()
         
         // Update tampilan UI
         if let progressLabel {
             updateProgressLabel(progressLabel)
         }
         updateStaminaBarFill()
+        updateAiIntelligenceBarFill()
         
         // Reset player & warna easel tantangan
         player.position = GameMapLayout.playerSpawnPosition

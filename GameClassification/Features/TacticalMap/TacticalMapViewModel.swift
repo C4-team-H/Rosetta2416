@@ -73,6 +73,25 @@ final class TacticalMapViewModel {
         }
     }
 
+    /// Mark a single lab easel marker as completed by its world position.
+    func completeLabEaselMarker(at position: CGPoint) {
+        markers = markers.map { marker in
+            (marker.type == .activeMission && marker.worldPosition == position)
+                ? marker.replacingType(with: .completedMission)
+                : marker
+        }
+    }
+
+    /// Unlock the engine marker (change from lockedArea to activeMission) when
+    /// AI Intelligence reaches the threshold.
+    func unlockEngineMarker() {
+        markers = markers.map { marker in
+            (marker.type == .lockedArea && marker.title == "Engine Sketch")
+                ? marker.replacingType(with: .activeMission)
+                : marker
+        }
+    }
+
     func resetMissionMarkers() {
         markers = GameMapLayout.defaultMarkers
     }

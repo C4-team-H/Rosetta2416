@@ -10,7 +10,7 @@ struct GameplayHUDView: View {
         ZStack(alignment: .topTrailing) {
             if viewModel.isGameplayActive && !viewModel.isMapPresented {
                 MapButton(action: openMap)
-                    .padding(.top, 12)
+                    .padding(.top, 80)
                     .padding(.trailing, 16)
                     .transition(.opacity)
             }

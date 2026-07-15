@@ -83,9 +83,23 @@ extension GameScene {
     func createInteractiveObject() {
         challengeEasels.forEach { $0.removeFromParent() }
         challengeEasels.removeAll()
+        labEaselChallengesMap.removeAll()
         
+        var labEaselIndex = 0
         for position in GameMapLayout.challengeStationPositions {
             let easel = createEasel(at: position)
+            
+            if position.y > 1300 {
+                // Lab easel: assign name + fixed challenge
+                let name = "labEasel_\(labEaselIndex)"
+                easel.name = name
+                labEaselChallengesMap[name] = DrawingChallenge.labEaselChallenges[labEaselIndex]
+                labEaselIndex += 1
+            } else {
+                // Engine easel
+                easel.name = "engineEasel"
+            }
+            
             addChild(easel)
             challengeEasels.append(easel)
         }
@@ -257,7 +271,7 @@ extension GameScene {
     
     /// Memperbarui isi teks label progres ronde.
     func updateProgressLabel(_ label: SKLabelNode) {
-        label.text = "ENGINE: \(engineChallengesCompleted)/5 | LAB: \(labChallengesCompleted)/5"
+        label.text = "ENGINE: \(engineChallengesCompleted)/5 | LAB: \(labChallengesCompleted)/3"
     }
     
     /// Membuat komponen HUD Progress Bar untuk menampilkan status stamina pemain secara visual di pojok kiri atas.
@@ -309,6 +323,76 @@ extension GameScene {
             fillBar.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0) // Oranye
         } else {
             fillBar.fillColor = SKColor(red: 0.74, green: 0.25, blue: 0.25, alpha: 1.0) // Merah
+        }
+        fillBar.strokeColor = .clear
+        fillBar.name = "fillBar"
+        container.addChild(fillBar)
+    }
+    
+    /// Membuat komponen HUD Progress Bar untuk menampilkan status AI Intelligence pemain secara visual di pojok kanan atas.
+    func createAiIntelligenceBar() {
+        aiIntelligenceBarContainer?.removeFromParent()
+        
+        let container = SKNode()
+        aiIntelligenceBarContainer = container
+        let w = self.size.width
+        let h = self.size.height
+        container.position = CGPoint(x: w / 2 - 200, y: h / 2 - 40)
+        container.zPosition = 15
+        cameraNode.addChild(container)
+        
+        // Teks "AI INTEL" di atas bar
+        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        label.text = "AI INTEL"
+        label.fontSize = 11
+        label.fontColor = SKColor(red: 0.3, green: 0.6, blue: 0.95, alpha: 1.0) // Biru terang
+        label.position = CGPoint(x: 0, y: 10)
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .bottom
+        container.addChild(label)
+        
+        // Teks persentase di kanan bar (mis. "10%")
+        let percentLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        percentLabel.fontSize = 11
+        percentLabel.fontColor = .white
+        percentLabel.position = CGPoint(x: 158, y: 10)
+        percentLabel.horizontalAlignmentMode = .right
+        percentLabel.verticalAlignmentMode = .bottom
+        percentLabel.name = "percentLabel"
+        container.addChild(percentLabel)
+        
+        // Bingkai luar bar (border putih, background hitam transparan)
+        let bgBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: 150, height: 12), cornerRadius: 6)
+        bgBar.fillColor = SKColor.black.withAlphaComponent(0.4)
+        bgBar.strokeColor = .white
+        bgBar.lineWidth = 1.5
+        container.addChild(bgBar)
+        
+        updateAiIntelligenceBarFill()
+    }
+    
+    /// Memperbarui lebar dan warna isi dari progress bar AI Intelligence.
+    func updateAiIntelligenceBarFill() {
+        guard let container = aiIntelligenceBarContainer else { return }
+        
+        // Update teks persentase
+        if let percentLabel = container.childNode(withName: "percentLabel") as? SKLabelNode {
+            percentLabel.text = "\(Int(aiIntelligence))%"
+        }
+        
+        container.childNode(withName: "fillBar")?.removeFromParent()
+        
+        let fillWidth = 150 * (aiIntelligence / maxAiIntelligence)
+        guard fillWidth > 0 else { return }
+        
+        let fillBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: fillWidth, height: 12), cornerRadius: 6)
+        
+        if aiIntelligence > 60 {
+            fillBar.fillColor = SKColor(red: 0.2, green: 0.7, blue: 1.0, alpha: 1.0) // Cyan terang
+        } else if aiIntelligence > 30 {
+            fillBar.fillColor = SKColor(red: 0.3, green: 0.5, blue: 0.9, alpha: 1.0) // Biru
+        } else {
+            fillBar.fillColor = SKColor(red: 0.35, green: 0.35, blue: 0.6, alpha: 1.0) // Biru gelap
         }
         fillBar.strokeColor = .clear
         fillBar.name = "fillBar"

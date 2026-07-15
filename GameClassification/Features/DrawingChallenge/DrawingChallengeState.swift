@@ -12,10 +12,10 @@ extension DrawingChallenge {
         DrawingChallenge(label: "eyeglasses", displayName: "KACAMATA")
     ]
 
-    static let labPool: [DrawingChallenge] = [
+    // Lab memiliki 3 easel, masing-masing dengan objek tetap (tidak acak).
+    // Urutan ini cocok dengan labEaselPositions di GameMapLayout.
+    static let labEaselChallenges: [DrawingChallenge] = [
         DrawingChallenge(label: "butterfly", displayName: "KUPU-KUPU"),
-        DrawingChallenge(label: "cactus", displayName: "KAKTUS"),
-        DrawingChallenge(label: "fish", displayName: "IKAN"),
         DrawingChallenge(label: "spider", displayName: "LABA-LABA"),
         DrawingChallenge(label: "snake", displayName: "ULAR")
     ]

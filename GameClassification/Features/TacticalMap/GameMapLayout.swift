@@ -5,8 +5,10 @@ enum GameMapLayout {
     static let worldSize = CGSize(width: 2_000, height: 2_000)
     static let playerSpawnPosition = CGPoint(x: 375, y: 1_000)
     static let challengeStationPositions = [
-        CGPoint(x: 1_000, y: 1_000),
-        CGPoint(x: 375, y: 1_600)
+        CGPoint(x: 1_000, y: 1_000),   // Engine Room (1 easel, 5 challenges queue)
+        CGPoint(x: 275, y: 1_600),     // Lab easel 0 — butterfly
+        CGPoint(x: 375, y: 1_600),     // Lab easel 1 — spider
+        CGPoint(x: 475, y: 1_600)      // Lab easel 2 — snake
     ]
     static let foodStationPosition = CGPoint(x: 1_625, y: 400)
 
@@ -84,8 +86,13 @@ enum GameMapLayout {
     }()
 
     static let defaultMarkers = [
-        MapMarker(type: .activeMission, worldPosition: challengeStationPositions[0], title: "Engine Sketch"),
-        MapMarker(type: .activeMission, worldPosition: challengeStationPositions[1], title: "Lab Study"),
+        // Engine easel — locked until AI Intelligence ≥ 40%
+        MapMarker(type: .lockedArea, worldPosition: challengeStationPositions[0], title: "Engine Sketch"),
+        // Lab easels — 3 active missions (butterfly, spider, snake)
+        MapMarker(type: .activeMission, worldPosition: challengeStationPositions[1], title: "Lab: Kupu-Kupu"),
+        MapMarker(type: .activeMission, worldPosition: challengeStationPositions[2], title: "Lab: Laba-Laba"),
+        MapMarker(type: .activeMission, worldPosition: challengeStationPositions[3], title: "Lab: Ular"),
+        // Kitchen food station
         MapMarker(type: .importantObject, worldPosition: foodStationPosition, title: "Energy Station"),
         MapMarker(type: .lockedArea, worldPosition: CGPoint(x: 1_000, y: 1_840), title: "North Gate"),
         MapMarker(type: .checkpoint, worldPosition: CGPoint(x: 1_000, y: 700), title: "Rally Point"),
