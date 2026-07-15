@@ -11,6 +11,16 @@ class MainMenuScene: SKScene {
     
     private var titleLabel: SKLabelNode!
     private var startButton: SKShapeNode!
+    private let coordinator: GameplayCoordinator
+
+    init(size: CGSize, coordinator: GameplayCoordinator) {
+        self.coordinator = coordinator
+        super.init(size: size)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func didMove(to view: SKView) {
         // 1. Mengatur warna background menu utama
@@ -77,7 +87,7 @@ class MainMenuScene: SKScene {
     
     private func startGame() {
         // 6. Transisi ke GameScene secara programmatic
-        let gameScene = GameScene(size: self.size)
+        let gameScene = coordinator.makeGameScene(size: self.size)
         gameScene.scaleMode = .resizeFill
         
         // Efek transisi pudar (fade) selama 1 detik

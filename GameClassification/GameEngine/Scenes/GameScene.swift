@@ -8,6 +8,20 @@
 import SpriteKit
 
 class GameScene: SKScene {
+
+    let sessionState: GameSessionState
+    let tacticalMapViewModel: TacticalMapViewModel
+    private var wasMapInputSuspended = false
+
+    init(size: CGSize, sessionState: GameSessionState, tacticalMapViewModel: TacticalMapViewModel) {
+        self.sessionState = sessionState
+        self.tacticalMapViewModel = tacticalMapViewModel
+        super.init(size: size)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // MARK: - Properties
     let cameraNode = SKCameraNode() // Kamera untuk mengikuti pergerakan player
@@ -82,7 +96,7 @@ class GameScene: SKScene {
     let playerRadius: CGFloat = 15
     
     // MARK: - Candle-Light Overlay
-    var candleLight: CandleLight?
+    var candleLight: CandleLightNode?
     
     // MARK: - GameOver UI
     var isGameOver = false
@@ -91,6 +105,8 @@ class GameScene: SKScene {
     // MARK: - Scene Lifecycle
     
     override func didMove(to view: SKView) {
+        sessionState.updateLocalPlayer(position: GameMapLayout.playerSpawnPosition)
+        sessionState.beginGameplay()
         // Mengatur warna background area game
         self.backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1.0)
         
@@ -137,8 +153,9 @@ class GameScene: SKScene {
         
         // 2. Batasi karakter agar tetap berada di dalam batas map 2000x2000
         if let player = player {
-            let newX = max(playerRadius, min(2000.0 - playerRadius, player.position.x))
-            let newY = max(playerRadius, min(2000.0 - playerRadius, player.position.y))
+            let worldSize = GameMapLayout.worldSize
+            let newX = max(playerRadius, min(worldSize.width - playerRadius, player.position.x))
+            let newY = max(playerRadius, min(worldSize.height - playerRadius, player.position.y))
             player.position = CGPoint(x: newX, y: newY)
         }
         
@@ -183,16 +200,28 @@ class GameScene: SKScene {
     
     override func update(_ currentTime: TimeInterval) {
         guard !isGameOver else { return }
+
+        if tacticalMapViewModel.isMapPresented {
+            if !wasMapInputSuspended {
+                pencilTarget = nil
+                pencilTouch = nil
+                hideTargetMarker()
+                resetJoystick()
+                wasMapInputSuspended = true
+            }
+        } else {
+            wasMapInputSuspended = false
+        }
         
         // Prioritas pergerakan
-        if pencilTarget != nil {
+        if !tacticalMapViewModel.isMapPresented, pencilTarget != nil {
             movePlayerTowardTarget()
-        } else if isJoystickActive && joystickVector != CGPoint.zero {
+        } else if !tacticalMapViewModel.isMapPresented, isJoystickActive && joystickVector != CGPoint.zero {
             movePlayer()
         }
         
-        // Pengurangan stamina konstan setiap update jika tidak dijeda
-        if !self.isPaused {
+        // pauseLocalGameplay pauses local simulation only; SpriteKit and networking still run.
+        if tacticalMapViewModel.shouldRunLocalSimulation && !self.isPaused {
             stamina = max(0, stamina - staminaDecayRate)
             updateStaminaBarFill()
             
@@ -201,13 +230,25 @@ class GameScene: SKScene {
             }
         }
         
-        checkProximityToInteractiveObject()
-        checkProximityToFoodObject()
+        if tacticalMapViewModel.shouldRunLocalSimulation {
+            checkProximityToInteractiveObject()
+            checkProximityToFoodObject()
+        }
         
         // Perbarui pencahayaan lilin relatif terhadap kamera (player selalu di tengah screen)
         candleLight?.update(lightPosition: CGPoint(x: self.size.width / 2, y: self.size.height / 2), currentTime: currentTime)
         
         // Kamera mengikuti pergerakan player
         cameraNode.position = player.position
+
+        // The map always has the latest position when opened. Observation only invalidates views
+        // that currently read this value, so publishing while the overlay is closed stays cheap.
+        sessionState.updateLocalPlayer(position: player.position)
+    }
+
+    override func willMove(from view: SKView) {
+        tacticalMapViewModel.closeMap()
+        sessionState.endGameplay()
+        super.willMove(from: view)
     }
 }

@@ -1,5 +1,5 @@
 //
-//  CandleLight.swift
+//  CandleLightNode.swift
 //  GameClassification
 //
 
@@ -8,7 +8,7 @@ import SpriteKit
 /// A reusable, touch-transparent darkness overlay with a soft light centered on
 /// a point in scene space. The radial falloff and flicker are rendered in one
 /// fullscreen shader pass.
-final class CandleLight: SKNode {
+final class CandleLightNode: SKNode {
 
     struct Configuration {
         /// Distance from the light center to the fully dark area, in scene points.
