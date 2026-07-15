@@ -12,6 +12,7 @@ extension GameScene {
     
     /// Dipanggil saat jari atau Apple Pencil pertama kali menyentuh layar.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !tacticalMapViewModel.isMapPresented else { return }
         // Jika status Game Over, sentuhan hanya mendeteksi tombol restart
         guard !isGameOver else {
             for touch in touches {
@@ -66,6 +67,7 @@ extension GameScene {
     
     /// Dipanggil saat jari atau Apple Pencil bergeser di atas layar.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !tacticalMapViewModel.isMapPresented else { return }
         guard !isGameOver else { return }
         
         // Geser Apple Pencil -> Pindahkan titik koordinat target bergerak

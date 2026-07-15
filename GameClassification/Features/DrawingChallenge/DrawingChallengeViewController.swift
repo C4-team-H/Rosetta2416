@@ -1,5 +1,5 @@
 //
-//  DrawingViewController.swift
+//  DrawingChallengeViewController.swift
 //  GameClassification
 //
 //  Created by Muhammad Muthi' Nuritzan on 13/07/26.
@@ -9,55 +9,15 @@ import UIKit
 import PencilKit
 import CoreML
 
-// Data untuk satu ronde tantangan gambar.
-// `label` = output CoreML (lowercase English) untuk verifikasi prediksi.
-// `displayName` = nama objek dalam Bahasa Indonesia untuk ditampilkan di UI.
-struct DrawingChallenge {
-    let label: String
-    let displayName: String
-}
-
-extension DrawingChallenge {
-    // Tantangan di Engine Room
-    
-    // Tantangan di Engine Room
-    static let enginePool: [DrawingChallenge] = [
-        DrawingChallenge(label: "book", displayName: "BUKU"),
-        DrawingChallenge(label: "alarm clock", displayName: "JAM WEKER"),
-        DrawingChallenge(label: "computer monitor", displayName: "MONITOR"),
-        DrawingChallenge(label: "door", displayName: "PINTU"),
-        DrawingChallenge(label: "eyeglasses", displayName: "KACAMATA")
-    ]
-    
-    // Tantangan di Lab
-    static let labPool: [DrawingChallenge] = [
-        DrawingChallenge(label: "butterfly", displayName: "KUPU-KUPU"),
-        DrawingChallenge(label: "cactus", displayName: "KAKTUS"),
-        DrawingChallenge(label: "fish", displayName: "IKAN"),
-        DrawingChallenge(label: "spider", displayName: "LABA-LABA"),
-        DrawingChallenge(label: "snake", displayName: "ULAR")
-    ]
-    
-    // Daftar makanan untuk stasiun makanan (Kitchen)
-    static let foodPool: [DrawingChallenge] = [
-        DrawingChallenge(label: "banana", displayName: "PISANG"),
-        DrawingChallenge(label: "apple", displayName: "APEL"),
-        DrawingChallenge(label: "donut", displayName: "DONAT"),
-        DrawingChallenge(label: "pizza", displayName: "PIZZA"),
-        DrawingChallenge(label: "carrot", displayName: "CARROT")
-    ]
-}
-
-class DrawingViewController: UIViewController, PKCanvasViewDelegate {
+class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     // MARK: - Callbacks
     var onSuccess: (() -> Void)?
     var onCancel: (() -> Void)?
 
     // MARK: - Challenge Configuration
-    // Diset oleh GameScene sebelum present. Nilai bawaan (default) menggunakan
-    // DrawingChallenge.enginePool[0] hanyalah placeholder wajib untuk Swift
-    // dan akan selalu ditimpa oleh data tantangan aktif dari GameScene sebelum ditampilkan.
+    // Diset oleh GameScene sebelum present. Default ini hanya placeholder dan
+    // selalu ditimpa oleh tantangan aktif sebelum controller ditampilkan.
     var challenge: DrawingChallenge = DrawingChallenge.enginePool[0]
     var challengeIndex: Int = 1   // Ronde ke-berapa (1-based) untuk ditampilkan ke user
     var totalChallenges: Int = 5  // Total ronde tantangan

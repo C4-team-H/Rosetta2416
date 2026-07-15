@@ -21,8 +21,8 @@ extension GameScene {
         self.addChild(container)
         
         let tileSize: CGFloat = 60 // Ukuran tiap petak grid lantai
-        let cols = Int(ceil(2000.0 / tileSize))
-        let rows = Int(ceil(2000.0 / tileSize))
+        let cols = Int(ceil(GameMapLayout.worldSize.width / tileSize))
+        let rows = Int(ceil(GameMapLayout.worldSize.height / tileSize))
         
         for row in 0..<rows {
             for col in 0..<cols {
@@ -52,7 +52,7 @@ extension GameScene {
         player.fillColor = SKColor(red: 0.9, green: 0.3, blue: 0.3, alpha: 1.0) // Merah menyala
         player.strokeColor = .white
         player.lineWidth = 2.0
-        player.position = CGPoint(x: 375, y: 1000) // Mulai di Sleeping Room
+        player.position = GameMapLayout.playerSpawnPosition
         player.zPosition = 1
         self.addChild(player)
     }
@@ -83,29 +83,26 @@ extension GameScene {
     func createInteractiveObject() {
         challengeEasels.forEach { $0.removeFromParent() }
         challengeEasels.removeAll()
+        labEaselChallengesMap.removeAll()
         
-        // 1. Easel di Engine Room (Center)
-        let easelEngine = createEasel(at: CGPoint(x: 1000, y: 1000))
-        easelEngine.name = "easel_engine"
-        self.addChild(easelEngine)
-        challengeEasels.append(easelEngine)
-        
-        // 2. Tiga Easel di Lab (Top-Left)
-        // Ditempatkan agar membentuk segitiga simetris di dalam ruangan Lab
-        let easelButterfly = createEasel(at: CGPoint(x: 300, y: 1620))
-        easelButterfly.name = "easel_lab_butterfly"
-        self.addChild(easelButterfly)
-        challengeEasels.append(easelButterfly)
-        
-        let easelSpider = createEasel(at: CGPoint(x: 375, y: 1680))
-        easelSpider.name = "easel_lab_spider"
-        self.addChild(easelSpider)
-        challengeEasels.append(easelSpider)
-        
-        let easelSnake = createEasel(at: CGPoint(x: 450, y: 1620))
-        easelSnake.name = "easel_lab_snake"
-        self.addChild(easelSnake)
-        challengeEasels.append(easelSnake)
+        var labEaselIndex = 0
+        for position in GameMapLayout.challengeStationPositions {
+            let easel = createEasel(at: position)
+            
+            if position.y > 1300 {
+                // Lab easel: assign name + fixed challenge
+                let name = "labEasel_\(labEaselIndex)"
+                easel.name = name
+                labEaselChallengesMap[name] = DrawingChallenge.labEaselChallenges[labEaselIndex]
+                labEaselIndex += 1
+            } else {
+                // Engine easel
+                easel.name = "engineEasel"
+            }
+            
+            addChild(easel)
+            challengeEasels.append(easel)
+        }
     }
     
     /// Helper untuk membuat satu easel papan gambar tantangan.
@@ -157,7 +154,7 @@ extension GameScene {
         foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1.0) // Jingga kayu
         foodObject.strokeColor = .white
         foodObject.lineWidth = 2.0
-        foodObject.position = CGPoint(x: 1625, y: 400) // Di Kitchen
+        foodObject.position = GameMapLayout.foodStationPosition
         foodObject.zPosition = 2
         self.addChild(foodObject)
         
@@ -198,70 +195,17 @@ extension GameScene {
         
         // Hapus label ruangan lama agar tidak bertumpuk jika digambar ulang
         self.children.filter { $0.name == "roomLabel" }.forEach { $0.removeFromParent() }
-        
-        // 1. Dinding Sleeping Room (Kiri / Spawn)
-        // minX = 200, maxX = 550, minY = 825, maxY = 1175
-        // Pintu kanan: Y [950, 1050]
-        addWall(from: CGPoint(x: 200, y: 825), to: CGPoint(x: 200, y: 1175)) // Kiri
-        addWall(from: CGPoint(x: 200, y: 1175), to: CGPoint(x: 550, y: 1175)) // Atas
-        addWall(from: CGPoint(x: 200, y: 825), to: CGPoint(x: 550, y: 825)) // Bawah
-        addWall(from: CGPoint(x: 550, y: 825), to: CGPoint(x: 550, y: 950)) // Kanan bawah
-        addWall(from: CGPoint(x: 550, y: 1050), to: CGPoint(x: 550, y: 1175)) // Kanan atas
-        addRoomLabel(text: "SLEEPING ROOM", position: CGPoint(x: 375, y: 1000))
-        
-        // 2. Dinding Engine Room (Tengah)
-        // minX = 800, maxX = 1200, minY = 800, maxY = 1200
-        // Pintu kiri: Y [950, 1050]
-        // Pintu atas: X [950, 1050]
-        // Pintu bawah: X [950, 1050]
-        addWall(from: CGPoint(x: 800, y: 800), to: CGPoint(x: 800, y: 950)) // Kiri bawah
-        addWall(from: CGPoint(x: 800, y: 1050), to: CGPoint(x: 800, y: 1200)) // Kiri atas
-        addWall(from: CGPoint(x: 1200, y: 800), to: CGPoint(x: 1200, y: 1200)) // Kanan
-        addWall(from: CGPoint(x: 800, y: 1200), to: CGPoint(x: 950, y: 1200)) // Atas kiri
-        addWall(from: CGPoint(x: 1050, y: 1200), to: CGPoint(x: 1200, y: 1200)) // Atas kanan
-        addWall(from: CGPoint(x: 800, y: 800), to: CGPoint(x: 950, y: 800)) // Bawah kiri
-        addWall(from: CGPoint(x: 1050, y: 800), to: CGPoint(x: 1200, y: 800)) // Bawah kanan
-        addRoomLabel(text: "ENGINE ROOM", position: CGPoint(x: 1000, y: 1000))
-        
-        // 3. Dinding Lab (Atas Kiri)
-        // minX = 200, maxX = 550, minY = 1425, maxY = 1775
-        // Pintu bawah: X [325, 425]
-        addWall(from: CGPoint(x: 200, y: 1425), to: CGPoint(x: 200, y: 1775)) // Kiri
-        addWall(from: CGPoint(x: 200, y: 1775), to: CGPoint(x: 550, y: 1775)) // Atas
-        addWall(from: CGPoint(x: 550, y: 1425), to: CGPoint(x: 550, y: 1775)) // Kanan
-        addWall(from: CGPoint(x: 200, y: 1425), to: CGPoint(x: 325, y: 1425)) // Bawah kiri
-        addWall(from: CGPoint(x: 425, y: 1425), to: CGPoint(x: 550, y: 1425)) // Bawah kanan
-        addRoomLabel(text: "LAB", position: CGPoint(x: 375, y: 1600))
-        
-        // 4. Dinding Kitchen (Bawah Kanan)
-        // minX = 1450, maxX = 1800, minY = 225, maxY = 575
-        // Pintu kiri: Y [350, 450]
-        addWall(from: CGPoint(x: 1800, y: 225), to: CGPoint(x: 1800, y: 575)) // Kanan
-        addWall(from: CGPoint(x: 1450, y: 575), to: CGPoint(x: 1800, y: 575)) // Atas
-        addWall(from: CGPoint(x: 1450, y: 225), to: CGPoint(x: 1800, y: 225)) // Bawah
-        addWall(from: CGPoint(x: 1450, y: 225), to: CGPoint(x: 1450, y: 350)) // Kiri bawah
-        addWall(from: CGPoint(x: 1450, y: 450), to: CGPoint(x: 1450, y: 575)) // Kiri atas
-        addRoomLabel(text: "KITCHEN", position: CGPoint(x: 1625, y: 400))
-        
-        // 5. Koridor Sleeping Room ke Engine Room
-        addWall(from: CGPoint(x: 550, y: 1050), to: CGPoint(x: 800, y: 1050)) // Atas
-        addWall(from: CGPoint(x: 550, y: 950), to: CGPoint(x: 800, y: 950)) // Bawah
-        
-        // 6. Koridor Lab ke Engine Room (L-shaped)
-        addWall(from: CGPoint(x: 325, y: 1425), to: CGPoint(x: 325, y: 1250))
-        addWall(from: CGPoint(x: 325, y: 1250), to: CGPoint(x: 950, y: 1250))
-        addWall(from: CGPoint(x: 950, y: 1250), to: CGPoint(x: 950, y: 1200))
-        
-        addWall(from: CGPoint(x: 425, y: 1425), to: CGPoint(x: 425, y: 1350))
-        addWall(from: CGPoint(x: 425, y: 1350), to: CGPoint(x: 1050, y: 1350))
-        addWall(from: CGPoint(x: 1050, y: 1350), to: CGPoint(x: 1050, y: 1200))
-        
-        // 7. Koridor Kitchen ke Engine Room (L-shaped)
-        addWall(from: CGPoint(x: 1450, y: 450), to: CGPoint(x: 1050, y: 450))
-        addWall(from: CGPoint(x: 1050, y: 450), to: CGPoint(x: 1050, y: 800))
-        
-        addWall(from: CGPoint(x: 1450, y: 350), to: CGPoint(x: 950, y: 350))
-        addWall(from: CGPoint(x: 950, y: 350), to: CGPoint(x: 950, y: 800))
+
+        for wall in GameMapLayout.wallSegments {
+            addWall(from: wall.start, to: wall.end)
+        }
+
+        for room in GameMapLayout.rooms {
+            addRoomLabel(
+                text: room.name,
+                position: CGPoint(x: room.worldFrame.midX, y: room.worldFrame.midY)
+            )
+        }
     }
     
     /// Helper untuk menambahkan dinding solid (Obstacle) berbentuk garis lurus tebal.
@@ -309,64 +253,25 @@ extension GameScene {
         // Sengaja dibiarkan kosong karena dinding bernilai absolut
     }
     
-    /// Membuat komponen HUD Progress Bar untuk menampilkan status kemajuan AI Intelligence secara visual di pojok kanan atas.
-    func createAiIntelligenceBar() {
-        aiIntelligenceBarContainer?.removeFromParent()
+    /// Membuat label petunjuk progres tantangan menggambar ("TANTANGAN: X/5") di bagian atas tengah layar.
+    func createProgressLabel() {
+        progressLabel?.removeFromParent()
         
-        let container = SKNode()
-        aiIntelligenceBarContainer = container
-        let w = self.size.width
-        let h = self.size.height
-        container.position = CGPoint(x: w / 2 - 200, y: h / 2 - 40)
-        container.zPosition = 15
-        cameraNode.addChild(container)
-        
-        // Teks "AI INTELLIGENCE" di atas bar
         let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        label.text = "AI INTELLIGENCE"
-        label.fontSize = 11
-        label.fontColor = SKColor(red: 0.2, green: 0.8, blue: 1.0, alpha: 1.0)
-        label.position = CGPoint(x: 0, y: 10)
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .bottom
-        container.addChild(label)
-        
-        // Bingkai luar bar (border putih, background hitam transparan)
-        let bgBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: 150, height: 12), cornerRadius: 6)
-        bgBar.fillColor = SKColor.black.withAlphaComponent(0.4)
-        bgBar.strokeColor = .white
-        bgBar.lineWidth = 1.5
-        container.addChild(bgBar)
-        
-        updateAiIntelligenceBarFill()
+        label.fontSize = 18
+        label.fontColor = .white
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.zPosition = 15
+        label.position = CGPoint(x: 0, y: self.size.height / 2 - 40)
+        updateProgressLabel(label)
+        cameraNode.addChild(label)
+        progressLabel = label
     }
     
-    /// Memperbarui lebar dan persentase teks isi dari progress bar AI Intelligence.
-    func updateAiIntelligenceBarFill() {
-        guard let container = aiIntelligenceBarContainer else { return }
-        
-        container.childNode(withName: "aiFillBar")?.removeFromParent()
-        container.childNode(withName: "aiPercentLabel")?.removeFromParent()
-        
-        let fillWidth = 150 * (aiIntelligence / maxAiIntelligence)
-        
-        if fillWidth > 0 {
-            let fillBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: fillWidth, height: 12), cornerRadius: 6)
-            fillBar.fillColor = SKColor(red: 0.2, green: 0.6, blue: 1.0, alpha: 1.0) // Cyan/Blue
-            fillBar.strokeColor = .clear
-            fillBar.name = "aiFillBar"
-            container.addChild(fillBar)
-        }
-        
-        let percentLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        percentLabel.text = "\(Int(round(aiIntelligence)))%"
-        percentLabel.fontSize = 11
-        percentLabel.fontColor = .white
-        percentLabel.position = CGPoint(x: 160, y: -4)
-        percentLabel.horizontalAlignmentMode = .left
-        percentLabel.verticalAlignmentMode = .bottom
-        percentLabel.name = "aiPercentLabel"
-        container.addChild(percentLabel)
+    /// Memperbarui isi teks label progres ronde.
+    func updateProgressLabel(_ label: SKLabelNode) {
+        label.text = "ENGINE: \(engineChallengesCompleted)/5 | LAB: \(labChallengesCompleted)/3"
     }
     
     /// Membuat komponen HUD Progress Bar untuk menampilkan status stamina pemain secara visual di pojok kiri atas.
@@ -424,10 +329,80 @@ extension GameScene {
         container.addChild(fillBar)
     }
     
+    /// Membuat komponen HUD Progress Bar untuk menampilkan status AI Intelligence pemain secara visual di pojok kanan atas.
+    func createAiIntelligenceBar() {
+        aiIntelligenceBarContainer?.removeFromParent()
+        
+        let container = SKNode()
+        aiIntelligenceBarContainer = container
+        let w = self.size.width
+        let h = self.size.height
+        container.position = CGPoint(x: w / 2 - 200, y: h / 2 - 40)
+        container.zPosition = 15
+        cameraNode.addChild(container)
+        
+        // Teks "AI INTEL" di atas bar
+        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        label.text = "AI INTEL"
+        label.fontSize = 11
+        label.fontColor = SKColor(red: 0.3, green: 0.6, blue: 0.95, alpha: 1.0) // Biru terang
+        label.position = CGPoint(x: 0, y: 10)
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .bottom
+        container.addChild(label)
+        
+        // Teks persentase di kanan bar (mis. "10%")
+        let percentLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        percentLabel.fontSize = 11
+        percentLabel.fontColor = .white
+        percentLabel.position = CGPoint(x: 158, y: 10)
+        percentLabel.horizontalAlignmentMode = .right
+        percentLabel.verticalAlignmentMode = .bottom
+        percentLabel.name = "percentLabel"
+        container.addChild(percentLabel)
+        
+        // Bingkai luar bar (border putih, background hitam transparan)
+        let bgBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: 150, height: 12), cornerRadius: 6)
+        bgBar.fillColor = SKColor.black.withAlphaComponent(0.4)
+        bgBar.strokeColor = .white
+        bgBar.lineWidth = 1.5
+        container.addChild(bgBar)
+        
+        updateAiIntelligenceBarFill()
+    }
+    
+    /// Memperbarui lebar dan warna isi dari progress bar AI Intelligence.
+    func updateAiIntelligenceBarFill() {
+        guard let container = aiIntelligenceBarContainer else { return }
+        
+        // Update teks persentase
+        if let percentLabel = container.childNode(withName: "percentLabel") as? SKLabelNode {
+            percentLabel.text = "\(Int(aiIntelligence))%"
+        }
+        
+        container.childNode(withName: "fillBar")?.removeFromParent()
+        
+        let fillWidth = 150 * (aiIntelligence / maxAiIntelligence)
+        guard fillWidth > 0 else { return }
+        
+        let fillBar = SKShapeNode(rect: CGRect(x: 0, y: -6, width: fillWidth, height: 12), cornerRadius: 6)
+        
+        if aiIntelligence > 60 {
+            fillBar.fillColor = SKColor(red: 0.2, green: 0.7, blue: 1.0, alpha: 1.0) // Cyan terang
+        } else if aiIntelligence > 30 {
+            fillBar.fillColor = SKColor(red: 0.3, green: 0.5, blue: 0.9, alpha: 1.0) // Biru
+        } else {
+            fillBar.fillColor = SKColor(red: 0.35, green: 0.35, blue: 0.6, alpha: 1.0) // Biru gelap
+        }
+        fillBar.strokeColor = .clear
+        fillBar.name = "fillBar"
+        container.addChild(fillBar)
+    }
+    
     /// Mengaktifkan efek atmosferik overlay cahaya lilin hangat yang membatasi penglihatan layar luar (kegelapan).
     func enableCandleLight() {
         candleLight?.removeFromParent()
-        let configuration = CandleLight.Configuration(
+        let configuration = CandleLightNode.Configuration(
             radius: 180.0,
             darknessOpacity: 0.94,
             lightIntensity: 1.0,
@@ -437,7 +412,7 @@ extension GameScene {
             flickerAmount: 0.025,
             flickerSpeed: 1.0
         )
-        let light = CandleLight(sceneSize: self.size, configuration: configuration)
+        let light = CandleLightNode(sceneSize: self.size, configuration: configuration)
         light.zPosition = 9.5
         light.position = CGPoint(x: -self.size.width / 2, y: -self.size.height / 2)
         light.update(lightPosition: CGPoint(x: self.size.width / 2, y: self.size.height / 2))
