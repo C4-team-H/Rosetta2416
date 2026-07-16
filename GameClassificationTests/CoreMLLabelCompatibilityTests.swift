@@ -11,9 +11,16 @@ struct CoreMLLabelCompatibilityTests {
         configuration.computeUnits = .cpuOnly
         let model = try HandwritingGameClassificationV2(configuration: configuration)
         let modelLabels = Set((model.model.modelDescription.classLabels ?? []).compactMap { $0 as? String })
-        let storyLabels = StoryContent.objectives.compactMap { objective -> String? in
-            guard case let .drawing(prompt) = objective.kind else { return nil }
-            return prompt.expectedLabel
+        
+        let storyLabels = StoryContent.objectives.flatMap { objective -> [String] in
+            switch objective.kind {
+            case let .drawing(prompt):
+                return [prompt.expectedLabel]
+            case let .easel(easelDef):
+                return easelDef.pool.map(\.expectedLabel)
+            default:
+                return []
+            }
         }
         let kitchenLabels = DrawingChallenge.foodPool.map(\.label)
 
@@ -21,16 +28,16 @@ struct CoreMLLabelCompatibilityTests {
         #expect((storyLabels + kitchenLabels).allSatisfy(modelLabels.contains))
     }
 
-    @Test("Cockpit navigation uses the ship model label")
-    func cockpitNavigationUsesShip() throws {
-        let objective = try #require(StoryContent.definition(id: "cockpit-navigation-control"))
+    @Test("Cockpit easel contains moon, sun, and ufo")
+    func cockpitEaselContainsMoonSunUfo() throws {
+        let objective = try #require(StoryContent.definition(id: "cockpit-easel"))
         let kind = objective.kind
-        guard case let .drawing(prompt) = kind else {
-            Issue.record("Cockpit navigation must remain a drawing objective")
+        guard case let .easel(easelDef) = kind else {
+            Issue.record("Cockpit easel must remain an easel objective")
             return
         }
 
-        #expect(prompt.expectedLabel == "ship")
-        #expect(prompt.displayName == "SHIP")
+        let labels = easelDef.pool.map(\.expectedLabel)
+        #expect(labels == ["moon", "sun", "ufo"])
     }
 }

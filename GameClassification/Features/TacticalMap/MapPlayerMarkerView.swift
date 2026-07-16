@@ -19,7 +19,7 @@ struct MapPlayerMarkerView: View {
             }
 
             Image(systemName: markerSymbol)
-                .font(.system(size: 13, weight: .bold))
+                .font(GameFont.custom(size: 13, weight: 700))
                 .foregroundStyle(player.isLocalPlayer ? .black : .white)
                 .frame(width: 27, height: 27)
                 .background(markerColor, in: Circle())
@@ -29,7 +29,7 @@ struct MapPlayerMarkerView: View {
 
             if let connectionState, connectionState != .connected {
                 Image(systemName: connectionSymbol(for: connectionState))
-                    .font(.system(size: 8, weight: .bold))
+                    .font(GameFont.custom(size: 8, weight: 700))
                     .foregroundStyle(.white)
                     .padding(4)
                     .background(connectionColor(for: connectionState), in: Circle())
@@ -37,8 +37,7 @@ struct MapPlayerMarkerView: View {
             }
 
             Text(player.isLocalPlayer ? "YOU" : "CREW")
-                .font(.caption)
-                .bold()
+                .font(GameFont.caption1Bold)
                 .lineLimit(1)
                 .fixedSize()
                 .offset(y: 26)

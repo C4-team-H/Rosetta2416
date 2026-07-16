@@ -80,8 +80,8 @@ enum StoryDialogueLoader {
     static let fallback: [AIDialogueLine] = [
         AIDialogueLine(id: "intro-1", chapter: .sleepingRoom, trigger: .chapterEntered(.sleepingRoom), text: "Sys... systems damaged. Find... laboratory.", priority: 100),
         AIDialogueLine(id: "lab-complete", chapter: .enginePhaseOne, trigger: .chapterEntered(.enginePhaseOne), text: "Communication restored. Proceed to the Engine Room.", priority: 100),
-        AIDialogueLine(id: "power-basic", chapter: .enginePhaseTwo, trigger: .powerChanged(.basicPower), text: "Primary lighting restored. Flashlight no longer required.", priority: 100),
-        AIDialogueLine(id: "power-disrupted", chapter: .enginePhaseTwo, trigger: .powerChanged(.disrupted), text: "Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.", priority: 100),
+        AIDialogueLine(id: "power-basic", chapter: .enginePhaseOne, trigger: .powerChanged(.basicPower), text: "Primary lighting restored. Flashlight no longer required.", priority: 100),
+        AIDialogueLine(id: "power-disrupted", chapter: .enginePhaseOne, trigger: .powerChanged(.disrupted), text: "Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.", priority: 100),
         AIDialogueLine(id: "storage-route", chapter: .engineBlocked, trigger: .chapterEntered(.engineBlocked), text: "Repair halted. Retrieve advanced tools from Storage.", priority: 100),
         AIDialogueLine(id: "tools-acquired", chapter: .engineFinal, trigger: .chapterEntered(.engineFinal), text: "Advanced repair tools acquired. Return to the Engine Room.", priority: 100),
         AIDialogueLine(id: "engine-complete", chapter: .cockpit, trigger: .chapterEntered(.cockpit), text: "Engine restoration complete. Cockpit access restored.", priority: 100),

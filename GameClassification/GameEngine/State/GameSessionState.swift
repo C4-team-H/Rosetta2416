@@ -97,6 +97,15 @@ final class GameSessionState {
             break
         }
         let effects = storySystem.handle(event)
+        if case .drawingValidated = event {
+            let accepted = !effects.contains {
+                if case .interactionDenied = $0 { return true }
+                return false
+            }
+            if accepted {
+                stats.successfulDrawings += 1
+            }
+        }
         applyEffects(effects)
         return effects
     }
@@ -220,11 +229,7 @@ final class GameSessionState {
 
         for effect in effects {
             switch effect {
-            case let .objectiveCompleted(id):
-                if let definition = storySystem.definition(id: id),
-                   case .drawing = definition.kind {
-                    stats.successfulDrawings += 1
-                }
+            case .objectiveCompleted:
                 shouldPersist = true
 
             case .chapterChanged, .mapNeedsRefresh, .doorAccessChanged, .stationVisualChanged:

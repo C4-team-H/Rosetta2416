@@ -39,24 +39,26 @@ enum GameMapLayout {
 
     static let stationDefinitions: [StationDefinition] = {
         let ids = StoryContent.objectives.compactMap { objective -> StationDefinition? in
-            guard case .drawing = objective.kind else { return nil }
+            switch objective.kind {
+            case .drawing, .easel:
+                break
+            default:
+                return nil
+            }
             let position: CGPoint
             switch objective.roomID {
             case .laboratory:
-                let index = StoryContent.labIDs.firstIndex(of: objective.id) ?? 0
-                position = [CGPoint(x: 275, y: 1_600), CGPoint(x: 375, y: 1_600), CGPoint(x: 475, y: 1_600)][index]
+                position = CGPoint(x: 375, y: 1_600)
             case .engine:
-                let allEngineIDs = StoryContent.enginePhaseOneIDs + StoryContent.enginePhaseTwoIDs + StoryContent.engineFinalIDs
-                let index = allEngineIDs.firstIndex(of: objective.id) ?? 0
-                let columns: [CGFloat] = [850, 950, 1_050, 1_150]
-                let rows: [CGFloat] = [860, 1_000, 1_140]
-                position = CGPoint(x: columns[index % columns.count], y: rows[index / columns.count])
+                if objective.id == "engine-easel-1" {
+                    position = CGPoint(x: 900, y: 1_000)
+                } else {
+                    position = CGPoint(x: 1_100, y: 1_000)
+                }
             case .storage:
-                let index = StoryContent.storageIDs.firstIndex(of: objective.id) ?? 0
-                position = [CGPoint(x: 900, y: 1_520), CGPoint(x: 1_100, y: 1_520), CGPoint(x: 900, y: 1_680), CGPoint(x: 1_100, y: 1_680)][index]
+                position = CGPoint(x: 1_000, y: 1_600)
             case .cockpit:
-                let index = StoryContent.cockpitIDs.firstIndex(of: objective.id) ?? 0
-                position = [CGPoint(x: 1_530, y: 1_600), CGPoint(x: 1_625, y: 1_600), CGPoint(x: 1_720, y: 1_600)][index]
+                position = CGPoint(x: 1_625, y: 1_600)
             case .sleepingRoom, .kitchen:
                 return nil
             }

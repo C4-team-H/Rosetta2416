@@ -39,7 +39,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = ""
-        label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
+        label.font = GameFont.title2Bold.uiFont
         label.textColor = .white
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -49,7 +49,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     private let subtitleLabel: UILabel = {
         let label = UILabel()
         label.text = ""
-        label.font = UIFont.systemFont(ofSize: 13, weight: .regular)
+        label.font = GameFont.footnote.uiFont
         label.textColor = UIColor.white.withAlphaComponent(0.7)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -84,7 +84,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         button.tintColor = .white
         button.backgroundColor = UIColor(red: 0.74, green: 0.25, blue: 0.25, alpha: 1.0) // Slate red
         button.layer.cornerRadius = 10
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        button.titleLabel?.font = GameFont.custom(size: 16, weight: 700).uiFont
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -96,7 +96,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         button.tintColor = .white
         button.backgroundColor = UIColor(red: 0.25, green: 0.45, blue: 0.74, alpha: 1.0) // Slate blue
         button.layer.cornerRadius = 10
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        button.titleLabel?.font = GameFont.custom(size: 16, weight: 700).uiFont
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -108,7 +108,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         button.tintColor = .white
         button.backgroundColor = UIColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0) // Success green
         button.layer.cornerRadius = 10
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        button.titleLabel?.font = GameFont.custom(size: 16, weight: 700).uiFont
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

@@ -17,7 +17,7 @@ struct MapMarkerView: View {
             }
 
             Image(systemName: markerSymbol)
-                .font(.system(size: 10, weight: .bold))
+                .font(GameFont.custom(size: 10, weight: 700))
                 .foregroundStyle(.black)
                 .frame(width: 21, height: 21)
                 .background(markerColor, in: .rect(cornerRadius: 6))

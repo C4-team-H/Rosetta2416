@@ -5,7 +5,6 @@ enum StoryChapter: String, Codable, CaseIterable, Sendable {
     case sleepingRoom
     case laboratory
     case enginePhaseOne
-    case enginePhaseTwo
     case engineBlocked
     case storage
     case engineFinal
@@ -81,9 +80,16 @@ struct DrawingPrompt: Codable, Equatable, Sendable {
     }
 }
 
+struct EaselDefinition: Codable, Equatable, Sendable {
+    let pool: [DrawingPrompt]
+    let count: Int
+    let perDrawingReward: StoryProgressReward
+}
+
 enum ObjectiveKind: Codable, Equatable, Sendable {
     case roomEntry(RoomID)
     case drawing(DrawingPrompt)
+    case easel(EaselDefinition)
     case interaction(String)
     case collection(String)
 }
@@ -124,6 +130,9 @@ struct SharedStoryState: Codable, Equatable, Sendable {
     var deliveredDialogueIDs: Set<String>
     var processedCommandIDs: Set<UUID>
     var latestCheckpoint: CheckpointID
+    var easelSelectedLabels: [String: [String]]
+    var easelCompletedLabels: [String: [String]]
+    var kitchenCompletedLabels: [String]
 
     static let initial = SharedStoryState(
         currentChapter: .sleepingRoom,
@@ -134,7 +143,10 @@ struct SharedStoryState: Codable, Equatable, Sendable {
         powerState: .emergency,
         deliveredDialogueIDs: [],
         processedCommandIDs: [],
-        latestCheckpoint: .sleepingRoom
+        latestCheckpoint: .sleepingRoom,
+        easelSelectedLabels: [:],
+        easelCompletedLabels: [:],
+        kitchenCompletedLabels: []
     )
 
     var isMainPowerOnline: Bool {

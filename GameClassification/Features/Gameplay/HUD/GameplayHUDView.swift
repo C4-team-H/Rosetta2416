@@ -37,7 +37,7 @@ struct GameplayHUDView: View {
 
             if let message = session.transientMessage, session.phase != .gameOver {
                 Text(message)
-                    .font(.callout.bold())
+                    .font(GameFont.calloutBold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
@@ -52,7 +52,7 @@ struct GameplayHUDView: View {
 
             if let checkpoint = session.checkpointNotice, session.phase == .playing {
                 Label("CHECKPOINT  \(checkpoint.displayName)", systemImage: "flag.checkered")
-                    .font(.caption.bold())
+                    .font(GameFont.caption1Bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
