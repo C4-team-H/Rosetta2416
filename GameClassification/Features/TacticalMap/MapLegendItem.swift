@@ -8,8 +8,7 @@ struct MapLegendItem: View {
     var body: some View {
         Label(title, systemImage: systemImage)
             .foregroundStyle(color)
-            .font(.caption)
-            .bold()
+            .font(GameFont.caption1Bold)
             .lineLimit(1)
     }
 }

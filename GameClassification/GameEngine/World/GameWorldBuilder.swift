@@ -76,7 +76,7 @@ extension GameScene {
 
         for wall in GameMapLayout.wallSegments { addWall(from: wall.start, to: wall.end) }
         for room in GameMapLayout.rooms {
-            let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            let label = SKLabelNode(fontNamed: GameFont.fontName)
             label.text = room.name
             label.fontSize = 20
             label.fontColor = .white.withAlphaComponent(0.15)

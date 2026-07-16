@@ -117,7 +117,7 @@ extension GameScene {
         button.zPosition = 12
         button.name = name
 
-        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        let label = SKLabelNode(fontNamed: GameFont.fontName)
         label.text = title
         label.fontSize = 13
         label.fontColor = .white

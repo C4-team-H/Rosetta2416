@@ -38,8 +38,8 @@ struct PersistenceAndMapTests {
         restored.hasAdvancedTools = true
         restored.powerState = .fullyRestored
         restored.completedObjectiveIDs = Set(
-            ["reach-laboratory"] + StoryContent.labIDs + StoryContent.enginePhaseOneIDs
-                + StoryContent.enginePhaseTwoIDs + StoryContent.storageIDs + StoryContent.engineFinalIDs
+            ["reach-laboratory"] + StoryContent.labIDs + StoryContent.engineEaselOneIDs
+                + StoryContent.storageIDs + StoryContent.engineFinalIDs
         )
         let completeEngine = StoryProgressionSystem(state: restored)
         let completeMarkers = TacticalMapMarkerFactory.make(story: completeEngine)

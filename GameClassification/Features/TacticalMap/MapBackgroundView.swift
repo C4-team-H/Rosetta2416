@@ -15,8 +15,7 @@ struct MapBackgroundView: View {
                 let roomFrame = converter.mapRect(from: room.worldFrame)
 
                 Text(room.name)
-                    .font(.caption)
-                    .bold()
+                    .font(GameFont.caption1Bold)
                     .foregroundStyle(.white.opacity(0.62))
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)

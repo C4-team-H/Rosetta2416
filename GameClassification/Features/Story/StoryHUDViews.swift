@@ -7,7 +7,7 @@ struct StoryProgressHUDView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(session.sharedStory.currentChapter.displayName.uppercased())
-                .font(.caption.bold())
+                .font(GameFont.caption1Bold)
                 .foregroundStyle(.cyan)
 
             progressRow("ENERGY", value: session.progress.energy, color: energyColor)
@@ -17,11 +17,11 @@ struct StoryProgressHUDView: View {
             if let objective = session.activeObjective {
                 Divider().overlay(.white.opacity(0.25))
                 Label(objective.definition.title, systemImage: "scope")
-                    .font(.caption.bold())
+                    .font(GameFont.caption1Bold)
                     .foregroundStyle(.white)
                     .lineLimit(2)
                 Text(objective.definition.description)
-                    .font(.caption2)
+                    .font(GameFont.caption2)
                     .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(2)
             }
@@ -37,9 +37,9 @@ struct StoryProgressHUDView: View {
     private func progressRow(_ title: String, value: Double, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack {
-                Text(title).font(.system(size: 9, weight: .bold))
+                Text(title).font(GameFont.custom(size: 9, weight: 700))
                 Spacer()
-                Text("\(Int(value))%").font(.system(size: 9, weight: .bold, design: .monospaced))
+                Text("\(Int(value))%").font(GameFont.custom(size: 9, weight: 700))
             }
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
@@ -67,11 +67,11 @@ struct AIDialogueOverlay: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "waveform.circle.fill")
-                .font(.title2)
+                .font(GameFont.title2)
                 .foregroundStyle(.cyan)
             VStack(alignment: .leading, spacing: 3) {
-                Text("SHIP AI").font(.caption2.bold()).foregroundStyle(.cyan)
-                Text(line.text).font(.callout).foregroundStyle(.white)
+                Text("SHIP AI").font(GameFont.caption2Bold).foregroundStyle(.cyan)
+                Text(line.text).font(GameFont.callout).foregroundStyle(.white)
             }
         }
         .padding(14)
@@ -93,10 +93,10 @@ struct StoryTerminalOverlay: View {
             Color.black.opacity(0.84).ignoresSafeArea()
             VStack(spacing: 18) {
                 Image(systemName: session.phase == .victory ? "sparkles" : "bolt.slash.fill")
-                    .font(.system(size: 54))
+                    .font(GameFont.custom(size: 54))
                     .foregroundStyle(session.phase == .victory ? .green : .red)
                 Text(session.phase == .victory ? "SHIP RESTORED" : "GAME OVER")
-                    .font(.largeTitle.bold())
+                    .font(GameFont.largeTitleBold)
                     .foregroundStyle(.white)
 
                 if session.phase == .victory {
@@ -107,7 +107,7 @@ struct StoryTerminalOverlay: View {
                         GridRow { Text("Kitchen restores"); Text("\(session.stats.kitchenRestores)") }
                         GridRow { Text("Final energy"); Text("\(Int(session.energy))%") }
                     }
-                    .font(.callout.monospacedDigit())
+                    .font(GameFont.callout)
                     .foregroundStyle(.white.opacity(0.8))
                 } else {
                     Text("Energy reached zero. Restore the latest safe checkpoint to continue.")
@@ -138,7 +138,6 @@ private extension StoryChapter {
         case .sleepingRoom: "Sleeping Room"
         case .laboratory: "Laboratory"
         case .enginePhaseOne: "Engine Phase One"
-        case .enginePhaseTwo: "Engine Phase Two"
         case .engineBlocked: "Engine Blocked"
         case .storage: "Storage"
         case .engineFinal: "Engine Final"

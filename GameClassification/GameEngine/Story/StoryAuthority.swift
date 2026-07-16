@@ -44,6 +44,7 @@ final class LocalStoryAuthority: StoryAuthority {
                           recognition.confidence >= challenge.confidenceThreshold else {
                         return StoryAuthorityResult(accepted: false, message: "Food drawing not recognized. Try again.", effects: [], recognition: recognition)
                     }
+                    sessionState.storySystem.markKitchenLabelCompleted(challenge.label)
                     _ = sessionState.handle(.foodCompleted)
                     return StoryAuthorityResult(accepted: true, message: "Energy restored by 40%.", effects: [], recognition: recognition)
                 }
@@ -51,11 +52,20 @@ final class LocalStoryAuthority: StoryAuthority {
                 let effects = sessionState.handle(.drawingValidated(objectiveID: objectiveID, result: recognition))
                 let accepted = effects.contains { effect in
                     if case .objectiveCompleted(objectiveID) = effect { return true }
+                    // For easel partial completions, check mapNeedsRefresh as an indicator
+                    if case .mapNeedsRefresh = effect { return true }
                     return false
                 }
+                // Easel partial completion is also accepted
+                let isEaselPartial: Bool = {
+                    guard let def = sessionState.storySystem.definition(id: objectiveID),
+                          case .easel = def.kind else { return false }
+                    return !effects.contains { if case .interactionDenied = $0 { return true }; return false }
+                }()
+                let finalAccepted = accepted || isEaselPartial
                 return StoryAuthorityResult(
-                    accepted: accepted,
-                    message: accepted ? "Repair completed." : "Drawing not recognized. Try again.",
+                    accepted: finalAccepted,
+                    message: finalAccepted ? "Repair completed." : "Drawing not recognized. Try again.",
                     effects: effects,
                     recognition: recognition
                 )

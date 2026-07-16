@@ -80,6 +80,7 @@ final class GameplayCoordinator {
         presentingViewController?.dismiss(animated: true)
         guard let scene = activeGameScene, let view = scene.view else { return }
         sessionState.endGameplay()
+        AudioManager.shared.stopBackgroundMusic()
         let menu = makeMainMenuScene(size: scene.size)
         menu.scaleMode = .resizeFill
         view.presentScene(menu, transition: .fade(withDuration: 0.6))
@@ -89,6 +90,7 @@ final class GameplayCoordinator {
         let gameScene = makeGameScene(size: size)
         gameScene.scaleMode = .resizeFill
         view.presentScene(gameScene, transition: .fade(withDuration: 0.8))
+        AudioManager.shared.playBackgroundMusic()
     }
 
     private func presentDrawingChallenge(_ challenge: DrawingChallenge, in scene: GameScene, chapterCount: Int, chapterIndex: Int) {
@@ -135,20 +137,39 @@ extension GameplayCoordinator: GameSceneEventDelegate {
         guard let definition = missionSystem.interactableObjective(
             id: objectiveID,
             from: GameMapLayout.room(containing: sessionState.localPlayer.worldPosition)
-        ),
-              case .drawing = definition.kind else { return }
-        let chapterObjectives = StoryContent.objectives.filter { $0.chapter == definition.chapter }
-        let index = (chapterObjectives.firstIndex(where: { $0.id == objectiveID }) ?? 0) + 1
-        presentDrawingChallenge(
-            DrawingChallenge(objective: definition),
-            in: scene,
-            chapterCount: chapterObjectives.count,
-            chapterIndex: index
-        )
+        ) else { return }
+
+        switch definition.kind {
+        case .drawing:
+            let chapterObjectives = StoryContent.objectives.filter { $0.chapter == definition.chapter }
+            let index = (chapterObjectives.firstIndex(where: { $0.id == objectiveID }) ?? 0) + 1
+            presentDrawingChallenge(
+                DrawingChallenge(objective: definition),
+                in: scene,
+                chapterCount: chapterObjectives.count,
+                chapterIndex: index
+            )
+
+        case let .easel(easelDef):
+            guard let prompt = sessionState.storySystem.currentEaselPrompt(for: objectiveID) else { return }
+            let completedCount = sessionState.storySystem.easelCompletedCount(for: objectiveID)
+            let challenge = DrawingChallenge(
+                id: objectiveID,
+                label: prompt.expectedLabel,
+                displayName: prompt.displayName,
+                confidenceThreshold: prompt.confidenceThreshold
+            )
+            presentDrawingChallenge(challenge, in: scene, chapterCount: easelDef.count, chapterIndex: completedCount + 1)
+
+        default:
+            return
+        }
     }
 
     func gameSceneDidRequestFoodChallenge(_ scene: GameScene) {
-        guard let challenge = DrawingChallenge.foodPool.randomElement() else { return }
+        let drawnLabels = Set(sessionState.storySystem.state.kitchenCompletedLabels)
+        let available = DrawingChallenge.foodPool.filter { !drawnLabels.contains($0.label) }
+        guard let challenge = available.randomElement() else { return }
         presentDrawingChallenge(challenge, in: scene, chapterCount: 1, chapterIndex: 1)
     }
 

@@ -3,9 +3,11 @@ import Testing
 @testable import GameClassification
 
 private struct FixedRecognizer: DoodleRecognizer {
-    let result: RecognitionResult
+    let label: String
 
-    func recognize(_ drawing: PKDrawing) async throws -> RecognitionResult { result }
+    func recognize(_ drawing: PKDrawing) async throws -> RecognitionResult {
+        RecognitionResult(label: label, confidence: 0.95, alternatives: [])
+    }
 }
 
 @Suite("Story integration")
@@ -17,14 +19,39 @@ struct StoryIntegrationTests {
         let session = makeSession(repository: repository)
         session.beginGameplay()
         _ = session.handle(.roomEntered(.laboratory))
+        
+        let objectiveID = "lab-easel"
+        
+        for _ in 0..<2 {
+            guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
+                Issue.record("No prompt")
+                return
+            }
+            let authority = LocalStoryAuthority(
+                sessionState: session,
+                recognizer: FixedRecognizer(label: prompt.expectedLabel)
+            )
+            let result = await authority.execute(.submitDrawing(
+                commandID: UUID(),
+                objectiveID: objectiveID,
+                drawingData: PKDrawing().dataRepresentation(),
+                playerID: "local"
+            ))
+            #expect(result.accepted)
+        }
+        
+        guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
+            Issue.record("No prompt")
+            return
+        }
         let authority = LocalStoryAuthority(
             sessionState: session,
-            recognizer: FixedRecognizer(result: RecognitionResult(label: "radio", confidence: 0.95, alternatives: []))
+            recognizer: FixedRecognizer(label: prompt.expectedLabel)
         )
         let commandID = UUID()
         let command = StoryCommand.submitDrawing(
             commandID: commandID,
-            objectiveID: "lab-terminal-repair",
+            objectiveID: objectiveID,
             drawingData: PKDrawing().dataRepresentation(),
             playerID: "local"
         )
@@ -36,14 +63,14 @@ struct StoryIntegrationTests {
 
         #expect(result.accepted)
         #expect(!duplicate.accepted)
-        #expect(session.sharedStory.intelligence == 20)
-        #expect(session.progress.intelligence == 20)
-        #expect(session.stats.successfulDrawings == 1)
-        #expect(session.objectives.first(where: { $0.id == "lab-terminal-repair" })?.status == .completed)
+        #expect(session.sharedStory.intelligence == 40)
+        #expect(session.progress.intelligence == 40)
+        #expect(session.stats.successfulDrawings == 3)
+        #expect(session.objectives.first(where: { $0.id == objectiveID })?.status == .completed)
         #expect(TacticalMapMarkerFactory.make(story: session.storySystem).contains {
-            $0.id == "station-lab-terminal-repair" && $0.status == .completed
+            $0.id == "station-\(objectiveID)" && $0.status == .completed
         })
-        #expect(try await repository.load()?.latest.sharedStory.completedObjectiveIDs.contains("lab-terminal-repair") == true)
+        #expect(try await repository.load()?.latest.sharedStory.completedObjectiveIDs.contains(objectiveID) == true)
     }
 
     @Test("Food restores only local Energy and never story bars or objectives")
@@ -54,7 +81,7 @@ struct StoryIntegrationTests {
         let before = session.sharedStory
         let authority = LocalStoryAuthority(
             sessionState: session,
-            recognizer: FixedRecognizer(result: RecognitionResult(label: "apple", confidence: 1, alternatives: []))
+            recognizer: FixedRecognizer(label: "apple")
         )
 
         let result = await authority.execute(.submitDrawing(
@@ -77,18 +104,26 @@ struct StoryIntegrationTests {
         let session = makeSession()
         session.beginGameplay()
         _ = session.handle(.roomEntered(.laboratory))
-        _ = session.handle(.drawingValidated(
-            objectiveID: "lab-terminal-repair",
-            result: RecognitionResult(label: "radio", confidence: 1, alternatives: [])
-        ))
-        #expect(session.sharedStory.completedObjectiveIDs.contains("lab-terminal-repair"))
+        
+        let objectiveID = "lab-easel"
+        for _ in 0..<3 {
+            guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
+                Issue.record("No prompt")
+                return
+            }
+            _ = session.handle(.drawingValidated(
+                objectiveID: objectiveID,
+                result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+            ))
+        }
+        #expect(session.sharedStory.completedObjectiveIDs.contains(objectiveID))
 
         session.updateEnergy(deltaTime: 10_000, isMoving: true)
         #expect(session.phase == .gameOver)
 
         session.retryCheckpoint()
         #expect(session.phase == .playing)
-        #expect(!session.sharedStory.completedObjectiveIDs.contains("lab-terminal-repair"))
+        #expect(!session.sharedStory.completedObjectiveIDs.contains(objectiveID))
         #expect(session.sharedStory.currentChapter == .laboratory)
         #expect(session.energy >= 50)
         #expect(session.localPlayer.worldPosition == GameMapLayout.safeSpawn(for: .laboratory))
@@ -100,11 +135,17 @@ struct StoryIntegrationTests {
         let session = makeSession(repository: repository)
         session.beginGameplay()
         _ = session.handle(.roomEntered(.laboratory))
+        
+        let objectiveID = "lab-easel"
+        guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
+            Issue.record("No prompt")
+            return
+        }
         _ = session.handle(.drawingValidated(
-            objectiveID: "lab-terminal-repair",
-            result: RecognitionResult(label: "radio", confidence: 1, alternatives: [])
+            objectiveID: objectiveID,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
         ))
-        session.beginDrawing(objectiveID: "lab-memory-repair")
+        session.beginDrawing(objectiveID: objectiveID)
         session.endDrawing()
         session.updateEnergy(deltaTime: 100, isMoving: true)
 
