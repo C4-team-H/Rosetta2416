@@ -131,6 +131,11 @@ extension GameplayCoordinator: GameSceneEventDelegate {
         scene.applyStoryEffects(sessionState.handle(.roomEntered(room)))
     }
 
+    func gameScene(_ scene: GameScene, didExit room: RoomID) {
+        // Room occupancy is already cleared by GameScene. Story progression is
+        // intentionally entry-driven, so an exit has no story side effect.
+    }
+
     func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String) {
         guard let definition = missionSystem.interactableObjective(
             id: objectiveID,

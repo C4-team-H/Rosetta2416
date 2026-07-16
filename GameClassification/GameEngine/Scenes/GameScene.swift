@@ -3,6 +3,7 @@ import SpriteKit
 @MainActor
 protocol GameSceneEventDelegate: AnyObject {
     func gameScene(_ scene: GameScene, didEnter room: RoomID)
+    func gameScene(_ scene: GameScene, didExit room: RoomID)
     func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String)
     func gameSceneDidRequestFoodChallenge(_ scene: GameScene)
     func gameSceneDidReachGameOver(_ scene: GameScene)
@@ -14,6 +15,7 @@ final class GameScene: SKScene {
     weak var eventDelegate: GameSceneEventDelegate?
 
     let cameraNode = SKCameraNode()
+    var shipMapNode: ShipMapNode?
     var player: SKShapeNode!
     var joystickBase: SKShapeNode!
     var joystickKnob: SKShapeNode!
@@ -23,37 +25,42 @@ final class GameScene: SKScene {
     var foodObject: SKShapeNode!
     var stationNodes: [String: SKShapeNode] = [:]
     var activeStationID: String?
-    var doorNodes: [String: SKShapeNode] = [:]
     var lastDeniedStationID: String?
-    var lastDeniedDoorID: String?
+    var lastDeniedDoorID: DoorID?
 
     var isJoystickActive = false
     var joystickVector = CGPoint.zero
     var joystickActiveTouch: UITouch?
     let joystickRadius: CGFloat = 60
-    let playerSpeed: CGFloat = 4
+    let playerSpeed: CGFloat = 240
 
     var pencilTouch: UITouch?
     var pencilTarget: CGPoint?
     var pencilSpeedMultiplier: CGFloat = 1
     var targetMarker: SKShapeNode?
     let arrivalThreshold: CGFloat = 4
-
-    struct Obstacle {
-        let node: SKNode
-        let size: CGSize
-        let absPos: CGPoint
-    }
-    var obstacles: [Obstacle] = []
-    let playerRadius: CGFloat = 15
+    let playerRadius = GameMapLayout.playerRadius
 
     var candleLight: CandleLightNode?
     let lightingSystem = LightingSystem()
 
+    var pendingSensorContacts: [PendingSensorContact] = []
+    var roomContactTracker = RoomContactTracker()
+    var interactableContactCounts: [String: Int] = [:]
+    var doorContactCounts: [DoorID: Int] = [:]
+
     private var wasMapInputSuspended = false
     private var previousUpdateTime: TimeInterval?
-    private var currentRoom: RoomID?
+    var frameDeltaTime: TimeInterval = 0
     private var didNotifyGameOver = false
+
+    static var isShipMapDebugEnabled: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-ShipMapDebug")
+        #else
+        false
+        #endif
+    }
 
     init(size: CGSize, sessionState: GameSessionState, tacticalMapViewModel: TacticalMapViewModel) {
         self.sessionState = sessionState
@@ -68,31 +75,33 @@ final class GameScene: SKScene {
     override func didMove(to view: SKView) {
         sessionState.beginGameplay()
         backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1)
+        physicsWorld.gravity = .zero
+        physicsWorld.contactDelegate = self
+
         camera = cameraNode
         addChild(cameraNode)
         cameraNode.setScale(0.6)
 
-        createRegularGrid()
+        createShipMap()
         createPlayer()
         createJoystick()
         createInteractiveStations()
         createFoodObject()
-        createObstacles()
         enableCandleLight()
         refreshStoryVisuals()
+
         player.position = sessionState.localPlayer.worldPosition
-        cameraNode.position = player.position
-        detectRoomChange()
+        cameraNode.position = CameraFollowMath.clampedTarget(
+            playerPosition: player.position,
+            viewportSize: size,
+            cameraScale: cameraNode.xScale,
+            worldSize: GameMapLayout.worldSize
+        )
+        view.showsPhysics = Self.isShipMapDebugEnabled
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        createRegularGrid()
-        let worldSize = GameMapLayout.worldSize
-        if let player {
-            player.position.x = max(playerRadius, min(worldSize.width - playerRadius, player.position.x))
-            player.position.y = max(playerRadius, min(worldSize.height - playerRadius, player.position.y))
-        }
         joystickBase?.position = CGPoint(x: -size.width / 2 + joystickRadius + 50, y: -size.height / 2 + joystickRadius + 70)
         positionActionButtons()
         candleLight?.position = CGPoint(x: -size.width / 2, y: -size.height / 2)
@@ -102,14 +111,16 @@ final class GameScene: SKScene {
     override func update(_ currentTime: TimeInterval) {
         let rawDelta = previousUpdateTime.map { currentTime - $0 } ?? 0
         previousUpdateTime = currentTime
-        let deltaTime = min(max(rawDelta, 0), 0.25)
+        frameDeltaTime = min(max(rawDelta, 0), 0.25)
 
         guard sessionState.phase != .gameOver, sessionState.phase != .victory else {
+            stopPlayerMovement()
             resetJoystick()
             pencilTarget = nil
             return
         }
         if case .cutscene = sessionState.phase {
+            stopPlayerMovement()
             resetJoystick()
             pencilTarget = nil
             return
@@ -123,41 +134,61 @@ final class GameScene: SKScene {
                 resetJoystick()
                 wasMapInputSuspended = true
             }
+            stopPlayerMovement()
         } else {
             wasMapInputSuspended = false
+            if pencilTarget != nil {
+                movePlayerTowardTarget()
+            } else if isJoystickActive, joystickVector != .zero {
+                movePlayer()
+            } else {
+                stopPlayerMovement()
+            }
         }
 
-        let isMoving = !tacticalMapViewModel.isMapPresented
-            && (pencilTarget != nil || (isJoystickActive && joystickVector != .zero))
-
-        if isMoving, pencilTarget != nil {
-            movePlayerTowardTarget()
-        } else if isMoving {
-            movePlayer()
-        }
+        let velocity = player.physicsBody?.velocity ?? .zero
+        let isMoving = hypot(velocity.dx, velocity.dy) > 0.5
 
         if tacticalMapViewModel.shouldRunLocalSimulation && !isPaused {
-            sessionState.updateEnergy(deltaTime: deltaTime, isMoving: isMoving)
+            sessionState.updateEnergy(deltaTime: frameDeltaTime, isMoving: isMoving)
             if sessionState.phase == .gameOver, !didNotifyGameOver {
                 didNotifyGameOver = true
+                stopPlayerMovement()
                 eventDelegate?.gameSceneDidReachGameOver(self)
             }
             checkProximityToInteractiveObject()
             checkProximityToFoodObject()
             checkProximityToLockedDoor()
-            detectRoomChange()
         }
 
         candleLight?.update(
             lightPosition: CGPoint(x: size.width / 2, y: size.height / 2),
             currentTime: currentTime
         )
-        cameraNode.position = player.position
-        sessionState.updateLocalPlayer(position: player.position)
         lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
     }
 
+    override func didSimulatePhysics() {
+        super.didSimulatePhysics()
+        processPendingPhysicsContacts()
+
+        let target = CameraFollowMath.clampedTarget(
+            playerPosition: player.position,
+            viewportSize: size,
+            cameraScale: cameraNode.xScale,
+            worldSize: GameMapLayout.worldSize
+        )
+        cameraNode.position = CameraFollowMath.interpolatedPosition(
+            from: cameraNode.position,
+            to: target,
+            deltaTime: frameDeltaTime
+        )
+        sessionState.updateLocalPlayer(position: player.position)
+    }
+
     override func willMove(from view: SKView) {
+        stopPlayerMovement()
+        physicsWorld.contactDelegate = nil
         tacticalMapViewModel.closeMap()
         sessionState.endGameplay()
         super.willMove(from: view)
@@ -175,6 +206,7 @@ final class GameScene: SKScene {
             case .doorAccessChanged, .stationVisualChanged:
                 refreshStoryVisuals()
             case .cutscene:
+                stopPlayerMovement()
                 resetJoystick()
                 pencilTarget = nil
                 run(.sequence([
@@ -191,15 +223,15 @@ final class GameScene: SKScene {
 
     func restorePlayerFromSession() {
         didNotifyGameOver = false
+        resetContactTracking()
         player.position = sessionState.localPlayer.worldPosition
-        cameraNode.position = player.position
+        stopPlayerMovement()
+        cameraNode.position = CameraFollowMath.clampedTarget(
+            playerPosition: player.position,
+            viewportSize: size,
+            cameraScale: cameraNode.xScale,
+            worldSize: GameMapLayout.worldSize
+        )
         refreshStoryVisuals()
-    }
-
-    private func detectRoomChange() {
-        let detected = GameMapLayout.room(containing: player.position)
-        guard detected != currentRoom else { return }
-        currentRoom = detected
-        if let detected { eventDelegate?.gameScene(self, didEnter: detected) }
     }
 }

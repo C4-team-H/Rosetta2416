@@ -77,11 +77,11 @@ enum TacticalMapMarkerFactory {
         if includeDoors {
             markers += GameMapLayout.doorDefinitions.map { door in
                 MapMarker(
-                    id: "door-\(door.id)",
+                    id: door.id.nodeName,
                     kind: .door,
                     status: story.canAccess(door.roomID) ? .unlocked : .locked,
                     worldPosition: door.worldPosition,
-                    title: door.id.replacingOccurrences(of: "-", with: " ").capitalized
+                    title: door.id.displayName
                 )
             }
         }

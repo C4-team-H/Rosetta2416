@@ -85,7 +85,7 @@ final class LightingSystem {
         guard scene.childNode(withName: "engineRestoredGlow") == nil else { return }
         let glow = SKShapeNode(circleOfRadius: 150)
         glow.name = "engineRestoredGlow"
-        glow.position = CGPoint(x: 1_000, y: 1_000)
+        glow.position = roomCenter(.engine)
         glow.fillColor = .cyan.withAlphaComponent(0.12)
         glow.strokeColor = .cyan
         glow.glowWidth = 18
@@ -101,7 +101,7 @@ final class LightingSystem {
         guard scene.childNode(withName: "cockpitDisplayGlow") == nil else { return }
         let display = SKShapeNode(rectOf: CGSize(width: 260, height: 120), cornerRadius: 18)
         display.name = "cockpitDisplayGlow"
-        display.position = CGPoint(x: 1_625, y: 1_680)
+        display.position = roomCenter(.cockpit)
         display.fillColor = .cyan.withAlphaComponent(0.22)
         display.strokeColor = .cyan
         display.glowWidth = 12
@@ -113,7 +113,7 @@ final class LightingSystem {
         guard scene.childNode(withName: "engineRestoredParticles") == nil else { return }
         let particles = SKEmitterNode()
         particles.name = "engineRestoredParticles"
-        particles.position = CGPoint(x: 1_000, y: 1_000)
+        particles.position = roomCenter(.engine)
         particles.particleBirthRate = 12
         particles.particleLifetime = 1.8
         particles.particlePositionRange = CGVector(dx: 220, dy: 220)
@@ -134,7 +134,7 @@ final class LightingSystem {
         guard scene.childNode(withName: "engineMachinery") == nil else { return }
         let machinery = SKNode()
         machinery.name = "engineMachinery"
-        machinery.position = CGPoint(x: 1_000, y: 1_000)
+        machinery.position = roomCenter(.engine)
         machinery.zPosition = 1
         for offset in [CGFloat(-110), CGFloat(110)] {
             let rotor = SKShapeNode(circleOfRadius: 34)
@@ -150,6 +150,13 @@ final class LightingSystem {
             machinery.addChild(rotor)
         }
         scene.addChild(machinery)
+    }
+
+    private func roomCenter(_ roomID: RoomID) -> CGPoint {
+        guard let frame = GameMapLayout.rooms.first(where: { $0.id == roomID })?.worldFrame else {
+            return CGPoint(x: GameMapLayout.worldSize.width / 2, y: GameMapLayout.worldSize.height / 2)
+        }
+        return CGPoint(x: frame.midX, y: frame.midY)
     }
 
     private func playPlaceholderSound(_ soundID: SystemSoundID) {

@@ -2,73 +2,69 @@ import CoreGraphics
 import Testing
 @testable import GameClassification
 
-@Suite("Chapter one map reachability")
+@Suite("Spaceship map reachability")
+@MainActor
 struct MapLayoutReachabilityTests {
-    @Test("Laboratory is reachable while the Engine door remains locked")
-    func laboratoryRouteBypassesLockedEngine() {
-        let initialStory = SharedStoryState.initial
-        #expect(!StoryContent.roomRules.first(where: { $0.roomID == .engine })!.allows(initialStory))
+    @Test("Every room is reachable when all doors are open", arguments: RoomID.allCases)
+    func everyRoomIsReachable(room: RoomID) {
         #expect(routeExists(
             from: GameMapLayout.playerSpawnPosition,
-            to: GameMapLayout.rooms.first(where: { $0.id == .laboratory })!.worldFrame,
-            story: initialStory
+            to: GameMapLayout.spawnPoint(for: room),
+            closedDoors: []
         ))
     }
 
-    @Test("Laboratory has no direct corridor toward Storage")
-    func laboratoryStorageCorridorIsRemoved() {
-        let removedCorridor = CGRect(x: 325, y: 1_250, width: 725, height: 100)
-        #expect(!GameMapLayout.corridors.contains(removedCorridor))
-        #expect(GameMapLayout.wallSegments.contains { wall in
-            wall.start == CGPoint(x: 425, y: 1_175)
-                && wall.end == CGPoint(x: 425, y: 1_425)
-        })
-    }
-
-    @Test("Storage is reachable through its front entrance when unlocked")
-    func storageFrontEntranceIsClear() {
-        var unlockedStory = SharedStoryState.initial
-        unlockedStory.currentChapter = .engineBlocked
-        unlockedStory.engineProgress = 60
-
-        #expect(StoryContent.roomRules.first(where: { $0.roomID == .storage })!.allows(unlockedStory))
-        #expect(routeExists(
-            from: CGPoint(x: 1_000, y: 1_000),
-            to: GameMapLayout.rooms.first(where: { $0.id == .storage })!.worldFrame,
-            story: unlockedStory
-        ))
-    }
-
-    @Test("Storage side entrance has no wall across the doorway")
-    func storageSideEntranceIsClear() {
-        var unlockedStory = SharedStoryState.initial
-        unlockedStory.currentChapter = .engineBlocked
-        unlockedStory.engineProgress = 60
+    @Test("Initial story doors preserve chapter gating")
+    func initialDoorGating() {
+        let closedDoors: Set<DoorID> = [.engine, .storage, .cockpit]
 
         #expect(routeExists(
-            from: CGPoint(x: 1_300, y: 1_600),
-            to: GameMapLayout.rooms.first(where: { $0.id == .storage })!.worldFrame,
-            story: unlockedStory
+            from: GameMapLayout.playerSpawnPosition,
+            to: GameMapLayout.spawnPoint(for: .laboratory),
+            closedDoors: closedDoors
+        ))
+        #expect(routeExists(
+            from: GameMapLayout.playerSpawnPosition,
+            to: GameMapLayout.spawnPoint(for: .kitchen),
+            closedDoors: closedDoors
+        ))
+        #expect(!routeExists(
+            from: GameMapLayout.playerSpawnPosition,
+            to: GameMapLayout.spawnPoint(for: .engine),
+            closedDoors: closedDoors
+        ))
+        #expect(!routeExists(
+            from: GameMapLayout.playerSpawnPosition,
+            to: GameMapLayout.spawnPoint(for: .storage),
+            closedDoors: closedDoors
+        ))
+        #expect(!routeExists(
+            from: GameMapLayout.playerSpawnPosition,
+            to: GameMapLayout.spawnPoint(for: .cockpit),
+            closedDoors: closedDoors
         ))
     }
 
-    private func routeExists(from start: CGPoint, to destination: CGRect, story: SharedStoryState) -> Bool {
-        let step: CGFloat = 20
-        let radius: CGFloat = 15
-        let wallThickness: CGFloat = 16
-        var blockedRects = GameMapLayout.wallSegments.map { wall -> CGRect in
-            let minX = min(wall.start.x, wall.end.x)
-            let minY = min(wall.start.y, wall.end.y)
-            return CGRect(
-                x: minX - wallThickness / 2,
-                y: minY - wallThickness / 2,
-                width: max(abs(wall.end.x - wall.start.x), wallThickness),
-                height: max(abs(wall.end.y - wall.start.y), wallThickness)
-            ).insetBy(dx: -radius, dy: -radius)
+    @Test("Door openings provide player clearance")
+    func doorwayClearance() {
+        let requiredOpening = GameMapLayout.playerRadius * 2 + 20
+        for door in GameMapLayout.doorDefinitions {
+            #expect(max(door.size.width, door.size.height) >= requiredOpening)
+        }
+    }
+
+    private func routeExists(
+        from start: CGPoint,
+        to destination: CGPoint,
+        closedDoors: Set<DoorID>
+    ) -> Bool {
+        let step: CGFloat = 10
+        let radius = GameMapLayout.playerRadius
+        var blockedRects = GameMapLayout.blockingRectangles.map {
+            $0.insetBy(dx: -radius, dy: -radius)
         }
         blockedRects += GameMapLayout.doorDefinitions.compactMap { door in
-            guard let rule = StoryContent.roomRules.first(where: { $0.roomID == door.roomID }),
-                  !rule.allows(story) else { return nil }
+            guard closedDoors.contains(door.id) else { return nil }
             return CGRect(
                 x: door.worldPosition.x - door.size.width / 2,
                 y: door.worldPosition.y - door.size.height / 2,
@@ -82,12 +78,17 @@ struct MapLayoutReachabilityTests {
             let y: Int
         }
 
-        func worldPoint(_ grid: GridPoint) -> CGPoint {
-            CGPoint(x: start.x + CGFloat(grid.x) * step, y: start.y + CGFloat(grid.y) * step)
+        func gridPoint(for point: CGPoint) -> GridPoint {
+            GridPoint(x: Int((point.x / step).rounded()), y: Int((point.y / step).rounded()))
         }
 
-        var queue = [GridPoint(x: 0, y: 0)]
-        var visited: Set<GridPoint> = [queue[0]]
+        func worldPoint(_ point: GridPoint) -> CGPoint {
+            CGPoint(x: CGFloat(point.x) * step, y: CGFloat(point.y) * step)
+        }
+
+        let startGrid = gridPoint(for: start)
+        var queue = [startGrid]
+        var visited: Set<GridPoint> = [startGrid]
         var cursor = 0
         let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
@@ -95,16 +96,13 @@ struct MapLayoutReachabilityTests {
             let current = queue[cursor]
             cursor += 1
             let point = worldPoint(current)
-            if destination.insetBy(dx: radius, dy: radius).contains(point) { return true }
+            if hypot(point.x - destination.x, point.y - destination.y) <= step { return true }
 
             for direction in directions {
                 let next = GridPoint(x: current.x + direction.0, y: current.y + direction.1)
                 guard visited.insert(next).inserted else { continue }
                 let nextPoint = worldPoint(next)
-                guard nextPoint.x >= radius,
-                      nextPoint.y >= radius,
-                      nextPoint.x <= GameMapLayout.worldSize.width - radius,
-                      nextPoint.y <= GameMapLayout.worldSize.height - radius,
+                guard GameMapLayout.walkableAreas.contains(where: { $0.contains(nextPoint) }),
                       !blockedRects.contains(where: { $0.contains(nextPoint) }) else { continue }
                 queue.append(next)
             }
