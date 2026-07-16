@@ -63,12 +63,14 @@ final class GameplayCoordinator {
     }
 
     func retryCheckpoint() {
+        AudioManager.shared.playButtonSound()
         _ = sessionState.handle(.checkpointRetryRequested)
         presentingViewController?.dismiss(animated: true)
         activeGameScene?.restorePlayerFromSession()
     }
 
     func playAgain() {
+        AudioManager.shared.playButtonSound()
         guard let scene = activeGameScene, let view = scene.view else { return }
         tacticalMapViewModel.closeMap()
         sessionState.startNewSession()
@@ -77,6 +79,7 @@ final class GameplayCoordinator {
     }
 
     func returnToMainMenu() {
+        AudioManager.shared.playButtonSound()
         presentingViewController?.dismiss(animated: true)
         guard let scene = activeGameScene, let view = scene.view else { return }
         sessionState.endGameplay()

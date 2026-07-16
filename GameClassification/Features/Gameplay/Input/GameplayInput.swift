@@ -23,9 +23,11 @@ extension GameScene {
             let nodesAtCameraPoint = cameraNode.nodes(at: cameraTouchLocation)
             for node in nodesAtCameraPoint {
                 if node.name == "drawButton" {
+                    AudioManager.shared.playButtonSound()
                     requestActiveStationInteraction()
                     return
                 } else if node.name == "foodDrawButton" {
+                    AudioManager.shared.playButtonSound()
                     requestFoodInteraction()
                     return
                 }

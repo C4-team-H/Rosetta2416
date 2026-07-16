@@ -28,6 +28,16 @@
 				Resources/Font/GameFont.swift,
 				"Resources/Font/MuseoModerno-VariableFont_wght.ttf",
 				Resources/Music/Background_Music_Rosetta.mp3,
+				Resources/Music/Canvas_Back_Rosetta.mp3,
+				Resources/Music/Canvas_Correct_Rosetta.mp3,
+				Resources/Music/Canvas_Erase_Rosetta.mp3,
+				Resources/Music/Canvas_Wrong_Rosetta.mp3,
+				Resources/Music/Gameplay_Alerts_Rosetta.mp3,
+				Resources/Music/Gameplay_Button_Rosetta.mp3,
+				Resources/Music/Gameplay_Footsteps_Rosetta.mp3,
+				"Resources/Music/Gameplay_X Button_Rosetta.mp3",
+				Resources/Music/Lab_AI_Error.mp3,
+				Resources/Music/Low_Energy_Heartbeat_Rosetta.mp3,
 			);
 			target = B6BAE4152FFF8F5900746408 /* GameClassificationTests */;
 		};

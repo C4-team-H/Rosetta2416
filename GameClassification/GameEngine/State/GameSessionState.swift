@@ -89,6 +89,7 @@ final class GameSessionState {
             energySystem.restoreFood()
             stats.kitchenRestores += 1
             persistLatest()
+            AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
             return []
         case .checkpointRetryRequested:
             retryCheckpoint()
@@ -116,6 +117,7 @@ final class GameSessionState {
         if energySystem.update(deltaTime: deltaTime, isMoving: isMoving) {
             applyEffects(storySystem.handle(.energyDepleted))
         }
+        AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
     func restoreFoodEnergy() {
@@ -192,6 +194,7 @@ final class GameSessionState {
         currentDialogue = nil
         transientMessage = "Checkpoint restored"
         persistLatest()
+        AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
     func startNewSession(clearSavedProgress: Bool = true) {
@@ -216,6 +219,7 @@ final class GameSessionState {
             if clearSavedProgress { try? await repository.clear() }
             try? await repository.save(progress)
         }
+        AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
     private var isDrawing: Bool {

@@ -93,8 +93,16 @@ struct GameplayHUDView: View {
         reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96))
     }
 
-    private func openMap() { feedbackTrigger += 1; viewModel.openMap() }
-    private func closeMap() { feedbackTrigger += 1; viewModel.closeMap() }
+    private func openMap() {
+        AudioManager.shared.playButtonSound()
+        feedbackTrigger += 1
+        viewModel.openMap()
+    }
+    private func closeMap() {
+        AudioManager.shared.playButtonSound()
+        feedbackTrigger += 1
+        viewModel.closeMap()
+    }
 }
 
 private extension CheckpointID {
