@@ -6,13 +6,15 @@ import Observation
 @Observable
 final class TacticalMapViewModel {
     let sessionState: GameSessionState
+    let geometryStore: MapGeometryStore
 
     private(set) var isMapPresented = false
     var gameplayMode: MapGameplayMode = .continueGameplay
     var showsTeammateOnMap = true
 
-    init(sessionState: GameSessionState) {
+    init(sessionState: GameSessionState, geometryStore: MapGeometryStore? = nil) {
         self.sessionState = sessionState
+        self.geometryStore = geometryStore ?? MapGeometryStore()
     }
 
     var isGameplayActive: Bool {
@@ -46,7 +48,10 @@ final class TacticalMapViewModel {
     }
 
     var visibleMarkers: [MapMarker] {
-        TacticalMapMarkerFactory.make(story: sessionState.storySystem).filter(\.isVisible)
+        TacticalMapMarkerFactory.make(
+            story: sessionState.storySystem,
+            configuration: geometryStore.configuration
+        ).filter(\.isVisible)
     }
 
     var shouldRunLocalSimulation: Bool {

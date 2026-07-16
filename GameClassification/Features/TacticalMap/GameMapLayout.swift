@@ -7,7 +7,7 @@ struct StationDefinition: Identifiable, Equatable {
     let worldPosition: CGPoint
 }
 
-enum DoorID: String, CaseIterable, Sendable {
+enum DoorID: String, Codable, CaseIterable, Sendable {
     case cockpit
     case sleepingRoom
     case kitchen
@@ -28,13 +28,6 @@ enum DoorID: String, CaseIterable, Sendable {
         case .storage: .storage
         }
     }
-}
-
-struct DoorDefinition: Identifiable, Equatable {
-    let id: DoorID
-    let roomID: RoomID
-    let worldPosition: CGPoint
-    let size: CGSize
 }
 
 enum ShipColliderKind: String, Equatable, Sendable {
@@ -70,8 +63,11 @@ struct ShipColliderDefinition: Identifiable, Equatable {
 
 struct RoomTriggerDefinition: Identifiable, Equatable {
     var id: RoomID { roomID }
+    let sourceID: String
     let roomID: RoomID
-    let worldFrame: CGRect
+    let shape: ShipColliderShape
+
+    var worldFrame: CGRect { shape.bounds }
 }
 
 struct SpawnPointDefinition: Identifiable, Equatable {
@@ -80,16 +76,29 @@ struct SpawnPointDefinition: Identifiable, Equatable {
     let worldPosition: CGPoint
 }
 
-/// Shared 1440 x 1080 geometry for SpriteKit, story state, and the tactical map.
-///
-/// Authoring values below use the reference image's top-left origin. Conversion
-/// happens once through `worldPoint` and `worldRect`, so collider tuning can be
-/// performed directly against ShipMap.jpg while SpriteKit receives bottom-left
-/// world coordinates.
+/// Compiles the canonical editable configuration into the immutable shape used by
+/// SpriteKit and deterministic collision. Static accessors are compatibility views
+/// over `drawingSpaceDefault`; live gameplay receives a MapGeometryStore snapshot.
 enum GameMapLayout {
-    static let worldSize = CGSize(width: 1_440, height: 1_080)
-    static let playerRadius: CGFloat = 15
-    static let wallThickness: CGFloat = 16
+    static let authoredArtworkSize = CGSize(width: 1_440, height: 1_080)
+    static let artworkScale = CGFloat(5_504) / CGFloat(1_440)
+    static let artworkOffset = CGPoint.zero
+
+    static var defaultConfiguration: MapGeometryConfiguration {
+        .drawingSpaceDefault
+    }
+
+    static var worldSize: CGSize { defaultConfiguration.worldSize.cgSize }
+    static var playerRadius: CGFloat { defaultConfiguration.playerVisualRadius }
+    static var playerFootprint: CollisionFootprint { defaultConfiguration.playerFootprint.runtimeValue }
+    static var wallThickness: CGFloat { defaultConfiguration.wallThickness }
+
+    /// Retained for visual dimensions and compatibility tests. Canonical map geometry
+    /// itself is already expressed directly in world coordinates.
+    static func scaled(_ value: CGFloat) -> CGFloat { value * artworkScale }
+    static func scaled(_ size: CGSize) -> CGSize {
+        CGSize(width: scaled(size.width), height: scaled(size.height))
+    }
 
     static func worldPoint(fromImagePoint point: CGPoint) -> CGPoint {
         CGPoint(x: point.x, y: worldSize.height - point.y)
@@ -106,232 +115,207 @@ enum GameMapLayout {
     }
 
     static func worldPoints(fromImagePoints points: [CGPoint]) -> [CGPoint] {
-        var converted: [CGPoint] = []
-        converted.reserveCapacity(points.count)
-        for point in points {
-            converted.append(worldPoint(fromImagePoint: point))
-        }
-        return converted
+        points.map { worldPoint(fromImagePoint: $0) }
     }
 
-    // Room triggers are inset from walls and stop before the shared corridors.
-    static let roomTriggerDefinitions: [RoomTriggerDefinition] = [
-        room(.cockpit, imageRect: CGRect(x: 595, y: 130, width: 250, height: 285)),
-        room(.sleepingRoom, imageRect: CGRect(x: 190, y: 295, width: 295, height: 220)),
-        room(.kitchen, imageRect: CGRect(x: 945, y: 295, width: 230, height: 200)),
-        room(.engine, imageRect: CGRect(x: 595, y: 545, width: 250, height: 245)),
-        room(.laboratory, imageRect: CGRect(x: 115, y: 545, width: 370, height: 330)),
-        room(.storage, imageRect: CGRect(x: 955, y: 545, width: 350, height: 330))
-    ]
+    static func worldPoint(fromArtworkPoint point: CGPoint) -> CGPoint {
+        worldPoint(fromImagePoint: CGPoint(x: scaled(point.x), y: scaled(point.y)))
+    }
 
-    static let rooms: [MapRoom] = roomTriggerDefinitions.map { definition in
-        MapRoom(
-            id: definition.roomID,
-            name: definition.roomID.displayName.uppercased(),
-            worldFrame: definition.worldFrame
+    static func worldRect(fromArtworkRect rect: CGRect) -> CGRect {
+        worldRect(fromImageRect: CGRect(
+            x: scaled(rect.minX),
+            y: scaled(rect.minY),
+            width: scaled(rect.width),
+            height: scaled(rect.height)
+        ))
+    }
+
+    static func worldPoints(fromArtworkPoints points: [CGPoint]) -> [CGPoint] {
+        points.map { worldPoint(fromArtworkPoint: $0) }
+    }
+
+    static func makeRuntimeMap(
+        from configuration: MapGeometryConfiguration,
+        revision: Int = 0
+    ) -> GameMap {
+        let runtimeConfiguration = GameMapConfiguration(
+            authoredArtworkSize: authoredArtworkSize,
+            worldSize: configuration.worldSize.cgSize,
+            artworkScale: artworkScale,
+            artworkOffset: .zero,
+            playerVisualRadius: configuration.playerVisualRadius,
+            playerFootprint: configuration.playerFootprint.runtimeValue,
+            wallThickness: configuration.wallThickness,
+            walkabilityEpsilon: configuration.walkabilityEpsilon,
+            targetClampStep: configuration.targetClampStep,
+            targetClampMaximumRadius: configuration.targetClampMaximumRadius
+        )
+
+        let runtimeRooms = configuration.rooms
+            .compactMap { room -> RoomDefinition? in
+                guard room.isWalkable, room.frame.isValid, room.triggerFrame.isValid,
+                      let roomID = room.roomID else { return nil }
+                return RoomDefinition(
+                    sourceID: room.id,
+                    roomID: roomID,
+                    walkableShape: freeformShape(
+                        points: room.vertices,
+                        fallback: room.frame.cgRect
+                    ),
+                    triggerShape: freeformShape(
+                        points: room.triggerVertices,
+                        fallback: room.triggerFrame.cgRect
+                    )
+                )
+            }
+        let runtimeCorridors = configuration.corridors
+            .filter { $0.isWalkable && $0.frame.isValid }
+            .map {
+                CorridorDefinition(
+                    id: $0.id,
+                    shape: freeformShape(points: $0.vertices, fallback: $0.frame.cgRect)
+                )
+            }
+            + configuration.rooms.compactMap { room -> CorridorDefinition? in
+                guard room.isWalkable, room.roomID == nil, room.frame.isValid else { return nil }
+                return CorridorDefinition(
+                    id: "unbound-\(room.id)",
+                    shape: freeformShape(points: room.vertices, fallback: room.frame.cgRect)
+                )
+            }
+        let runtimeDoors = configuration.doorways.compactMap { definition -> DoorwayDefinition? in
+            guard definition.isEnabled,
+                  definition.frame.isValid,
+                  let doorID = definition.doorID,
+                  let roomID = definition.roomID else { return nil }
+            return DoorwayDefinition(
+                sourceID: definition.id,
+                id: doorID,
+                roomID: roomID,
+                shape: freeformShape(
+                    points: definition.vertices,
+                    fallback: definition.frame.cgRect
+                )
+            )
+        }
+
+        let wallColliders = configuration.walls.compactMap { wall -> ShipColliderDefinition? in
+            guard wall.isEnabled, wall.frame.isValid, wall.rotationRadians.isFinite else { return nil }
+            let frame = wall.frame.cgRect
+            return ShipColliderDefinition(
+                id: wall.id,
+                kind: .interiorWall,
+                shape: validPolygonPoints(wall.vertices).map(ShipColliderShape.polygon)
+                    ?? rotatedRectangleShape(
+                        frame: frame,
+                        center: CGPoint(x: frame.midX, y: frame.midY),
+                        rotation: wall.rotationRadians
+                    ),
+                debugLabel: wall.name
+            )
+        }
+        let blockedColliders = configuration.blockedAreas.compactMap { area -> ShipColliderDefinition? in
+            guard area.isEnabled, let shape = runtimeShape(area.shape) else { return nil }
+            return ShipColliderDefinition(
+                id: area.id,
+                kind: .hull,
+                shape: shape,
+                debugLabel: area.name
+            )
+        }
+        let objectColliders = configuration.objects.compactMap { object -> ShipColliderDefinition? in
+            guard object.isEnabled, object.type == .obstacle,
+                  object.position.isFinite, object.size.isValid,
+                  object.rotation.isFinite else { return nil }
+            return ShipColliderDefinition(
+                id: object.id,
+                kind: .furniture,
+                shape: rotatedShape(for: object),
+                debugLabel: object.name
+            )
+        }
+
+        let runtimeStations = configuration.stations.compactMap { station -> StationDefinition? in
+            guard station.isEnabled,
+                  station.kind == .mission,
+                  let id = station.interactionID,
+                  let roomID = station.roomID,
+                  station.position.isFinite else { return nil }
+            return StationDefinition(id: id, roomID: roomID, worldPosition: station.position.cgPoint)
+        }
+        let foodPosition = configuration.stations.first {
+            $0.isEnabled && $0.kind == .food && $0.position.isFinite
+        }?.position.cgPoint ?? .zero
+        let runtimeSpawns = configuration.spawnPoints.compactMap { spawn -> SpawnPointDefinition? in
+            guard let roomID = spawn.roomID, spawn.position.isFinite else { return nil }
+            return SpawnPointDefinition(roomID: roomID, worldPosition: spawn.position.cgPoint)
+        }
+        let runtimeCheckpoints = configuration.checkpoints.compactMap { checkpoint -> CheckpointDefinition? in
+            guard let checkpointID = checkpoint.checkpointID,
+                  let roomID = checkpoint.roomID,
+                  checkpoint.position.isFinite else { return nil }
+            return CheckpointDefinition(
+                checkpointID: checkpointID,
+                roomID: roomID,
+                worldPosition: checkpoint.position.cgPoint
+            )
+        }
+
+        return GameMap(
+            revision: revision,
+            configuration: runtimeConfiguration,
+            rooms: runtimeRooms,
+            corridors: runtimeCorridors,
+            doorways: runtimeDoors,
+            wallSegments: configuration.walls.enumerated().compactMap { index, wall in
+                guard wall.isEnabled, wall.vertices == nil,
+                      wall.frame.isValid, wall.rotationRadians.isFinite else { return nil }
+                let frame = wall.frame.cgRect
+                let center = CGPoint(x: frame.midX, y: frame.midY)
+                let endpoints = frame.width >= frame.height
+                    ? [CGPoint(x: frame.minX, y: frame.midY), CGPoint(x: frame.maxX, y: frame.midY)]
+                    : [CGPoint(x: frame.midX, y: frame.minY), CGPoint(x: frame.midX, y: frame.maxY)]
+                let rotatedEndpoints = endpoints.map {
+                    rotate($0, around: center, rotation: wall.rotationRadians)
+                }
+                return MapWallSegment(
+                    id: index,
+                    start: rotatedEndpoints[0],
+                    end: rotatedEndpoints[1]
+                )
+            },
+            colliders: wallColliders + blockedColliders + objectColliders,
+            stations: runtimeStations,
+            foodStationPosition: foodPosition,
+            spawnPoints: runtimeSpawns,
+            checkpoints: runtimeCheckpoints
         )
     }
 
-    // These areas describe navigable topology for the tactical map and tests.
-    static let corridors: [CGRect] = [
-        imageRect(500, 430, 440, 100), // Main port-starboard corridor.
-        imageRect(500, 430, 80, 260), // Sleeping Room to Lab Room.
-        imageRect(680, 410, 80, 140), // Cockpit to Engine Room.
-        imageRect(860, 430, 80, 260) // Kitchen to Storage Room.
-    ]
+    static let ship = makeRuntimeMap(from: .drawingSpaceDefault)
 
-    static let walkableAreas: [CGRect] = [
-        imageRect(175, 280, 325, 250),
-        imageRect(580, 115, 280, 315),
-        imageRect(940, 280, 250, 250),
-        imageRect(580, 530, 280, 275),
-        imageRect(100, 530, 400, 370),
-        imageRect(940, 530, 380, 370)
-    ] + corridors
-
-    static let spawnPoints: [SpawnPointDefinition] = [
-        spawn(.sleepingRoom, imagePoint: CGPoint(x: 300, y: 445)),
-        spawn(.laboratory, imagePoint: CGPoint(x: 430, y: 720)),
-        spawn(.engine, imagePoint: CGPoint(x: 620, y: 570)),
-        spawn(.kitchen, imagePoint: CGPoint(x: 970, y: 380)),
-        spawn(.storage, imagePoint: CGPoint(x: 975, y: 690)),
-        spawn(.cockpit, imagePoint: CGPoint(x: 720, y: 400))
-    ]
-
-    static let playerSpawnPosition = spawnPoint(for: .sleepingRoom)
-    static let foodStationPosition = worldPoint(fromImagePoint: CGPoint(x: 970, y: 400))
-
-    static let stationDefinitions: [StationDefinition] = {
-        let labPoints = imagePoints([
-            (290, 650), (390, 650), (230, 760)
-        ])
-        let enginePoints = imagePoints([
-            (620, 570), (720, 570), (810, 570), (835, 590),
-            (620, 680), (835, 680), (620, 760), (835, 760),
-            (660, 785), (720, 785), (780, 785), (825, 785)
-        ])
-        let storagePoints = imagePoints([
-            (980, 650), (1_210, 650), (970, 840), (1_200, 865)
-        ])
-        let cockpitPoints = imagePoints([
-            (620, 250), (720, 310), (835, 250)
-        ])
-
-        return StoryContent.objectives.compactMap { objective -> StationDefinition? in
-            guard case .drawing = objective.kind else { return nil }
-            let worldPosition: CGPoint?
-            switch objective.roomID {
-            case .laboratory:
-                worldPosition = point(for: objective.id, in: StoryContent.labIDs, points: labPoints)
-            case .engine:
-                let ids = StoryContent.enginePhaseOneIDs + StoryContent.enginePhaseTwoIDs + StoryContent.engineFinalIDs
-                worldPosition = point(for: objective.id, in: ids, points: enginePoints)
-            case .storage:
-                worldPosition = point(for: objective.id, in: StoryContent.storageIDs, points: storagePoints)
-            case .cockpit:
-                worldPosition = point(for: objective.id, in: StoryContent.cockpitIDs, points: cockpitPoints)
-            case .sleepingRoom, .kitchen:
-                worldPosition = nil
-            }
-            guard let worldPosition else { return nil }
-            return StationDefinition(id: objective.id, roomID: objective.roomID, worldPosition: worldPosition)
+    static var roomDefinitions: [RoomDefinition] { ship.rooms }
+    static var roomTriggerDefinitions: [RoomTriggerDefinition] { ship.roomTriggers }
+    static var rooms: [MapRoom] {
+        ship.rooms.map {
+            MapRoom(id: $0.roomID, name: $0.roomID.displayName.uppercased(), worldFrame: $0.triggerFrame)
         }
-    }()
-
-    // Door rectangles occupy intentional gaps in the room perimeter segments.
-    static let doorDefinitions: [DoorDefinition] = [
-        door(.cockpit, imageRect: CGRect(x: 680, y: 421, width: 80, height: 18)),
-        door(.sleepingRoom, imageRect: CGRect(x: 491, y: 420, width: 18, height: 80)),
-        door(.kitchen, imageRect: CGRect(x: 931, y: 400, width: 18, height: 100)),
-        door(.engine, imageRect: CGRect(x: 680, y: 521, width: 80, height: 18)),
-        door(.laboratory, imageRect: CGRect(x: 491, y: 610, width: 18, height: 80)),
-        door(.storage, imageRect: CGRect(x: 931, y: 610, width: 18, height: 80))
-    ]
-
-    static let wallSegments: [MapWallSegment] = {
-        let imageSegments: [(CGPoint, CGPoint)] = [
-            // Cockpit perimeter, with a bottom-center doorway.
-            segment(580, 115, 860, 115), segment(580, 115, 580, 430),
-            segment(860, 115, 860, 430), segment(580, 430, 680, 430),
-            segment(760, 430, 860, 430),
-
-            // Sleeping Room, doorway on the starboard wall.
-            segment(175, 280, 500, 280), segment(175, 280, 175, 530),
-            segment(175, 530, 500, 530), segment(500, 280, 500, 420),
-            segment(500, 500, 500, 530),
-
-            // Kitchen, doorway on the port wall.
-            segment(940, 280, 1_190, 280), segment(1_190, 280, 1_190, 530),
-            segment(940, 530, 1_190, 530), segment(940, 280, 940, 400),
-            segment(940, 500, 940, 530),
-
-            // Engine Room, doorway on the forward wall.
-            segment(580, 530, 680, 530), segment(760, 530, 860, 530),
-            segment(580, 530, 580, 805), segment(860, 530, 860, 805),
-            segment(580, 805, 860, 805),
-
-            // Lab Room, doorway on the starboard wall.
-            segment(100, 530, 500, 530), segment(100, 530, 100, 900),
-            segment(100, 900, 500, 900), segment(500, 530, 500, 610),
-            segment(500, 690, 500, 900),
-
-            // Storage Room, doorway on the port wall.
-            segment(940, 530, 1_320, 530), segment(1_320, 530, 1_320, 900),
-            segment(940, 900, 1_320, 900), segment(940, 530, 940, 610),
-            segment(940, 690, 940, 900)
-        ]
-
-        return imageSegments.enumerated().map { index, endpoints in
-            MapWallSegment(
-                id: index,
-                start: worldPoint(fromImagePoint: endpoints.0),
-                end: worldPoint(fromImagePoint: endpoints.1)
-            )
-        }
-    }()
-
-    static let colliderDefinitions: [ShipColliderDefinition] = {
-        var definitions: [ShipColliderDefinition] = [
-            ShipColliderDefinition(
-                id: "outer-hull",
-                kind: .hull,
-                shape: .edgeLoop(worldPoints(fromImagePoints: [
-                    CGPoint(x: 500, y: 100), CGPoint(x: 940, y: 100),
-                    CGPoint(x: 980, y: 260), CGPoint(x: 1_210, y: 275),
-                    CGPoint(x: 1_340, y: 500), CGPoint(x: 1_390, y: 920),
-                    CGPoint(x: 50, y: 920), CGPoint(x: 100, y: 500),
-                    CGPoint(x: 230, y: 275), CGPoint(x: 460, y: 260)
-                ])),
-                debugLabel: "Outer Hull"
-            )
-        ]
-
-        let furniture: [(String, ShipColliderKind, CGRect)] = [
-            // Cockpit.
-            ("cockpit-main-console", .machinery, rect(590, 190, 250, 48)),
-            ("cockpit-pilot-chair", .furniture, rect(700, 235, 40, 68)),
-            ("cockpit-navigation-display", .machinery, rect(760, 250, 88, 150)),
-            ("cockpit-port-machinery", .machinery, rect(590, 250, 35, 130)),
-
-            // Sleeping Room.
-            ("sleeping-bed", .furniture, rect(330, 295, 160, 80)),
-            ("sleeping-main-console", .machinery, rect(380, 420, 75, 80)),
-            ("sleeping-storage", .furniture, rect(200, 320, 55, 72)),
-
-            // Kitchen.
-            ("kitchen-main-counter", .furniture, rect(1_000, 465, 140, 42)),
-            ("kitchen-side-counter", .furniture, rect(1_055, 330, 90, 120)),
-            ("kitchen-sink-stove", .machinery, rect(1_000, 405, 55, 45)),
-            ("kitchen-appliance", .machinery, rect(945, 285, 85, 55)),
-
-            // Engine Room.
-            ("engine-core", .machinery, rect(650, 600, 160, 170)),
-            // Keep the doorway approach and the port-side service lane clear.
-            ("engine-battery-bank", .machinery, rect(755, 555, 70, 38)),
-            ("engine-port-pipes", .machinery, rect(590, 610, 38, 125)),
-            ("engine-starboard-equipment", .machinery, rect(830, 610, 25, 125)),
-
-            // Lab Room.
-            ("lab-main-table", .furniture, rect(260, 555, 200, 70)),
-            ("lab-microscope-station", .furniture, rect(125, 725, 120, 100)),
-            ("lab-lower-bench", .furniture, rect(285, 800, 210, 65)),
-            ("lab-shelf", .furniture, rect(435, 550, 40, 50)),
-
-            // Storage Room.
-            ("storage-cabinets", .furniture, rect(1_000, 545, 190, 85)),
-            ("storage-crates", .furniture, rect(1_000, 700, 110, 100)),
-            ("storage-containers", .furniture, rect(1_090, 760, 105, 105)),
-            ("storage-tool-rack", .furniture, rect(1_210, 720, 85, 145)),
-            ("storage-machinery", .machinery, rect(1_140, 650, 80, 72))
-        ]
-
-        definitions += furniture.map { id, kind, imageFrame in
-            ShipColliderDefinition(
-                id: id,
-                kind: kind,
-                shape: .rectangle(worldRect(fromImageRect: imageFrame)),
-                debugLabel: id.replacingOccurrences(of: "-", with: " ").capitalized
-            )
-        }
-        return definitions
-    }()
+    }
+    static var corridorDefinitions: [CorridorDefinition] { ship.corridors }
+    static var corridors: [CGRect] { ship.corridors.map(\.worldFrame) }
+    static var walkableAreas: [CGRect] { ship.walkableFrames }
+    static var spawnPoints: [SpawnPointDefinition] { ship.spawnPoints }
+    static var playerSpawnPosition: CGPoint { spawnPoint(for: .sleepingRoom) }
+    static var foodStationPosition: CGPoint { ship.foodStationPosition }
+    static var stationDefinitions: [StationDefinition] { ship.stations }
+    static var doorDefinitions: [DoorDefinition] { ship.doorways }
+    static var wallSegments: [MapWallSegment] { ship.wallSegments }
+    static var colliderDefinitions: [ShipColliderDefinition] { ship.colliders }
 
     static var blockingRectangles: [CGRect] {
-        let walls = wallSegments.map { segment in
-            let minX = min(segment.start.x, segment.end.x)
-            let minY = min(segment.start.y, segment.end.y)
-            return CGRect(
-                x: minX - wallThickness / 2,
-                y: minY - wallThickness / 2,
-                width: max(abs(segment.end.x - segment.start.x), wallThickness),
-                height: max(abs(segment.end.y - segment.start.y), wallThickness)
-            )
-        }
-        let furniture = colliderDefinitions.compactMap { definition -> CGRect? in
-            guard case let .rectangle(rect) = definition.shape else { return nil }
-            return rect
-        }
-        return walls + furniture
+        defaultConfiguration.walls.filter(\.isEnabled).map(\.rotatedBounds)
+            + defaultConfiguration.objects.filter { $0.isEnabled && $0.type == .obstacle }.map(\.objectBounds)
     }
 
     static func room(containing point: CGPoint) -> RoomID? {
@@ -339,61 +323,75 @@ enum GameMapLayout {
     }
 
     static func spawnPoint(for room: RoomID) -> CGPoint {
-        spawnPoints.first(where: { $0.roomID == room })?.worldPosition
-            ?? CGPoint(x: worldSize.width / 2, y: worldSize.height / 2)
+        ship.spawnPoint(for: room) ?? CGPoint(x: worldSize.width / 2, y: worldSize.height / 2)
     }
 
     static func safeSpawn(for checkpoint: CheckpointID) -> CGPoint {
-        switch checkpoint {
-        case .sleepingRoom: spawnPoint(for: .sleepingRoom)
-        case .laboratory: spawnPoint(for: .laboratory)
-        case .enginePhaseOne, .engineDisruption, .engineBlocked, .engineFinal: spawnPoint(for: .engine)
-        case .storage: spawnPoint(for: .storage)
-        case .cockpit: spawnPoint(for: .cockpit)
-        }
+        ship.checkpointPosition(for: checkpoint) ?? spawnPoint(for: .sleepingRoom)
     }
 
     static var defaultMarkers: [MapMarker] {
-        let story = StoryProgressionSystem()
-        return TacticalMapMarkerFactory.make(story: story, includeDoors: true)
+        TacticalMapMarkerFactory.make(story: StoryProgressionSystem(), includeDoors: true)
     }
 
-    private static func imageRect(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat) -> CGRect {
-        worldRect(fromImageRect: CGRect(x: x, y: y, width: width, height: height))
+    private static func runtimeShape(_ shape: MapGeometryShape) -> ShipColliderShape? {
+        switch shape {
+        case let .rectangle(rect):
+            guard rect.isValid else { return nil }
+            return .rectangle(rect.cgRect)
+        case let .polygon(points):
+            guard points.count >= 3, points.allSatisfy(\.isFinite) else { return nil }
+            return .polygon(points.map(\.cgPoint))
+        case let .edgeChain(points):
+            guard points.count >= 3, points.allSatisfy(\.isFinite) else { return nil }
+            return .edgeLoop(points.map(\.cgPoint))
+        }
     }
 
-    private static func rect(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat) -> CGRect {
-        CGRect(x: x, y: y, width: width, height: height)
+    private static func rotatedShape(for object: MapObjectDefinition) -> ShipColliderShape {
+        if let points = validPolygonPoints(object.vertices) {
+            return .polygon(points)
+        }
+        let frame = object.frame
+        return rotatedRectangleShape(
+            frame: frame,
+            center: object.position.cgPoint,
+            rotation: object.rotation
+        )
     }
 
-    private static func segment(_ x1: CGFloat, _ y1: CGFloat, _ x2: CGFloat, _ y2: CGFloat) -> (CGPoint, CGPoint) {
-        (CGPoint(x: x1, y: y1), CGPoint(x: x2, y: y2))
+    private static func freeformShape(
+        points: [CodablePoint]?,
+        fallback: CGRect
+    ) -> ShipColliderShape {
+        if let points = validPolygonPoints(points) {
+            return .polygon(points)
+        }
+        return .rectangle(fallback)
     }
 
-    private static func imagePoints(_ points: [(CGFloat, CGFloat)]) -> [CGPoint] {
-        points.map { worldPoint(fromImagePoint: CGPoint(x: $0.0, y: $0.1)) }
+    private static func rotatedRectangleShape(
+        frame: CGRect,
+        center: CGPoint,
+        rotation: Double
+    ) -> ShipColliderShape {
+        guard abs(rotation) > 0.000_1 else { return .rectangle(frame) }
+        return .polygon(rotatedRectangleCorners(frame: frame, center: center, rotation: rotation))
     }
 
-    private static func point(for id: String, in ids: [String], points: [CGPoint]) -> CGPoint? {
-        guard let index = ids.firstIndex(of: id), points.indices.contains(index) else { return nil }
-        return points[index]
-    }
-
-    private static func room(_ roomID: RoomID, imageRect: CGRect) -> RoomTriggerDefinition {
-        RoomTriggerDefinition(roomID: roomID, worldFrame: worldRect(fromImageRect: imageRect))
-    }
-
-    private static func spawn(_ roomID: RoomID, imagePoint: CGPoint) -> SpawnPointDefinition {
-        SpawnPointDefinition(roomID: roomID, worldPosition: worldPoint(fromImagePoint: imagePoint))
-    }
-
-    private static func door(_ id: DoorID, imageRect: CGRect) -> DoorDefinition {
-        let worldFrame = worldRect(fromImageRect: imageRect)
-        return DoorDefinition(
-            id: id,
-            roomID: id.roomID,
-            worldPosition: CGPoint(x: worldFrame.midX, y: worldFrame.midY),
-            size: worldFrame.size
+    private static func rotate(
+        _ point: CGPoint,
+        around center: CGPoint,
+        rotation: Double
+    ) -> CGPoint {
+        let angle = CGFloat(rotation)
+        let cosine = cos(angle)
+        let sine = sin(angle)
+        let dx = point.x - center.x
+        let dy = point.y - center.y
+        return CGPoint(
+            x: center.x + dx * cosine - dy * sine,
+            y: center.y + dx * sine + dy * cosine
         )
     }
 }

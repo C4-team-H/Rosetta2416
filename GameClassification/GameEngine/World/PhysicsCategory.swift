@@ -5,8 +5,8 @@ enum PhysicsCategory {
     static let player: UInt32 = 1 << 0
     static let wall: UInt32 = 1 << 1
     static let roomTrigger: UInt32 = 1 << 2
-    static let interactable: UInt32 = 1 << 3
-    static let door: UInt32 = 1 << 4
+    static let interaction: UInt32 = 1 << 3
+    static let closedDoor: UInt32 = 1 << 4
 }
 
 enum PhysicsContactResolver {

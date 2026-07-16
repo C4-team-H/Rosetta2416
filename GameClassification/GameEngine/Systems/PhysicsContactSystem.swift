@@ -75,7 +75,7 @@ extension GameScene: SKPhysicsContactDelegate {
         if let interactableBody = PhysicsContactResolver.otherBody(
             bodyA: bodyA,
             bodyB: bodyB,
-            pairedWith: PhysicsCategory.interactable
+            pairedWith: PhysicsCategory.interaction
         ),
            let id = (interactableBody.node?.userData?["interactableID"] as? String)
             ?? interactableBody.node?.name {
@@ -89,7 +89,7 @@ extension GameScene: SKPhysicsContactDelegate {
         if let doorBody = PhysicsContactResolver.otherBody(
             bodyA: bodyA,
             bodyB: bodyB,
-            pairedWith: PhysicsCategory.door
+            pairedWith: PhysicsCategory.closedDoor
         ),
            let door = doorBody.node as? ShipDoorNode {
             pendingSensorContacts.append(PendingSensorContact(

@@ -28,11 +28,27 @@ struct MapMarker: Identifiable, Equatable {
 
 @MainActor
 enum TacticalMapMarkerFactory {
-    static func make(story: StoryProgressionSystem, includeDoors: Bool = true) -> [MapMarker] {
+    static func make(
+        story: StoryProgressionSystem,
+        includeDoors: Bool = true
+    ) -> [MapMarker] {
+        make(
+            story: story,
+            configuration: .drawingSpaceDefault,
+            includeDoors: includeDoors
+        )
+    }
+
+    static func make(
+        story: StoryProgressionSystem,
+        configuration: MapGeometryConfiguration,
+        includeDoors: Bool = true
+    ) -> [MapMarker] {
         var markers: [MapMarker] = []
 
-        for station in GameMapLayout.stationDefinitions {
-            guard let objective = story.objectives.first(where: { $0.id == station.id }) else { continue }
+        for station in configuration.stations where station.kind == .mission && station.isEnabled {
+            guard let objectiveID = station.interactionID,
+                  let objective = story.objectives.first(where: { $0.id == objectiveID }) else { continue }
             let markerStatus: MapMarkerStatus
             switch objective.status {
             case .completed: markerStatus = .completed
@@ -41,10 +57,10 @@ enum TacticalMapMarkerFactory {
             case .locked: continue
             }
             markers.append(MapMarker(
-                id: "station-\(station.id)",
+                id: station.id,
                 kind: .station,
                 status: markerStatus,
-                worldPosition: station.worldPosition,
+                worldPosition: station.position.cgPoint,
                 title: objective.definition.title
             ))
         }
@@ -56,12 +72,12 @@ enum TacticalMapMarkerFactory {
             (.cockpit, .cockpit)
         ]
         for (roomID, kind) in roomKinds {
-            guard let room = GameMapLayout.rooms.first(where: { $0.id == roomID }) else { continue }
+            guard let room = configuration.rooms.first(where: { $0.roomID == roomID }) else { continue }
             markers.append(MapMarker(
                 id: "room-\(roomID.rawValue)",
                 kind: kind,
                 status: story.canAccess(roomID) ? .unlocked : .locked,
-                worldPosition: CGPoint(x: room.worldFrame.midX, y: room.worldFrame.midY),
+                worldPosition: CGPoint(x: room.triggerFrame.cgRect.midX, y: room.triggerFrame.cgRect.midY),
                 title: room.name
             ))
         }
@@ -70,18 +86,19 @@ enum TacticalMapMarkerFactory {
             id: "kitchen",
             kind: .kitchen,
             status: .unlocked,
-            worldPosition: GameMapLayout.foodStationPosition,
+            worldPosition: configuration.stations.first(where: { $0.kind == .food && $0.isEnabled })?.position.cgPoint ?? .zero,
             title: "Kitchen Energy Station"
         ))
 
         if includeDoors {
-            markers += GameMapLayout.doorDefinitions.map { door in
-                MapMarker(
-                    id: door.id.nodeName,
+            markers += configuration.doorways.compactMap { door -> MapMarker? in
+                guard door.isEnabled, let doorID = door.doorID, let roomID = door.roomID else { return nil }
+                return MapMarker(
+                    id: doorID.nodeName,
                     kind: .door,
-                    status: story.canAccess(door.roomID) ? .unlocked : .locked,
-                    worldPosition: door.worldPosition,
-                    title: door.id.displayName
+                    status: story.canAccess(roomID) ? .unlocked : .locked,
+                    worldPosition: CGPoint(x: door.frame.cgRect.midX, y: door.frame.cgRect.midY),
+                    title: doorID.displayName
                 )
             }
         }

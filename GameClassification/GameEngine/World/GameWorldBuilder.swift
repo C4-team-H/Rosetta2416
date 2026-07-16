@@ -3,36 +3,28 @@ import SpriteKit
 extension GameScene {
     func createShipMap() {
         shipMapNode?.removeFromParent()
-        let map = ShipMapNode(debugEnabled: Self.isShipMapDebugEnabled)
+        let map = worldLoader.makeShipMapNode(
+            map: gameMap,
+            debugEnabled: debugSettings.isMapDebugEnabled
+        ) { [weak self] doorID, state in
+            self?.walkabilitySystem.updateDoorState(state, for: doorID)
+        }
         map.zPosition = 0
         addChild(map)
         shipMapNode = map
+        walkabilitySystem.updateDoorStates(map.doorStates)
     }
 
     func createPlayer() {
         player?.removeFromParent()
-        player = SKShapeNode(circleOfRadius: playerRadius)
-        player.name = "player"
-        player.fillColor = SKColor(red: 0.9, green: 0.3, blue: 0.3, alpha: 1)
-        player.strokeColor = .white
-        player.lineWidth = 2
-        player.position = sessionState.localPlayer.worldPosition
+        player = worldLoader.makePlayerNode(
+            configuration: gameMap.configuration,
+            debugEnabled: debugSettings.isMapDebugEnabled
+        )
+        player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
         player.zPosition = 0
-
-        let body = SKPhysicsBody(circleOfRadius: playerRadius)
-        body.isDynamic = true
-        body.affectedByGravity = false
-        body.allowsRotation = false
-        body.restitution = 0
-        body.friction = 0
-        body.linearDamping = 0
-        body.angularDamping = 0
-        body.usesPreciseCollisionDetection = true
-        body.categoryBitMask = PhysicsCategory.player
-        body.collisionBitMask = PhysicsCategory.wall | PhysicsCategory.door
-        body.contactTestBitMask = PhysicsCategory.roomTrigger | PhysicsCategory.interactable | PhysicsCategory.door
-        player.physicsBody = body
-
+        lastValidPlayerPosition = player.position
+        lastMovementResult = .stationary(at: player.position)
         (shipMapNode?.playerLayer ?? self).addChild(player)
     }
 
@@ -56,7 +48,7 @@ extension GameScene {
         stationNodes.values.forEach { $0.removeFromParent() }
         stationNodes.removeAll()
         let parent = shipMapNode?.furnitureLayer ?? self
-        for definition in GameMapLayout.stationDefinitions {
+        for definition in gameMap.stations {
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
             attachInteractionSensor(to: station, id: definition.id)
             parent.addChild(station)
@@ -66,7 +58,7 @@ extension GameScene {
 
     func createFoodObject() {
         foodObject?.removeFromParent()
-        foodObject = makeStationNode(id: "kitchen-food", at: GameMapLayout.foodStationPosition)
+        foodObject = makeStationNode(id: "kitchen-food", at: gameMap.foodStationPosition)
         foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1)
         attachInteractionSensor(to: foodObject, id: "kitchen-food")
         (shipMapNode?.furnitureLayer ?? self).addChild(foodObject)
@@ -92,6 +84,9 @@ extension GameScene {
             }
         }
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
+        if let doorStates = shipMapNode?.doorStates {
+            walkabilitySystem.updateDoorStates(doorStates)
+        }
         lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
     }
 
@@ -123,31 +118,40 @@ extension GameScene {
     }
 
     private func makeStationNode(id: String, at position: CGPoint) -> SKShapeNode {
-        let station = SKShapeNode(rectOf: CGSize(width: 50, height: 40), cornerRadius: 8)
+        let station = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 50, height: 40)),
+            cornerRadius: GameMapLayout.scaled(8)
+        )
         station.name = id
         station.position = position
         station.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1)
         station.strokeColor = .white
-        station.lineWidth = 2
+        station.lineWidth = GameMapLayout.scaled(2)
         station.zPosition = 2
 
-        let screen = SKShapeNode(rectOf: CGSize(width: 36, height: 28), cornerRadius: 4)
+        let screen = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 36, height: 28)),
+            cornerRadius: GameMapLayout.scaled(4)
+        )
         screen.fillColor = .white
         screen.strokeColor = .clear
         screen.zPosition = 3
         station.addChild(screen)
 
-        let glyph = SKShapeNode(rectOf: CGSize(width: 22, height: 4), cornerRadius: 1)
+        let glyph = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 22, height: 4)),
+            cornerRadius: GameMapLayout.scaled(1)
+        )
         glyph.fillColor = .black
         glyph.strokeColor = .clear
         glyph.zRotation = .pi / 4
         glyph.zPosition = 4
         screen.addChild(glyph)
 
-        let glow = SKShapeNode(circleOfRadius: 45)
+        let glow = SKShapeNode(circleOfRadius: GameMapLayout.scaled(45))
         glow.name = "glow"
         glow.strokeColor = .cyan.withAlphaComponent(0.38)
-        glow.lineWidth = 2
+        glow.lineWidth = GameMapLayout.scaled(2)
         glow.zPosition = 1
         glow.run(.repeatForever(.sequence([.scale(to: 1.2, duration: 1.2), .scale(to: 0.85, duration: 1.2)])))
         station.addChild(glow)
@@ -156,10 +160,10 @@ extension GameScene {
 
     private func attachInteractionSensor(to node: SKNode, id: String) {
         node.userData = NSMutableDictionary(dictionary: ["interactableID": id])
-        let body = SKPhysicsBody(circleOfRadius: 76)
+        let body = SKPhysicsBody(circleOfRadius: GameMapLayout.scaled(76))
         body.isDynamic = false
         body.affectedByGravity = false
-        body.categoryBitMask = PhysicsCategory.interactable
+        body.categoryBitMask = PhysicsCategory.interaction
         body.collisionBitMask = PhysicsCategory.none
         body.contactTestBitMask = PhysicsCategory.player
         node.physicsBody = body

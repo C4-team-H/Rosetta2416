@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MapBackgroundView: View {
     let converter: MapCoordinateConverter
+    let configuration: MapGeometryConfiguration
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -11,10 +12,10 @@ struct MapBackgroundView: View {
                 drawWalls(in: &context)
             }
 
-            ForEach(GameMapLayout.rooms) { room in
-                let roomFrame = converter.mapRect(from: room.worldFrame)
+            ForEach(configuration.rooms) { room in
+                let roomFrame = converter.mapRect(from: room.triggerFrame.cgRect)
 
-                Text(room.name)
+                Text(room.name.uppercased())
                     .font(.caption)
                     .bold()
                     .foregroundStyle(.white.opacity(0.62))
@@ -45,14 +46,14 @@ struct MapBackgroundView: View {
     }
 
     private func drawWalkableAreas(in context: inout GraphicsContext) {
-        for corridor in GameMapLayout.corridors {
-            let rect = converter.mapRect(from: corridor)
+        for corridor in configuration.corridors where corridor.isWalkable {
+            let rect = converter.mapRect(from: corridor.frame.cgRect)
             let path = Path(roundedRect: rect, cornerRadius: max(2, converter.scale * 18))
             context.fill(path, with: .color(MapDesignTokens.corridorFill))
         }
 
-        for room in GameMapLayout.rooms {
-            let rect = converter.mapRect(from: room.worldFrame)
+        for room in configuration.rooms where room.isWalkable {
+            let rect = converter.mapRect(from: room.triggerFrame.cgRect)
             let path = Path(roundedRect: rect, cornerRadius: max(3, converter.scale * 24))
             context.fill(path, with: .color(MapDesignTokens.roomFill))
             context.stroke(path, with: .color(.cyan.opacity(0.28)), lineWidth: 1)
@@ -62,15 +63,10 @@ struct MapBackgroundView: View {
     private func drawWalls(in context: inout GraphicsContext) {
         let wallWidth = max(1.5, min(4, converter.scale * 16))
 
-        for wall in GameMapLayout.wallSegments {
-            var path = Path()
-            path.move(to: converter.mapPosition(from: wall.start))
-            path.addLine(to: converter.mapPosition(from: wall.end))
-            context.stroke(
-                path,
-                with: .color(MapDesignTokens.wall),
-                style: StrokeStyle(lineWidth: wallWidth, lineCap: .round, lineJoin: .round)
-            )
+        for wall in configuration.walls where wall.isEnabled {
+            let path = Path(converter.mapRect(from: wall.frame.cgRect))
+            context.fill(path, with: .color(MapDesignTokens.wall))
+            context.stroke(path, with: .color(.white.opacity(0.12)), lineWidth: max(0.5, wallWidth / 3))
         }
     }
 }

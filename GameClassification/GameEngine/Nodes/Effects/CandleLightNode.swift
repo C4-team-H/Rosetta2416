@@ -76,10 +76,12 @@ final class CandleLightNode: SKNode {
     private let flickerScaleUniform: SKUniform
 
     private var sceneSize: CGSize
+    private(set) var lightPosition: CGPoint
 
     init(sceneSize: CGSize, configuration: Configuration = Configuration()) {
         let validSize = Self.validSize(sceneSize)
         self.sceneSize = validSize
+        lightPosition = CGPoint(x: validSize.width / 2, y: validSize.height / 2)
         self.configuration = configuration
 
         sceneSizeUniform = SKUniform(
@@ -133,6 +135,7 @@ final class CandleLightNode: SKNode {
     /// Moves the bright area to a point expressed in the overlay's scene space.
     /// Call after moving the character so the light uses the latest position.
     func update(lightPosition: CGPoint) {
+        self.lightPosition = lightPosition
         let normalizedX = Float(lightPosition.x / sceneSize.width)
         let normalizedY = Float(lightPosition.y / sceneSize.height)
         lightCenterUniform.vectorFloat2Value = SIMD2(normalizedX, normalizedY)
@@ -142,7 +145,10 @@ final class CandleLightNode: SKNode {
     /// for this frame, avoiding trigonometry in every fragment on the GPU.
     func update(lightPosition: CGPoint, currentTime: TimeInterval) {
         update(lightPosition: lightPosition)
+        updateFlicker(currentTime: currentTime)
+    }
 
+    func updateFlicker(currentTime: TimeInterval) {
         let speed = max(configuration.flickerSpeed, 0)
         let time = CGFloat(currentTime) * speed
         let wave =

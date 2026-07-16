@@ -19,6 +19,7 @@ final class GameSessionState {
     private var energySystem: EnergySystem
     private let dialogueManager: AIDialogueManager
     private let repository: StoryProgressRepository
+    private let safeSpawnProvider: (CheckpointID) -> CGPoint
     private var checkpointSnapshot: StorySaveSnapshot
     private var sessionRevision = 0
 
@@ -26,13 +27,15 @@ final class GameSessionState {
         localPlayer: PlayerState,
         storySystem: StoryProgressionSystem? = nil,
         repository: StoryProgressRepository? = nil,
-        dialogueManager: AIDialogueManager? = nil
+        dialogueManager: AIDialogueManager? = nil,
+        safeSpawnProvider: ((CheckpointID) -> CGPoint)? = nil
     ) {
         let storySystem = storySystem ?? StoryProgressionSystem()
         self.localPlayer = localPlayer
         self.storySystem = storySystem
         self.repository = repository ?? InMemoryStoryProgressRepository()
         self.dialogueManager = dialogueManager ?? AIDialogueManager()
+        self.safeSpawnProvider = safeSpawnProvider ?? { GameMapLayout.safeSpawn(for: $0) }
         let energySystem = EnergySystem(playerID: localPlayer.id)
         self.energySystem = energySystem
         checkpointSnapshot = StorySaveSnapshot(
@@ -292,6 +295,6 @@ final class GameSessionState {
     }
 
     private func safeSpawn(for checkpoint: CheckpointID) -> CGPoint {
-        GameMapLayout.safeSpawn(for: checkpoint)
+        safeSpawnProvider(checkpoint)
     }
 }

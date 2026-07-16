@@ -83,12 +83,12 @@ final class LightingSystem {
 
     private func activateEngineGlow(in scene: GameScene) {
         guard scene.childNode(withName: "engineRestoredGlow") == nil else { return }
-        let glow = SKShapeNode(circleOfRadius: 150)
+        let glow = SKShapeNode(circleOfRadius: GameMapLayout.scaled(150))
         glow.name = "engineRestoredGlow"
         glow.position = roomCenter(.engine)
         glow.fillColor = .cyan.withAlphaComponent(0.12)
         glow.strokeColor = .cyan
-        glow.glowWidth = 18
+        glow.glowWidth = GameMapLayout.scaled(18)
         glow.zPosition = 0.5
         glow.run(.repeatForever(.sequence([
             .scale(to: 1.08, duration: 0.8),
@@ -99,12 +99,15 @@ final class LightingSystem {
 
     private func activateCockpitDisplays(in scene: GameScene) {
         guard scene.childNode(withName: "cockpitDisplayGlow") == nil else { return }
-        let display = SKShapeNode(rectOf: CGSize(width: 260, height: 120), cornerRadius: 18)
+        let display = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 260, height: 120)),
+            cornerRadius: GameMapLayout.scaled(18)
+        )
         display.name = "cockpitDisplayGlow"
         display.position = roomCenter(.cockpit)
         display.fillColor = .cyan.withAlphaComponent(0.22)
         display.strokeColor = .cyan
-        display.glowWidth = 12
+        display.glowWidth = GameMapLayout.scaled(12)
         display.zPosition = 0.5
         scene.addChild(display)
     }
@@ -116,12 +119,15 @@ final class LightingSystem {
         particles.position = roomCenter(.engine)
         particles.particleBirthRate = 12
         particles.particleLifetime = 1.8
-        particles.particlePositionRange = CGVector(dx: 220, dy: 220)
-        particles.particleSpeed = 18
-        particles.particleSpeedRange = 10
+        particles.particlePositionRange = CGVector(
+            dx: GameMapLayout.scaled(220),
+            dy: GameMapLayout.scaled(220)
+        )
+        particles.particleSpeed = GameMapLayout.scaled(18)
+        particles.particleSpeedRange = GameMapLayout.scaled(10)
         particles.emissionAngleRange = .pi * 2
-        particles.particleScale = 0.08
-        particles.particleScaleRange = 0.04
+        particles.particleScale = GameMapLayout.scaled(0.08)
+        particles.particleScaleRange = GameMapLayout.scaled(0.04)
         particles.particleAlpha = 0.65
         particles.particleAlphaSpeed = -0.32
         particles.particleColor = .cyan
@@ -136,13 +142,16 @@ final class LightingSystem {
         machinery.name = "engineMachinery"
         machinery.position = roomCenter(.engine)
         machinery.zPosition = 1
-        for offset in [CGFloat(-110), CGFloat(110)] {
-            let rotor = SKShapeNode(circleOfRadius: 34)
+        for offset in [GameMapLayout.scaled(-110), GameMapLayout.scaled(110)] {
+            let rotor = SKShapeNode(circleOfRadius: GameMapLayout.scaled(34))
             rotor.position = CGPoint(x: offset, y: 0)
             rotor.strokeColor = .cyan
-            rotor.lineWidth = 6
+            rotor.lineWidth = GameMapLayout.scaled(6)
             rotor.fillColor = .clear
-            let spoke = SKShapeNode(rectOf: CGSize(width: 58, height: 5), cornerRadius: 2)
+            let spoke = SKShapeNode(
+                rectOf: GameMapLayout.scaled(CGSize(width: 58, height: 5)),
+                cornerRadius: GameMapLayout.scaled(2)
+            )
             spoke.fillColor = .cyan
             spoke.strokeColor = .clear
             rotor.addChild(spoke)

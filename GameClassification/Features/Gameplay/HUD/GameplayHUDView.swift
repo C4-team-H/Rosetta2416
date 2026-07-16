@@ -6,6 +6,9 @@ struct GameplayHUDView: View {
     let onRetryCheckpoint: () -> Void
     let onPlayAgain: () -> Void
     let onMainMenu: () -> Void
+    #if DEBUG
+    var mapDebugViewModel: MapDebugViewModel? = nil
+    #endif
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var feedbackTrigger = 0
@@ -80,6 +83,13 @@ struct GameplayHUDView: View {
                 )
                 .zIndex(3)
             }
+
+            #if DEBUG
+            if let mapDebugViewModel, viewModel.isGameplayActive {
+                MapDebugOverlayView(viewModel: mapDebugViewModel)
+                    .zIndex(20)
+            }
+            #endif
         }
         .animation(overlayAnimation, value: viewModel.isMapPresented)
         .sensoryFeedback(.impact(weight: .light), trigger: feedbackTrigger)

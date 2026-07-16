@@ -47,7 +47,7 @@ struct MapLayoutReachabilityTests {
 
     @Test("Door openings provide player clearance")
     func doorwayClearance() {
-        let requiredOpening = GameMapLayout.playerRadius * 2 + 20
+        let requiredOpening = GameMapLayout.playerFootprint.radius * 2 + GameMapLayout.scaled(20)
         for door in GameMapLayout.doorDefinitions {
             #expect(max(door.size.width, door.size.height) >= requiredOpening)
         }
@@ -58,35 +58,33 @@ struct MapLayoutReachabilityTests {
         to destination: CGPoint,
         closedDoors: Set<DoorID>
     ) -> Bool {
-        let step: CGFloat = 10
-        let radius = GameMapLayout.playerRadius
-        var blockedRects = GameMapLayout.blockingRectangles.map {
-            $0.insetBy(dx: -radius, dy: -radius)
-        }
-        blockedRects += GameMapLayout.doorDefinitions.compactMap { door in
-            guard closedDoors.contains(door.id) else { return nil }
-            return CGRect(
-                x: door.worldPosition.x - door.size.width / 2,
-                y: door.worldPosition.y - door.size.height / 2,
-                width: door.size.width,
-                height: door.size.height
-            ).insetBy(dx: -radius, dy: -radius)
-        }
-
         struct GridPoint: Hashable {
             let x: Int
             let y: Int
         }
 
+        let scale = GameMapLayout.artworkScale
+        let step: CGFloat = 10
+        func authoredPoint(_ point: CGPoint) -> CGPoint {
+            CGPoint(x: point.x / scale, y: point.y / scale)
+        }
+        func worldPoint(_ point: GridPoint) -> CGPoint {
+            CGPoint(x: CGFloat(point.x) * step * scale, y: CGFloat(point.y) * step * scale)
+        }
+
+        let doorStates = Dictionary(uniqueKeysWithValues: DoorID.allCases.map {
+            ($0, closedDoors.contains($0) ? DoorState.locked : DoorState.open)
+        })
+        let walkability = WalkabilitySystem(map: GameMapLayout.ship, doorStates: doorStates)
+
+        let authoredStart = authoredPoint(start)
+        let authoredDestination = authoredPoint(destination)
+
         func gridPoint(for point: CGPoint) -> GridPoint {
             GridPoint(x: Int((point.x / step).rounded()), y: Int((point.y / step).rounded()))
         }
 
-        func worldPoint(_ point: GridPoint) -> CGPoint {
-            CGPoint(x: CGFloat(point.x) * step, y: CGFloat(point.y) * step)
-        }
-
-        let startGrid = gridPoint(for: start)
+        let startGrid = gridPoint(for: authoredStart)
         var queue = [startGrid]
         var visited: Set<GridPoint> = [startGrid]
         var cursor = 0
@@ -95,15 +93,19 @@ struct MapLayoutReachabilityTests {
         while cursor < queue.count {
             let current = queue[cursor]
             cursor += 1
-            let point = worldPoint(current)
-            if hypot(point.x - destination.x, point.y - destination.y) <= step { return true }
+            let point = CGPoint(x: CGFloat(current.x) * step, y: CGFloat(current.y) * step)
+            if hypot(point.x - authoredDestination.x, point.y - authoredDestination.y) <= step { return true }
 
             for direction in directions {
                 let next = GridPoint(x: current.x + direction.0, y: current.y + direction.1)
                 guard visited.insert(next).inserted else { continue }
-                let nextPoint = worldPoint(next)
-                guard GameMapLayout.walkableAreas.contains(where: { $0.contains(nextPoint) }),
-                      !blockedRects.contains(where: { $0.contains(nextPoint) }) else { continue }
+                guard next.x >= 0, next.y >= 0,
+                      CGFloat(next.x) * step <= GameMapLayout.authoredArtworkSize.width,
+                      CGFloat(next.y) * step <= GameMapLayout.authoredArtworkSize.height,
+                      walkability.isWalkable(
+                        position: worldPoint(next),
+                        footprint: GameMapLayout.playerFootprint
+                      ).isWalkable else { continue }
                 queue.append(next)
             }
         }
