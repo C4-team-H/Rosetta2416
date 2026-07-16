@@ -78,11 +78,13 @@ final class MainMenuScene: SKScene {
     }
 
     private func startGame() {
+        AudioManager.shared.playButtonSound()
         guard let view else { return }
         coordinator.continueGame(in: view, size: size)
     }
 
     private func startNewGame() {
+        AudioManager.shared.playButtonSound()
         guard let view else { return }
         coordinator.startNewGame(in: view, size: size)
     }

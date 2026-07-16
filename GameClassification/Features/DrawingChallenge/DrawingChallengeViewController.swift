@@ -216,16 +216,23 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     // MARK: - Actions
     @objc private func cancelTapped() {
+        AudioManager.shared.playBackSound()
         dismiss(animated: true) { [weak self] in
             self?.onCancel?()
         }
     }
 
     @objc private func clearTapped() {
+        AudioManager.shared.playEraseSound()
+        clearCanvas()
+    }
+
+    private func clearCanvas() {
         canvasView.drawing = PKDrawing()
     }
 
     @objc private func submitTapped() {
+        AudioManager.shared.playButtonSound()
         guard !canvasView.drawing.bounds.isEmpty else {
             showAlert(title: "Kanvas Kosong", message: "Silakan gambar \(challenge.displayName) terlebih dahulu sebelum menekan Kirim.")
             return
@@ -243,8 +250,10 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
             guard let self else { return }
             let outcome = await challengeViewModel.submit(drawing)
             if outcome.accepted {
+                AudioManager.shared.playCorrectSound()
                 showSuccessAlert()
             } else {
+                AudioManager.shared.playWrongSound()
                 showFailureAlert(message: outcome.message)
             }
         }
@@ -253,7 +262,9 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     // MARK: - Alerts
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
+            AudioManager.shared.playButtonSound()
+        }))
         present(alert, animated: true, completion: nil)
     }
 
@@ -268,6 +279,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         }
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Lanjutkan", style: .default, handler: { [weak self] _ in
+            AudioManager.shared.playButtonSound()
             self?.dismiss(animated: true) {
                 self?.onSuccess?()
             }
@@ -278,9 +290,10 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     private func showFailureAlert(message: String? = nil) {
         let alert = UIAlertController(title: "Kurang Tepat", message: message ?? "Gambar Anda belum terdeteksi sebagai \(challenge.displayName). Silakan gambar ulang.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Coba Lagi", style: .default, handler: { [weak self] _ in
+            AudioManager.shared.playButtonSound()
             self?.challengeViewModel.retry()
             self?.submitButton.isEnabled = true
-            self?.clearTapped()
+            self?.clearCanvas()
         }))
         present(alert, animated: true, completion: nil)
     }
