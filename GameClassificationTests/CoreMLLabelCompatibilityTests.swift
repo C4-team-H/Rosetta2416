@@ -9,7 +9,7 @@ struct CoreMLLabelCompatibilityTests {
     func everyDrawingPromptUsesAnExactModelLabel() throws {
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .cpuOnly
-        let model = try HandwritingGameClassificationV2(configuration: configuration)
+        let model = try SketchClassifierV3(configuration: configuration)
         let modelLabels = Set((model.model.modelDescription.classLabels ?? []).compactMap { $0 as? String })
         
         let storyLabels = StoryContent.objectives.flatMap { objective -> [String] in

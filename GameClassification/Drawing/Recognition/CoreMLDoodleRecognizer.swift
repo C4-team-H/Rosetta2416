@@ -35,7 +35,7 @@ actor CoreMLDoodleRecognizer: DoodleRecognizer {
 /// the recognizer actor serializes all requests made to it.
 @MainActor
 private final class GeneratedDoodleModelRunner {
-    private var model: HandwritingGameClassificationV2?
+    private var model: SketchClassifierV3?
     private var visionModel: VNCoreMLModel?
 
     private var debugCounter = 0
@@ -154,7 +154,7 @@ private final class GeneratedDoodleModelRunner {
         if let visionModel { return visionModel }
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .cpuAndGPU
-        let model = try HandwritingGameClassificationV2(configuration: configuration)
+        let model = try SketchClassifierV3(configuration: configuration)
         self.model = model
         let visionModel = try VNCoreMLModel(for: model.model)
         self.visionModel = visionModel
