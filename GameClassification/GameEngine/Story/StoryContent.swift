@@ -77,7 +77,8 @@ enum StoryContent {
         objective("lab-easel", .laboratory, .laboratory, "Restore AI Systems", "Draw 3 objects to restore the ship's AI.",
                   ["reach-laboratory"],
                   .none,
-                  .easel(EaselDefinition(pool: hewanPool + tanamanPool + manusiaPool, count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
+                  // .easel(EaselDefinition(pool: hewanPool + tanamanPool + manusiaPool, count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
+                  .easel(EaselDefinition(pool: [prompt("eyeglasses"), prompt("spider"), prompt("keyboard-computer")], count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
 
         // Engine Room Easel 1 — 6 random from landscape + transportasi + other
         // Each drawing gives +10 engine progress.

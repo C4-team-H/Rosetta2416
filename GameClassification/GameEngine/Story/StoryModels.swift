@@ -133,6 +133,7 @@ struct SharedStoryState: Codable, Equatable, Sendable {
     var easelSelectedLabels: [String: [String]]
     var easelCompletedLabels: [String: [String]]
     var kitchenCompletedLabels: [String]
+    var hasOpenedAlbum: Bool
 
     static let initial = SharedStoryState(
         currentChapter: .sleepingRoom,
@@ -146,7 +147,8 @@ struct SharedStoryState: Codable, Equatable, Sendable {
         latestCheckpoint: .sleepingRoom,
         easelSelectedLabels: [:],
         easelCompletedLabels: [:],
-        kitchenCompletedLabels: []
+        kitchenCompletedLabels: [],
+        hasOpenedAlbum: false
     )
 
     var isMainPowerOnline: Bool {

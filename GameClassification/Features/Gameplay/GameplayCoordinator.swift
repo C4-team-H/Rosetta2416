@@ -129,6 +129,15 @@ final class GameplayCoordinator {
         controller.onCancel = { [weak self] in self?.sessionState.endDrawing() }
         presenter.present(controller, animated: true)
     }
+
+    private func presentAlbumBook() {
+        guard let presenter = presentingViewController, presenter.presentedViewController == nil else { return }
+        sessionState.markAlbumOpened()
+        let controller = AlbumBookViewController()
+        controller.modalPresentationStyle = .overFullScreen
+        controller.modalTransitionStyle = .crossDissolve
+        presenter.present(controller, animated: true)
+    }
 }
 
 extension GameplayCoordinator: GameSceneEventDelegate {
@@ -180,5 +189,9 @@ extension GameplayCoordinator: GameSceneEventDelegate {
         if presentingViewController?.presentedViewController is DrawingChallengeViewController {
             presentingViewController?.dismiss(animated: true)
         }
+    }
+
+    func gameSceneDidRequestAlbum(_ scene: GameScene) {
+        presentAlbumBook()
     }
 }

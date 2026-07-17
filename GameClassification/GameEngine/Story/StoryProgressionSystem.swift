@@ -13,6 +13,7 @@ protocol StoryProgressionManaging: AnyObject {
     func completeObjective(id: String) -> [StoryEffect]
     func advanceStoryIfPossible() -> [StoryEffect]
     func restore(_ state: SharedStoryState)
+    func markAlbumOpened()
 }
 
 @MainActor
@@ -153,8 +154,7 @@ final class StoryProgressionSystem: StoryProgressionManaging {
 
             switch objective.kind {
             case let .drawing(prompt):
-                guard Self.normalizeLabel(result.label) == Self.normalizeLabel(prompt.expectedLabel),
-                      result.confidence >= prompt.confidenceThreshold else {
+                guard Self.normalizeLabel(result.label) == Self.normalizeLabel(prompt.expectedLabel) else {
                     return [.interactionDenied("Drawing not recognized. Try again.")]
                 }
                 return completeObjective(id: objectiveID)
@@ -163,8 +163,7 @@ final class StoryProgressionSystem: StoryProgressionManaging {
                 guard let currentPrompt = currentEaselPrompt(for: objectiveID) else {
                     return [.interactionDenied("This easel has no more drawings.")]
                 }
-                guard Self.normalizeLabel(result.label) == Self.normalizeLabel(currentPrompt.expectedLabel),
-                      result.confidence >= currentPrompt.confidenceThreshold else {
+                guard Self.normalizeLabel(result.label) == Self.normalizeLabel(currentPrompt.expectedLabel) else {
                     return [.interactionDenied("Drawing not recognized. Try again.")]
                 }
                 return completeEaselDrawing(id: objectiveID, label: currentPrompt.expectedLabel)
@@ -287,6 +286,10 @@ final class StoryProgressionSystem: StoryProgressionManaging {
 
     func markDialogueDelivered(id: String) {
         state.deliveredDialogueIDs.insert(id)
+    }
+
+    func markAlbumOpened() {
+        state.hasOpenedAlbum = true
     }
 
     func markCommandProcessed(id: UUID) -> Bool {

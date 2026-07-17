@@ -45,6 +45,7 @@ struct MapMarkerView: View {
             case .door: return "door.left.hand.open"
             case .room: return "rectangle.split.3x1.fill"
             case .checkpoint: return "flag.fill"
+            case .albumBook: return "book.fill"
             case .objective, .station: return "scope"
             }
         }

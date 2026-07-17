@@ -108,8 +108,8 @@ final class MainMenuScene: SKScene {
     }
 
     private func positionMenuNodes() {
-        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
-        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.48)
-        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.28)
+        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.62)
+        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.44)
+        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.34)
     }
 }

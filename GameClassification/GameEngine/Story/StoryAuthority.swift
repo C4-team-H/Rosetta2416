@@ -40,8 +40,7 @@ final class LocalStoryAuthority: StoryAuthority {
 
                 if objectiveID.hasPrefix("kitchen-") {
                     guard let challenge = DrawingChallenge.foodPool.first(where: { $0.id == objectiveID }),
-                          normalize(recognition.label) == normalize(challenge.label),
-                          recognition.confidence >= challenge.confidenceThreshold else {
+                          normalize(recognition.label) == normalize(challenge.label) else {
                         return StoryAuthorityResult(accepted: false, message: "Food drawing not recognized. Try again.", effects: [], recognition: recognition)
                     }
                     sessionState.storySystem.markKitchenLabelCompleted(challenge.label)

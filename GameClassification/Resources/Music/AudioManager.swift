@@ -2,7 +2,7 @@
 //  AudioManager.swift
 //  GameClassification
 //
-//  Created by Antigravity on 16/07/26.
+//  Created by Muhammad Muthi' Nuritzan on 16/07/26.
 //
 
 import Foundation

@@ -6,6 +6,7 @@ protocol GameSceneEventDelegate: AnyObject {
     func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String)
     func gameSceneDidRequestFoodChallenge(_ scene: GameScene)
     func gameSceneDidReachGameOver(_ scene: GameScene)
+    func gameSceneDidRequestAlbum(_ scene: GameScene)
 }
 
 final class GameScene: SKScene {
@@ -22,6 +23,8 @@ final class GameScene: SKScene {
     var foodActionButton: SKShapeNode?
     var foodObject: SKShapeNode!
     var stationNodes: [String: SKShapeNode] = [:]
+    var albumBookNode: SKShapeNode?
+    var albumBookButton: SKShapeNode?
     var activeStationID: String?
     var doorNodes: [String: SKShapeNode] = [:]
     var lastDeniedStationID: String?
@@ -77,6 +80,7 @@ final class GameScene: SKScene {
         createJoystick()
         createInteractiveStations()
         createFoodObject()
+        createAlbumBook()
         createObstacles()
         enableCandleLight()
         refreshStoryVisuals()
@@ -145,6 +149,7 @@ final class GameScene: SKScene {
             checkProximityToInteractiveObject()
             checkProximityToFoodObject()
             checkProximityToLockedDoor()
+            checkProximityToAlbumBook()
             detectRoomChange()
         }
 

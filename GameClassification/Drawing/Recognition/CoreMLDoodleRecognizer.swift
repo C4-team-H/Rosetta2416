@@ -36,25 +36,63 @@ actor CoreMLDoodleRecognizer: DoodleRecognizer {
 @MainActor
 private final class GeneratedDoodleModelRunner {
     private var model: HandwritingGameClassificationV2?
+    private var visionModel: VNCoreMLModel?
+
+    private var debugCounter = 0
 
     func recognize(_ drawing: PKDrawing) async throws -> RecognitionResult {
         guard !drawing.bounds.isEmpty else {
             throw DoodleRecognitionError.emptyDrawing
         }
+
+        // ── DEBUG: log drawing info ──────────────────────────────
+        debugCounter += 1
+        let seq = debugCounter
+        print("[DEBUG \(seq)] strokes: \(drawing.strokes.count), bounds: \(drawing.bounds)")
         
         let padding: CGFloat = 24
         let sourceBounds = drawing.bounds.insetBy(dx: -padding, dy: -padding)
-        let renderedImage = drawing.image(from: sourceBounds, scale: 1.0)
         
-        // Debug Langkah 3: Print ukuran UIImage dan coba simpan ke Photos
-        print("--- DEBUG PENCILKIT ---")
-        print("Rendered Image Size:", renderedImage.size)
-        DispatchQueue.main.async {
-            UIImageWriteToSavedPhotosAlbum(renderedImage, nil, nil, nil)
+        let scale: CGFloat = {
+            let activeScene = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first { $0.activationState == .foregroundActive }
+            return activeScene?.screen.scale ?? 2.0
+        }()
+        
+        var rawImage: UIImage!
+        UITraitCollection(userInterfaceStyle: .light).performAsCurrent {
+            rawImage = drawing.image(from: sourceBounds, scale: scale)
         }
-        
-        let model = try cachedModel()
-        let visionModel = try VNCoreMLModel(for: model.model)
+
+        // ── DEBUG: log raw image ─────────────────────────────────
+        print("[DEBUG \(seq)] rawImage size: \(rawImage.size), scale: \(rawImage.scale)")
+
+        // Model was trained on BGR 360x360 pixels.
+        let targetSize = CGSize(width: 360, height: 360)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0   // output persis 360x360 px
+        format.opaque = true // tidak perlu alpha channel
+        let whiteImage: UIImage = UIGraphicsImageRenderer(size: targetSize, format: format).image { ctx in
+            UIColor.white.setFill()
+            ctx.fill(CGRect(origin: .zero, size: targetSize))
+            rawImage.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        // ── DEBUG: save composite to Documents for visual inspection ──
+        if let pngData = whiteImage.pngData() {
+            let hash = pngData.hashValue
+            print("[DEBUG \(seq)] whiteImage PNG bytes: \(pngData.count), hash: \(hash)")
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let url = docs.appendingPathComponent("debug_drawing_\(seq).png")
+            try? pngData.write(to: url)
+            print("[DEBUG \(seq)] saved to: \(url.path)")
+        }
+        if let cg = whiteImage.cgImage {
+            print("[DEBUG \(seq)] cgImage: \(cg.width)×\(cg.height) px")
+        }
+
+        let visionModel = try cachedVisionModel()
         
         return try await withCheckedThrowingContinuation { continuation in
             let request = VNCoreMLRequest(model: visionModel) { request, error in
@@ -95,13 +133,13 @@ private final class GeneratedDoodleModelRunner {
                 ))
             }
             
-            request.imageCropAndScaleOption = .centerCrop
+            request.imageCropAndScaleOption = .scaleFit
             
-            guard let cgImage = renderedImage.cgImage else {
+            guard let cgImage = whiteImage.cgImage else {
                 continuation.resume(throwing: DoodleRecognitionError.emptyDrawing)
                 return
             }
-            
+
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             do {
                 try handler.perform([request])
@@ -112,12 +150,14 @@ private final class GeneratedDoodleModelRunner {
         }
     }
 
-    private func cachedModel() throws -> HandwritingGameClassificationV2 {
-        if let model { return model }
+    private func cachedVisionModel() throws -> VNCoreMLModel {
+        if let visionModel { return visionModel }
         let configuration = MLModelConfiguration()
-        configuration.computeUnits = .all
+        configuration.computeUnits = .cpuAndGPU
         let model = try HandwritingGameClassificationV2(configuration: configuration)
         self.model = model
-        return model
+        let visionModel = try VNCoreMLModel(for: model.model)
+        self.visionModel = visionModel
+        return visionModel
     }
 }

@@ -7,6 +7,7 @@ enum MapMarkerKind: Equatable {
     case cockpit
     case door
     case checkpoint
+    case albumBook
 }
 
 enum MapMarkerStatus: Equatable {
