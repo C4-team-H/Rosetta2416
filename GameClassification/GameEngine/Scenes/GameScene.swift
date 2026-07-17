@@ -162,6 +162,12 @@ final class GameScene: SKScene {
         let rawDelta = previousUpdateTime.map { currentTime - $0 } ?? 0
         previousUpdateTime = currentTime
         frameDeltaTime = min(max(rawDelta, 0), 0.25)
+        defer {
+            player?.updateAnimation(
+                movementVector: joystickVector,
+                isJoystickActive: isJoystickActive
+            )
+        }
 
         applyPendingMapGeometry()
         updateMapDebugTransition()
@@ -278,6 +284,7 @@ final class GameScene: SKScene {
 
     override func willMove(from view: SKView) {
         stopPlayerMovement()
+        player?.animationController.stopWalking()
         physicsWorld.contactDelegate = nil
         tacticalMapViewModel.closeMap()
         mapCoordinateConverter.detach(scene: self)

@@ -2,9 +2,14 @@ import SpriteKit
 
 final class PlayerNode: SKShapeNode {
     let collisionFootprint: CollisionFootprint
+    let characterSprite: SKSpriteNode
+    let animationController: PlayerAnimationController
 
     init(configuration: GameMapConfiguration, debugEnabled: Bool) {
         collisionFootprint = configuration.playerFootprint
+        let sprite = SKSpriteNode(texture: SKTexture(imageNamed: "Astro-1"))
+        characterSprite = sprite
+        animationController = PlayerAnimationController(sprite: sprite)
         super.init()
 
         let visualRadius = configuration.playerVisualRadius
@@ -18,9 +23,20 @@ final class PlayerNode: SKShapeNode {
             transform: nil
         )
         name = "player"
-        fillColor = SKColor(red: 0.9, green: 0.3, blue: 0.3, alpha: 1)
-        strokeColor = .white
-        lineWidth = GameMapLayout.scaled(2)
+        fillColor = .clear
+        strokeColor = .clear
+        lineWidth = 0
+
+        let characterHeight = visualRadius * 3
+        let textureAspectRatio = sprite.texture.map { $0.size().width / $0.size().height } ?? 1
+        sprite.name = "playerCharacter"
+        sprite.size = CGSize(
+            width: characterHeight * textureAspectRatio,
+            height: characterHeight
+        )
+        sprite.anchorPoint = CGPoint(x: 0.5, y: visualRadius / characterHeight)
+        sprite.zPosition = 1
+        addChild(sprite)
 
         let body = SKPhysicsBody(
             circleOfRadius: collisionFootprint.radius,
@@ -46,6 +62,13 @@ final class PlayerNode: SKShapeNode {
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func updateAnimation(movementVector: CGPoint, isJoystickActive: Bool) {
+        animationController.update(
+            movementVector: movementVector,
+            isJoystickActive: isJoystickActive
+        )
     }
 
     private func addFootprintDebugOverlay(configuration: GameMapConfiguration) {

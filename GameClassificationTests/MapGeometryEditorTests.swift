@@ -13,7 +13,7 @@ struct MapGeometryEditorTests {
         #expect(configuration.worldSize == CodableSize(width: 5_504, height: 4_128))
         #expect(configuration.rooms.count == RoomID.allCases.count)
         #expect(configuration.doorways.count == DoorID.allCases.count)
-        #expect(configuration.rooms.first(where: { $0.roomID == .cockpit })?.frame.x == 2_216.8889)
+        #expect(configuration.rooms.first(where: { $0.roomID == .cockpit })?.frame.x == 2_180)
 
         let data = try JSONEncoder().encode(configuration)
         let decoded = try JSONDecoder().decode(MapGeometryConfiguration.self, from: data)
@@ -120,7 +120,7 @@ struct MapGeometryEditorTests {
         let map = GameMapLayout.makeRuntimeMap(from: configuration, revision: 42)
 
         #expect(map.revision == 42)
-        #expect(map.colliders.first(where: { $0.id == configuration.walls[0].id })?.shape.bounds == configuration.walls[0].frame.cgRect)
+        #expect(map.colliders.first(where: { $0.id == configuration.walls[0].id })?.shape.bounds == configuration.walls[0].rotatedBounds)
         #expect(map.stations.first(where: { $0.id == configuration.stations[0].interactionID })?.worldPosition == configuration.stations[0].position.cgPoint)
     }
 

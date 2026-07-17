@@ -505,13 +505,10 @@ extension MapGeometryConfiguration {
 }
 
 extension MapGeometryConfiguration {
-    /// Canonical world-space Drawing Space geometry. Coordinates are committed in the
-    /// 5504 x 4128 SpriteKit coordinate system (origin at bottom-left); no artwork
-    /// scaling or Y-axis conversion occurs when this data is loaded at runtime.
     static var drawingSpaceDefault: MapGeometryConfiguration {
         MapGeometryConfiguration(
-            schemaVersion: currentSchemaVersion,
-            worldSize: CodableSize(width: 5_504, height: 4_128),
+            schemaVersion: 1,
+            worldSize: CodableSize(width: 5504, height: 4128),
             playerVisualRadius: 57.3333,
             playerFootprint: MapPlayerFootprintDefinition(
                 centerOffset: CodablePoint(x: 0, y: -11.4667),
@@ -521,245 +518,137 @@ extension MapGeometryConfiguration {
             walkabilityEpsilon: 1.9111,
             targetClampStep: 15.2889,
             targetClampMaximumRadius: 244.6222,
-            rooms: defaultRooms,
-            corridors: defaultCorridors,
-            walls: defaultWalls,
-            doorways: defaultDoorways,
-            blockedAreas: defaultBlockedAreas,
-            objects: defaultObjects,
-            stations: defaultStations,
-            spawnPoints: defaultSpawns,
-            checkpoints: defaultCheckpoints
-        )
-    }
-
-    // MARK: Rooms
-
-    private static let defaultRooms: [MapRoomDefinition] = [
-        room("room-cockpit", "Cockpit", .cockpit, rect(2216.8889, 2484.4444, 1070.2222, 1204), rect(2274.2222, 2541.7778, 955.5556, 1089.3333)),
-        room("room-sleeping", "Sleeping Room", .sleepingRoom, rect(668.8889, 2102.2222, 1242.2222, 955.5556), rect(726.2222, 2159.5556, 1127.5556, 840.8889)),
-        room("room-kitchen", "Kitchen", .kitchen, rect(3592.8889, 2102.2222, 955.5556, 955.5556), rect(3612, 2236, 879.1111, 764.4444)),
-        room("room-engine", "Engine Room", .engine, rect(2216.8889, 1051.1111, 1070.2222, 1051.1111), rect(2274.2222, 1108.4444, 955.5556, 936.4444)),
-        room("room-laboratory", "Lab Room", .laboratory, rect(382.2222, 688, 1528.8889, 1414.2222), rect(439.5556, 783.5556, 1414.2222, 1261.3333)),
-        room("room-storage", "Storage Room", .storage, rect(3592.8889, 688, 1452.4444, 1414.2222), rect(3650.2222, 783.5556, 1337.7778, 1261.3333))
-    ]
-
-    // MARK: Corridors
-
-    private static let defaultCorridors: [MapCorridorDefinition] = [
-        corridor("corridor-main-horizontal", "Main Horizontal", rect(1911.1111, 2102.2222, 1681.7778, 382.2222)),
-        corridor("corridor-port-vertical", "Port Vertical", rect(1911.1111, 1490.6667, 305.7778, 993.7778)),
-        corridor("corridor-center-vertical", "Center Vertical", rect(2599.1111, 2025.7778, 305.7778, 535.1111)),
-        corridor("corridor-starboard-vertical", "Starboard Vertical", rect(3287.1111, 1490.6667, 305.7778, 993.7778))
-    ]
-
-    // MARK: Walls
-
-    private static let defaultWalls: [MapWallDefinition] = {
-        let t = 61.1556
-        let segments: [(String, String, CodablePoint, CodablePoint)] = [
-            ("wall-cockpit-top", "Cockpit Top", point(2216.8889, 3688.4444), point(3287.1111, 3688.4444)),
-            ("wall-cockpit-left", "Cockpit Left", point(2216.8889, 3688.4444), point(2216.8889, 2484.4444)),
-            ("wall-cockpit-right", "Cockpit Right", point(3287.1111, 3688.4444), point(3287.1111, 2484.4444)),
-            ("wall-cockpit-bottom-left", "Cockpit Bottom Left", point(2216.8889, 2484.4444), point(2599.1111, 2484.4444)),
-            ("wall-cockpit-bottom-right", "Cockpit Bottom Right", point(2904.8889, 2484.4444), point(3287.1111, 2484.4444)),
-            ("wall-sleeping-top", "Sleeping Top", point(668.8889, 3057.7778), point(1911.1111, 3057.7778)),
-            ("wall-sleeping-left", "Sleeping Left", point(668.8889, 3057.7778), point(668.8889, 2102.2222)),
-            ("wall-sleeping-bottom", "Sleeping Bottom", point(668.8889, 2102.2222), point(1911.1111, 2102.2222)),
-            ("wall-sleeping-right-upper", "Sleeping Right Upper", point(1911.1111, 3057.7778), point(1911.1111, 2522.6667)),
-            ("wall-sleeping-right-lower", "Sleeping Right Lower", point(1911.1111, 2216.8889), point(1911.1111, 2102.2222)),
-            ("wall-kitchen-top", "Kitchen Top", point(3592.8889, 3057.7778), point(4548.4444, 3057.7778)),
-            ("wall-kitchen-right", "Kitchen Right", point(4548.4444, 3057.7778), point(4548.4444, 2102.2222)),
-            ("wall-kitchen-bottom", "Kitchen Bottom", point(3592.8889, 2102.2222), point(4548.4444, 2102.2222)),
-            ("wall-kitchen-left-upper", "Kitchen Left Upper", point(3592.8889, 3057.7778), point(3592.8889, 2599.1111)),
-            ("wall-kitchen-left-lower", "Kitchen Left Lower", point(3592.8889, 2216.8889), point(3592.8889, 2102.2222)),
-            ("wall-engine-top-left", "Engine Top Left", point(2216.8889, 2102.2222), point(2599.1111, 2102.2222)),
-            ("wall-engine-top-right", "Engine Top Right", point(2904.8889, 2102.2222), point(3287.1111, 2102.2222)),
-            ("wall-engine-left", "Engine Left", point(2216.8889, 2102.2222), point(2216.8889, 1051.1111)),
-            ("wall-engine-right", "Engine Right", point(3287.1111, 2102.2222), point(3287.1111, 1051.1111)),
-            ("wall-engine-bottom", "Engine Bottom", point(2216.8889, 1051.1111), point(3287.1111, 1051.1111)),
-            ("wall-lab-top", "Lab Top", point(382.2222, 2102.2222), point(1911.1111, 2102.2222)),
-            ("wall-lab-left", "Lab Left", point(382.2222, 2102.2222), point(382.2222, 688)),
-            ("wall-lab-bottom", "Lab Bottom", point(382.2222, 688), point(1911.1111, 688)),
-            ("wall-lab-right-upper", "Lab Right Upper", point(1911.1111, 2102.2222), point(1911.1111, 1796.4444)),
-            ("wall-lab-right-lower", "Lab Right Lower", point(1911.1111, 1490.6667), point(1911.1111, 688)),
-            ("wall-storage-top", "Storage Top", point(3592.8889, 2102.2222), point(5045.3333, 2102.2222)),
-            ("wall-storage-right", "Storage Right", point(5045.3333, 2102.2222), point(5045.3333, 688)),
-            ("wall-storage-bottom", "Storage Bottom", point(3592.8889, 688), point(5045.3333, 688)),
-            ("wall-storage-left-upper", "Storage Left Upper", point(3592.8889, 2102.2222), point(3592.8889, 1796.4444)),
-            ("wall-storage-left-lower", "Storage Left Lower", point(3592.8889, 1490.6667), point(3592.8889, 688))
-        ]
-        return segments.map { id, name, start, end in
-            MapWallDefinition(id: id, name: name, frame: wallRect(start, end, thickness: t), isEnabled: true, isRequired: false)
-        }
-    }()
-
-    // MARK: Doorways
-
-    private static let defaultDoorways: [MapDoorwayDefinition] = [
-        doorway("door-cockpit", "Cockpit Door", .cockpit, rect(2599.1111, 2450.0444, 305.7778, 68.8), .locked),
-        doorway("door-sleeping", "Sleeping Room Door", .sleepingRoom, rect(1876.7111, 2216.8889, 68.8, 305.7778), .open),
-        doorway("door-kitchen", "Kitchen Door", .kitchen, rect(3558.4889, 2216.8889, 68.8, 382.2222), .open),
-        doorway("door-engine", "Engine Room Door", .engine, rect(2599.1111, 2067.8222, 305.7778, 68.8), .locked),
-        doorway("door-laboratory", "Lab Room Door", .laboratory, rect(1876.7111, 1490.6667, 68.8, 305.7778), .open),
-        doorway("door-storage", "Storage Room Door", .storage, rect(3558.4889, 1490.6667, 68.8, 305.7778), .locked)
-    ]
-
-    // MARK: Blocked Areas
-
-    private static let defaultBlockedAreas: [MapBlockedAreaDefinition] = [
-        MapBlockedAreaDefinition(
-            id: "blocked-outer-hull",
-            name: "Outer Hull",
-            shape: .edgeChain([
-                point(1911.1111, 3745.7778), point(3592.8889, 3745.7778),
-                point(3745.7778, 3134.2222), point(4624.8889, 3076.8889),
-                point(5121.7778, 2216.8889), point(5312.8889, 611.5556),
-                point(191.1111, 611.5556), point(382.2222, 2216.8889),
-                point(879.1111, 3076.8889), point(1758.2222, 3134.2222)
-            ]),
-            isEnabled: true,
-            isRequired: true
-        )
-    ]
-
-    // MARK: Objects
-
-    private static let defaultObjects: [MapObjectDefinition] = [
-        object("object-cockpit-main-console", "Cockpit Main Console", .obstacle, rect(2255.1111, 3218.3111, 955.5556, 183.4667)),
-        object("object-cockpit-pilot-chair", "Cockpit Pilot Chair", .obstacle, rect(2675.5556, 2969.8667, 152.8889, 259.9111)),
-        object("object-cockpit-navigation-display", "Cockpit Navigation Display", .obstacle, rect(2904.8889, 2599.1111, 336.3556, 573.3333)),
-        object("object-cockpit-port-machinery", "Cockpit Port Machinery", .obstacle, rect(2255.1111, 2675.5556, 133.7778, 496.8889)),
-        object("object-sleeping-bed", "Sleeping Bed", .obstacle, rect(1261.3333, 2694.6667, 611.5556, 305.7778)),
-        object("object-sleeping-main-console", "Sleeping Main Console", .obstacle, rect(1452.4444, 2216.8889, 286.6667, 305.7778)),
-        object("object-sleeping-storage", "Sleeping Storage", .obstacle, rect(764.4444, 2629.6889, 210.2222, 275.2)),
-        object("object-kitchen-main-counter", "Kitchen Main Counter", .obstacle, rect(3822.2222, 2190.1333, 535.1111, 160.5333)),
-        object("object-kitchen-side-counter", "Kitchen Side Counter", .obstacle, rect(4032.4444, 2408, 344, 458.6667)),
-        object("object-kitchen-sink-stove", "Kitchen Sink Stove", .obstacle, rect(3822.2222, 2408, 210.2222, 172)),
-        object("object-kitchen-appliance", "Kitchen Appliance", .obstacle, rect(3612, 2828.4444, 324.8889, 210.2222)),
-        object("object-engine-core", "Engine Core", .obstacle, rect(2484.4444, 1184.8889, 611.5556, 649.7778)),
-        object("object-engine-battery-bank", "Engine Battery Bank", .obstacle, rect(2885.7778, 1861.4222, 267.5556, 145.2444)),
-        object("object-engine-port-pipes", "Engine Port Pipes", .obstacle, rect(2255.1111, 1318.6667, 145.2444, 477.7778)),
-        object("object-engine-starboard-equipment", "Engine Starboard Equipment", .obstacle, rect(3172.4444, 1318.6667, 95.5556, 477.7778)),
-        object("object-lab-main-table", "Lab Main Table", .obstacle, rect(993.7778, 1739.1111, 764.4444, 267.5556)),
-        object("object-lab-microscope-station", "Lab Microscope Station", .obstacle, rect(477.7778, 974.6667, 458.6667, 382.2222)),
-        object("object-lab-lower-bench", "Lab Lower Bench", .obstacle, rect(1089.3333, 821.7778, 802.6667, 248.4444)),
-        object("object-lab-shelf", "Lab Shelf", .obstacle, rect(1662.6667, 1834.6667, 152.8889, 191.1111)),
-        object("object-storage-cabinets", "Storage Cabinets", .obstacle, rect(3822.2222, 1720, 726.2222, 324.8889)),
-        object("object-storage-crates", "Storage Crates", .obstacle, rect(3822.2222, 1070.2222, 420.4444, 382.2222)),
-        object("object-storage-containers", "Storage Containers", .obstacle, rect(4166.2222, 821.7778, 401.3333, 401.3333)),
-        object("object-storage-tool-rack", "Storage Tool Rack", .obstacle, rect(4624.8889, 821.7778, 324.8889, 554.2222)),
-        object("object-storage-machinery", "Storage Machinery", .obstacle, rect(4357.3333, 1368.3556, 305.7778, 275.2))
-    ]
-
-    // MARK: Interactive and Mission Stations
-
-    private static let defaultStations: [MapStationDefinition] = [
-        station("station-lab-terminal-repair", "Lab Terminal Repair", .mission, .laboratory, point(1108.4444, 1643.5556), "lab-terminal-repair"),
-        station("station-lab-memory-repair", "Lab Memory Repair", .mission, .laboratory, point(1490.6667, 1643.5556), "lab-memory-repair"),
-        station("station-lab-scanner-repair", "Lab Scanner Repair", .mission, .laboratory, point(879.1111, 1223.1111), "lab-scanner-repair"),
-        station("station-engine-power-connector", "Engine Power Connector", .mission, .engine, point(2369.7778, 1949.3333), "engine-power-connector"),
-        station("station-engine-ignition-coil", "Engine Ignition Coil", .mission, .engine, point(2752, 1949.3333), "engine-ignition-coil"),
-        station("station-engine-cooling-valve", "Engine Cooling Valve", .mission, .engine, point(3096, 1949.3333), "engine-cooling-valve"),
-        station("station-engine-control-relay", "Engine Control Relay", .mission, .engine, point(3191.5556, 1872.8889), "engine-control-relay"),
-        station("station-engine-reactor-link", "Engine Reactor Link", .mission, .engine, point(2369.7778, 1528.8889), "engine-reactor-link"),
-        station("station-engine-pressure-feed", "Engine Pressure Feed", .mission, .engine, point(3191.5556, 1528.8889), "engine-pressure-feed"),
-        station("station-engine-calibration-port", "Engine Calibration Port", .mission, .engine, point(2369.7778, 1223.1111), "engine-calibration-port"),
-        station("station-engine-reactor-stabilizer", "Engine Reactor Stabilizer", .mission, .engine, point(3191.5556, 1223.1111), "engine-reactor-stabilizer"),
-        station("station-engine-core-reconnect", "Engine Core Reconnect", .mission, .engine, point(2522.6667, 1127.5556), "engine-core-reconnect"),
-        station("station-engine-propulsion-calibration", "Engine Propulsion Calibration", .mission, .engine, point(2752, 1127.5556), "engine-propulsion-calibration"),
-        station("station-engine-cooling-restart", "Engine Cooling Restart", .mission, .engine, point(2981.3333, 1127.5556), "engine-cooling-restart"),
-        station("station-engine-navigation-sync", "Engine Navigation Sync", .mission, .engine, point(3153.3333, 1127.5556), "engine-navigation-sync"),
-        station("station-storage-door-controller", "Storage Door Controller", .mission, .storage, point(3745.7778, 1643.5556), "storage-door-controller"),
-        station("station-storage-tool-terminal", "Storage Tool Terminal", .mission, .storage, point(4624.8889, 1643.5556), "storage-tool-terminal"),
-        station("station-storage-robotic-arm", "Storage Robotic Arm", .mission, .storage, point(3707.5556, 917.3333), "storage-robotic-arm"),
-        station("station-storage-calibration-unit", "Storage Calibration Unit", .mission, .storage, point(4586.6667, 821.7778), "storage-calibration-unit"),
-        station("station-cockpit-navigation-control", "Cockpit Navigation Control", .mission, .cockpit, point(2369.7778, 3172.4444), "cockpit-navigation-control"),
-        station("station-cockpit-communications", "Cockpit Communications", .mission, .cockpit, point(2752, 2943.1111), "cockpit-communications"),
-        station("station-cockpit-flight-console", "Cockpit Flight Console", .mission, .cockpit, point(3191.5556, 3172.4444), "cockpit-flight-console"),
-        station("station-kitchen-food", "Kitchen Food Station", .food, .kitchen, point(3707.5556, 2599.1111), "kitchen-food")
-    ]
-
-    // MARK: Spawn Points
-
-    private static let defaultSpawns: [MapSpawnPointDefinition] = [
-        spawn("spawn-sleeping", "Sleeping Spawn", .sleepingRoom, point(1146.6667, 2427.1111)),
-        spawn("spawn-laboratory", "Lab Spawn", .laboratory, point(1643.5556, 1376)),
-        spawn("spawn-engine", "Engine Spawn", .engine, point(2369.7778, 1949.3333)),
-        spawn("spawn-kitchen", "Kitchen Spawn", .kitchen, point(3707.5556, 2675.5556)),
-        spawn("spawn-storage", "Storage Spawn", .storage, point(3726.6667, 1490.6667)),
-        spawn("spawn-cockpit", "Cockpit Spawn", .cockpit, point(2752, 2599.1111))
-    ]
-
-    // MARK: Checkpoints
-
-    private static let defaultCheckpoints: [MapCheckpointDefinition] = [
-        checkpoint(.sleepingRoom, .sleepingRoom, point(1146.6667, 2427.1111)),
-        checkpoint(.laboratory, .laboratory, point(1643.5556, 1376)),
-        checkpoint(.enginePhaseOne, .engine, point(2369.7778, 1949.3333)),
-        checkpoint(.engineDisruption, .engine, point(2369.7778, 1949.3333)),
-        checkpoint(.engineBlocked, .engine, point(2369.7778, 1949.3333)),
-        checkpoint(.storage, .storage, point(3726.6667, 1490.6667)),
-        checkpoint(.engineFinal, .engine, point(2369.7778, 1949.3333)),
-        checkpoint(.cockpit, .cockpit, point(2752, 2599.1111))
-    ]
-
-    // MARK: Definition helpers (world-space only)
-
-    private static func point(_ x: Double, _ y: Double) -> CodablePoint { CodablePoint(x: x, y: y) }
-    private static func rect(_ x: Double, _ y: Double, _ width: Double, _ height: Double) -> CodableRect {
-        CodableRect(x: x, y: y, width: width, height: height)
-    }
-
-    private static func room(_ id: String, _ name: String, _ roomID: RoomID, _ frame: CodableRect, _ trigger: CodableRect) -> MapRoomDefinition {
-        MapRoomDefinition(id: id, name: name, roomID: roomID, frame: frame, triggerFrame: trigger, isWalkable: true, isRequired: true)
-    }
-
-    private static func corridor(_ id: String, _ name: String, _ frame: CodableRect) -> MapCorridorDefinition {
-        MapCorridorDefinition(id: id, name: name, frame: frame, isWalkable: true, isRequired: true)
-    }
-
-    private static func doorway(_ id: String, _ name: String, _ doorID: DoorID, _ frame: CodableRect, _ state: DoorState) -> MapDoorwayDefinition {
-        MapDoorwayDefinition(id: id, name: name, doorID: doorID, roomID: doorID.roomID, frame: frame, defaultState: state, isEnabled: true, isRequired: true)
-    }
-
-    private static func object(_ id: String, _ name: String, _ type: MapObjectType, _ frame: CodableRect) -> MapObjectDefinition {
-        let rect = frame.cgRect
-        return MapObjectDefinition(
-            id: id,
-            name: name,
-            type: type,
-            position: CodablePoint(x: rect.midX, y: rect.midY),
-            size: CodableSize(width: rect.width, height: rect.height),
-            rotation: 0,
-            interactionID: nil,
-            isEnabled: true,
-            isRequired: false
-        )
-    }
-
-    private static func station(_ id: String, _ name: String, _ kind: MapStationKind, _ roomID: RoomID, _ position: CodablePoint, _ interactionID: String) -> MapStationDefinition {
-        MapStationDefinition(id: id, name: name, kind: kind, roomID: roomID, position: position, interactionID: interactionID, isEnabled: true, isRequired: true)
-    }
-
-    private static func spawn(_ id: String, _ name: String, _ roomID: RoomID, _ position: CodablePoint) -> MapSpawnPointDefinition {
-        MapSpawnPointDefinition(id: id, name: name, roomID: roomID, position: position, isRequired: true)
-    }
-
-    private static func checkpoint(_ checkpointID: CheckpointID, _ roomID: RoomID, _ position: CodablePoint) -> MapCheckpointDefinition {
-        MapCheckpointDefinition(id: "checkpoint-\(checkpointID.rawValue)", name: checkpointID.rawValue, checkpointID: checkpointID, roomID: roomID, position: position, isRequired: true)
-    }
-
-    private static func wallRect(_ start: CodablePoint, _ end: CodablePoint, thickness: Double) -> CodableRect {
-        let minX = min(start.x, end.x)
-        let minY = min(start.y, end.y)
-        let width = abs(end.x - start.x)
-        let height = abs(end.y - start.y)
-        return CodableRect(
-            x: minX - (width == 0 ? thickness / 2 : 0),
-            y: minY - (height == 0 ? thickness / 2 : 0),
-            width: max(width, thickness),
-            height: max(height, thickness)
+            rooms: [
+            MapRoomDefinition(id: "room-cockpit", name: "Cockpit", roomID: .cockpit, frame: CodableRect(x: 2180, y: 2560, width: 1150, height: 1150), triggerFrame: CodableRect(x: 2237.33, y: 2617.33, width: 1035.33, height: 1035.33), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 2180, y: 2570), CodablePoint(x: 3330, y: 2560), CodablePoint(x: 3250, y: 3630), CodablePoint(x: 2750, y: 3710), CodablePoint(x: 2260, y: 3640)], triggerVertices: [CodablePoint(x: 2237.33, y: 2627.33), CodablePoint(x: 3272.67, y: 2617.33), CodablePoint(x: 3192.67, y: 3572.67), CodablePoint(x: 2747.13, y: 3652.67), CodablePoint(x: 2317.33, y: 3582.67)]),
+            MapRoomDefinition(id: "room-engine", name: "Engine Room", roomID: .engine, frame: CodableRect(x: 2210, y: 1510, width: 1090, height: 590), triggerFrame: CodableRect(x: 2267.33, y: 1567.33, width: 975.33, height: 475.33), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 2210, y: 1510), CodablePoint(x: 3300, y: 1520), CodablePoint(x: 3270, y: 2100), CodablePoint(x: 2240, y: 2100)], triggerVertices: [CodablePoint(x: 2267.33, y: 1567.33), CodablePoint(x: 3242.67, y: 1577.33), CodablePoint(x: 3212.67, y: 2042.67), CodablePoint(x: 2297.33, y: 2042.67)]),
+            MapRoomDefinition(id: "room-kitchen", name: "Kitchen", roomID: .kitchen, frame: CodableRect(x: 3520, y: 2110, width: 950, height: 1390), triggerFrame: CodableRect(x: 3539.11, y: 2243.78, width: 873.56, height: 1198.89), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 3610, y: 2110), CodablePoint(x: 4470, y: 2110), CodablePoint(x: 4140, y: 2980), CodablePoint(x: 3520, y: 3500), CodablePoint(x: 3610, y: 2730)], triggerVertices: [CodablePoint(x: 3629.11, y: 2243.78), CodablePoint(x: 4412.67, y: 2243.78), CodablePoint(x: 4082.67, y: 2922.67), CodablePoint(x: 3539.11, y: 3442.67), CodablePoint(x: 3629.11, y: 2763.26)]),
+            MapRoomDefinition(id: "room-laboratory", name: "Lab Room", roomID: .laboratory, frame: CodableRect(x: 330, y: 690, width: 1600, height: 1410), triggerFrame: CodableRect(x: 387.33, y: 785.56, width: 1485.33, height: 1267.11), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 330, y: 690), CodablePoint(x: 1930, y: 690), CodablePoint(x: 1930, y: 1450), CodablePoint(x: 1910, y: 2100), CodablePoint(x: 910, y: 2100)], triggerVertices: [CodablePoint(x: 387.33, y: 785.56), CodablePoint(x: 1872.67, y: 785.56), CodablePoint(x: 1872.67, y: 1464.01), CodablePoint(x: 1852.67, y: 2042.67), CodablePoint(x: 967.33, y: 2052.67)]),
+            MapRoomDefinition(id: "room-sleeping", name: "Sleeping Room", roomID: .sleepingRoom, frame: CodableRect(x: 1030, y: 2102.22, width: 881.11, height: 937.78), triggerFrame: CodableRect(x: 1087.33, y: 2159.56, width: 766.44, height: 823.11), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 1030, y: 2110), CodablePoint(x: 1911.11, y: 2102.22), CodablePoint(x: 1910, y: 3040), CodablePoint(x: 1400, y: 3040)], triggerVertices: [CodablePoint(x: 1087.33, y: 2167.33), CodablePoint(x: 1853.78, y: 2159.56), CodablePoint(x: 1852.67, y: 2982.67), CodablePoint(x: 1457.33, y: 2982.67)]),
+            MapRoomDefinition(id: "room-storage", name: "Storage Room", roomID: .storage, frame: CodableRect(x: 3500, y: 700, width: 1650, height: 1410), triggerFrame: CodableRect(x: 3557.33, y: 795.56, width: 1535.33, height: 1257.11), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 3500, y: 720), CodablePoint(x: 5150, y: 700), CodablePoint(x: 4570, y: 2110), CodablePoint(x: 3610, y: 2110), CodablePoint(x: 3600, y: 1580)], triggerVertices: [CodablePoint(x: 3557.33, y: 815.56), CodablePoint(x: 5092.67, y: 795.56), CodablePoint(x: 4512.67, y: 2052.67), CodablePoint(x: 3667.33, y: 2052.67), CodablePoint(x: 3657.33, y: 1589.45)])
+            ],
+            corridors: [
+            MapCorridorDefinition(id: "corridor-center-vertical", name: "Center Vertical", frame: CodableRect(x: 2639.11, y: 2095.78, width: 225.78, height: 475.11), isWalkable: true, isRequired: true, vertices: nil),
+            MapCorridorDefinition(id: "corridor-main-horizontal", name: "Main Horizontal", frame: CodableRect(x: 1910, y: 2140, width: 1680, height: 344.44), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 1910, y: 2270), CodablePoint(x: 1990, y: 2270), CodablePoint(x: 1990, y: 2170), CodablePoint(x: 2130, y: 2170), CodablePoint(x: 3590, y: 2140), CodablePoint(x: 3590, y: 2370), CodablePoint(x: 2160, y: 2360), CodablePoint(x: 2160, y: 2480), CodablePoint(x: 1911.11, y: 2484.44)]),
+            MapCorridorDefinition(id: "corridor-port-vertical", name: "Port Vertical", frame: CodableRect(x: 1920, y: 950, width: 1570, height: 450), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 1920, y: 1100), CodablePoint(x: 2020, y: 1100), CodablePoint(x: 2040, y: 1010), CodablePoint(x: 2840, y: 1010), CodablePoint(x: 2840, y: 1070), CodablePoint(x: 3070, y: 1070), CodablePoint(x: 3070, y: 960), CodablePoint(x: 3410, y: 950), CodablePoint(x: 3410, y: 1060), CodablePoint(x: 3490, y: 1060), CodablePoint(x: 3490, y: 1270), CodablePoint(x: 3250, y: 1270), CodablePoint(x: 3240, y: 1120), CodablePoint(x: 3220, y: 1130), CodablePoint(x: 3220, y: 1270), CodablePoint(x: 2640, y: 1270), CodablePoint(x: 2640, y: 1200), CodablePoint(x: 2240, y: 1210), CodablePoint(x: 2240, y: 1390), CodablePoint(x: 1920, y: 1400)]),
+            MapCorridorDefinition(id: "corridor-starboard-vertical", name: "Starboard Vertical", frame: CodableRect(x: 3290, y: 950, width: 280, height: 1680), isWalkable: true, isRequired: true, vertices: [CodablePoint(x: 3340, y: 1490), CodablePoint(x: 3310, y: 1360), CodablePoint(x: 3290, y: 1249), CodablePoint(x: 3290, y: 950), CodablePoint(x: 3410, y: 950), CodablePoint(x: 3410, y: 1060), CodablePoint(x: 3490, y: 1060), CodablePoint(x: 3490, y: 1560), CodablePoint(x: 3490, y: 2180), CodablePoint(x: 3530, y: 2180), CodablePoint(x: 3520, y: 2410), CodablePoint(x: 3570, y: 2410), CodablePoint(x: 3570, y: 2630), CodablePoint(x: 3370, y: 2630), CodablePoint(x: 3370, y: 2520), CodablePoint(x: 3330, y: 2370), CodablePoint(x: 3320, y: 2110)]),
+            MapCorridorDefinition(id: "corridor-backdoor-vertical", name: "Backdoor Vertical", frame: CodableRect(x: 2310, y: 1010, width: 210, height: 500), isWalkable: true, isRequired: false, vertices: [CodablePoint(x: 2310, y: 1010), CodablePoint(x: 2510, y: 1010), CodablePoint(x: 2520, y: 1510), CodablePoint(x: 2310, y: 1510)]),
+            MapCorridorDefinition(id: "corridor-starboard-horizontal", name: "Starboard Horizontal", frame: CodableRect(x: 3430, y: 1630, width: 170, height: 180), isWalkable: true, isRequired: false, vertices: [CodablePoint(x: 3430, y: 1630), CodablePoint(x: 3600, y: 1630), CodablePoint(x: 3600, y: 1810), CodablePoint(x: 3430, y: 1810)])
+            ],
+            walls: [
+            MapWallDefinition(id: "wall-cockpit-top-right", name: "Cockpit Top Right", frame: CodableRect(x: 2740, y: 3647, width: 539, height: 60), rotation: -0.12, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-cockpit-top-left", name: "Cockpit Top Left", frame: CodableRect(x: 2228, y: 3640, width: 550, height: 62), rotation: 0.14, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-engine-bottom-backdoor", name: "Engine Bottom Backdoor", frame: CodableRect(x: 2180, y: 1480, width: 130, height: 50), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-cockpit-bottom-left", name: "Cockpit Bottom Left", frame: CodableRect(x: 2156.89, y: 2533.87, width: 442.22, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-cockpit-bottom-right", name: "Cockpit Bottom Right", frame: CodableRect(x: 2904.89, y: 2533.87, width: 442.22, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-cockpit-left", name: "Cockpit Left", frame: CodableRect(x: 2192.09, y: 2533.75, width: 55.6, height: 1115.38), rotation: -0.07, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-cockpit-right", name: "Cockpit Right", frame: CodableRect(x: 3255.56, y: 2543.74, width: 59.11, height: 1108.4), rotation: 0.07, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-engine-bottom", name: "Engine Bottom", frame: CodableRect(x: 2516.89, y: 1480.53, width: 800.22, height: 51.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-engine-left", name: "Engine Left", frame: CodableRect(x: 2186.31, y: 1521.11, width: 70.16, height: 581.11), rotation: -0.03, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-engine-right", name: "Engine Right", frame: CodableRect(x: 3251.53, y: 1521.11, width: 61.16, height: 581.11), rotation: 0.03, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-engine-top-left", name: "Engine Top Left", frame: CodableRect(x: 2216.89, y: 2071.64, width: 382.22, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-engine-top-right", name: "Engine Top Right", frame: CodableRect(x: 2904.89, y: 2071.64, width: 382.22, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-kitchen-bottom", name: "Kitchen Bottom", frame: CodableRect(x: 3602.89, y: 2091.64, width: 995.56, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3602.89, y: 2091.64), CodablePoint(x: 4598.44, y: 2091.64), CodablePoint(x: 4598.44, y: 2152.8), CodablePoint(x: 4266.67, y: 2150), CodablePoint(x: 3602.89, y: 2152.8)]),
+            MapWallDefinition(id: "wall-kitchen-left-lower", name: "Kitchen Left Lower", frame: CodableRect(x: 3582.31, y: 2102.22, width: 71.16, height: 225), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-kitchen-left-upper", name: "Kitchen Left Upper", frame: CodableRect(x: 3532.31, y: 2728, width: 61.16, height: 779.78), rotation: 0.12, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-kitchen-right", name: "Kitchen Right", frame: CodableRect(x: 4275.09, y: 2093.66, width: 66.7, height: 902.68), rotation: 0.37, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-kitchen-top", name: "Kitchen Top", frame: CodableRect(x: 3422.89, y: 3187.2, width: 845.56, height: 61.16), rotation: -0.7, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-lab-bottom", name: "Lab Bottom", frame: CodableRect(x: 382.22, y: 687.42, width: 1528.89, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-lab-left", name: "Lab Left", frame: CodableRect(x: 621.64, y: 638, width: 61.16, height: 1534.22), rotation: -0.38, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-lab-right-lower", name: "Lab Right Lower", frame: CodableRect(x: 1880.53, y: 688, width: 61.16, height: 392), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-lab-right-upper", name: "Lab Right Upper", frame: CodableRect(x: 1870.53, y: 1408, width: 61.16, height: 714.22), rotation: 0.03, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-lab-top", name: "Lab Top", frame: CodableRect(x: 902.22, y: 2071.64, width: 998.89, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-sleeping-bottom", name: "Sleeping Bottom", frame: CodableRect(x: 898.89, y: 2071.64, width: 1002.22, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-sleeping-left", name: "Sleeping Left", frame: CodableRect(x: 1188.31, y: 2102.22, width: 61.16, height: 955.56), rotation: -0.38, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-sleeping-right-lower", name: "Sleeping Right Lower", frame: CodableRect(x: 1855.53, y: 2102.22, width: 61.16, height: 114.67), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-sleeping-right-upper", name: "Sleeping Right Upper", frame: CodableRect(x: 1871.53, y: 2535, width: 61.16, height: 522.78), rotation: -0.07, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-sleeping-top", name: "Sleeping Top", frame: CodableRect(x: 1358.89, y: 2999.42, width: 552.22, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-storage-bottom", name: "Storage Bottom", frame: CodableRect(x: 3492.89, y: 687.42, width: 1682.44, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-storage-left-lower", name: "Storage Left Lower", frame: CodableRect(x: 3522.31, y: 678, width: 61.16, height: 882), rotation: -0.1, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-storage-left-upper", name: "Storage Left Upper", frame: CodableRect(x: 3586.3, y: 1887, width: 73.19, height: 266.18), rotation: -0.03, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-storage-right", name: "Storage Right", frame: CodableRect(x: 4824.76, y: 638, width: 61.16, height: 1564.22), rotation: 0.38, isEnabled: true, isRequired: false, vertices: nil),
+            MapWallDefinition(id: "wall-storage-top", name: "Storage Top", frame: CodableRect(x: 3592.89, y: 2091.64, width: 1002.44, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3592.89, y: 2091.64), CodablePoint(x: 4595.33, y: 2091.64), CodablePoint(x: 4595.33, y: 2152.8), CodablePoint(x: 4032.61, y: 2150), CodablePoint(x: 3592.89, y: 2152.8)])
+            ],
+            doorways: [
+            MapDoorwayDefinition(id: "door-cockpit", name: "Cockpit Door", doorID: .cockpit, roomID: .cockpit, frame: CodableRect(x: 2599.11, y: 2530.04, width: 305.78, height: 68.8), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-engine", name: "Engine Room Door", doorID: .engine, roomID: .engine, frame: CodableRect(x: 2599.11, y: 2067.82, width: 305.78, height: 68.8), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-kitchen", name: "Kitchen Door", doorID: .kitchen, roomID: .kitchen, frame: CodableRect(x: 3520, y: 2336.89, width: 140, height: 382.22), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-laboratory", name: "Lab Room Door", doorID: .laboratory, roomID: .laboratory, frame: CodableRect(x: 1876.71, y: 1090.67, width: 68.8, height: 305.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-sleeping", name: "Sleeping Room Door", doorID: .sleepingRoom, roomID: .sleepingRoom, frame: CodableRect(x: 1853.71, y: 2216.89, width: 68.8, height: 305.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3578.49, y: 1570.67, width: 68.8, height: 305.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil)
+            ],
+            blockedAreas: [
+            MapBlockedAreaDefinition(id: "blocked-outer-hull", name: "Outer Hull", shape: .edgeChain([CodablePoint(x: 2047.61, y: 3556.07), CodablePoint(x: 2747.61, y: 3716.07), CodablePoint(x: 3457.61, y: 3556.07), CodablePoint(x: 4115.46, y: 2985.91), CodablePoint(x: 4480, y: 2130), CodablePoint(x: 4570, y: 2130), CodablePoint(x: 5150, y: 710), CodablePoint(x: 360, y: 700), CodablePoint(x: 937.61, y: 2126.07), CodablePoint(x: 1027.61, y: 2126.07), CodablePoint(x: 1371.69, y: 2980.36), CodablePoint(x: 2067.61, y: 3566.07)]), isEnabled: true, isRequired: true),
+            MapBlockedAreaDefinition(id: "debug-blockedArea-1", name: "Debug Blocked Area", shape: .rectangle(CodableRect(x: 2300, y: 1471, width: 230, height: 70)), isEnabled: true, isRequired: false)
+            ],
+            objects: [
+            MapObjectDefinition(id: "object-lab-monitor-1", name: "Lab Monitor 1", type: .obstacle, position: CodablePoint(x: 1775, y: 1535), size: CodableSize(width: 150, height: 370), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1710, y: 1350), CodablePoint(x: 1850, y: 1360), CodablePoint(x: 1830, y: 1700), CodablePoint(x: 1820, y: 1720), CodablePoint(x: 1700, y: 1640)]),
+            MapObjectDefinition(id: "object-lab-monitor-2", name: "Lab Monitor 2", type: .obstacle, position: CodablePoint(x: 1140, y: 1800), size: CodableSize(width: 270, height: 150), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
+            MapObjectDefinition(id: "object-kitchen-cabinet", name: "Kitchen Cabinet", type: .obstacle, position: CodablePoint(x: 4265, y: 2315), size: CodableSize(width: 130, height: 230), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4240, y: 2200), CodablePoint(x: 4310, y: 2200), CodablePoint(x: 4330, y: 2310), CodablePoint(x: 4290, y: 2430), CodablePoint(x: 4220, y: 2430), CodablePoint(x: 4200, y: 2310)]),
+            MapObjectDefinition(id: "object-storage-barrel-1", name: "Storage Barrel 1", type: .obstacle, position: CodablePoint(x: 4285, y: 1270), size: CodableSize(width: 190, height: 340), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4200, y: 1130), CodablePoint(x: 4300, y: 1100), CodablePoint(x: 4380, y: 1130), CodablePoint(x: 4380, y: 1420), CodablePoint(x: 4330, y: 1440), CodablePoint(x: 4230, y: 1440), CodablePoint(x: 4190, y: 1390)]),
+            MapObjectDefinition(id: "object-storage-monitor", name: "Storagen Monitor", type: .obstacle, position: CodablePoint(x: 3700, y: 980), size: CodableSize(width: 140, height: 360), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3630, y: 870), CodablePoint(x: 3760, y: 800), CodablePoint(x: 3770, y: 1070), CodablePoint(x: 3670, y: 1160), CodablePoint(x: 3650, y: 1150)]),
+            MapObjectDefinition(id: "object-cockpit-main-console", name: "Cockpit Main Console", type: .obstacle, position: CodablePoint(x: 2755, y: 3310), size: CodableSize(width: 990, height: 120), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2260, y: 3250), CodablePoint(x: 3250, y: 3250), CodablePoint(x: 3240, y: 3370), CodablePoint(x: 2270, y: 3370)]),
+            MapObjectDefinition(id: "object-cockpit-pilot-chair", name: "Cockpit Pilot Chair", type: .obstacle, position: CodablePoint(x: 2752, y: 3249.82), size: CodableSize(width: 152.89, height: 239.91), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
+            MapObjectDefinition(id: "object-cockpit-port-machinery", name: "Cockpit Port Machinery", type: .obstacle, position: CodablePoint(x: 2330, y: 2855), size: CodableSize(width: 140, height: 370), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2260, y: 2760), CodablePoint(x: 2390, y: 2670), CodablePoint(x: 2400, y: 2970), CodablePoint(x: 2310, y: 3040), CodablePoint(x: 2280, y: 3030)]),
+            MapObjectDefinition(id: "object-engine-battery-bank", name: "Engine Battery Bank", type: .obstacle, position: CodablePoint(x: 3119.56, y: 1984.04), size: CodableSize(width: 267.56, height: 145.24), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
+            MapObjectDefinition(id: "object-engine-core", name: "Engine Core", type: .obstacle, position: CodablePoint(x: 2905, y: 1635), size: CodableSize(width: 710, height: 210), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2550, y: 1530), CodablePoint(x: 3260, y: 1540), CodablePoint(x: 3250, y: 1740), CodablePoint(x: 2550, y: 1730)]),
+            MapObjectDefinition(id: "object-engine-starboard-equipment", name: "Engine Starboard Equipment", type: .obstacle, position: CodablePoint(x: 2425, y: 1988.22), size: CodableSize(width: 310, height: 156.44), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2270, y: 1910), CodablePoint(x: 2580, y: 1910), CodablePoint(x: 2580, y: 2060), CodablePoint(x: 2282.44, y: 2066.44)]),
+            MapObjectDefinition(id: "object-kitchen-appliance", name: "Kitchen Appliance", type: .obstacle, position: CodablePoint(x: 3805, y: 2980), size: CodableSize(width: 290, height: 180), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3680, y: 2890), CodablePoint(x: 3940, y: 2890), CodablePoint(x: 3950, y: 2920), CodablePoint(x: 3950, y: 3040), CodablePoint(x: 3940, y: 3070), CodablePoint(x: 3680, y: 3070), CodablePoint(x: 3660, y: 2990)]),
+            MapObjectDefinition(id: "object-kitchen-main-counter", name: "Kitchen Main Counter", type: .obstacle, position: CodablePoint(x: 3970, y: 2225), size: CodableSize(width: 520, height: 130), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3730, y: 2160), CodablePoint(x: 4230, y: 2160), CodablePoint(x: 4180, y: 2290), CodablePoint(x: 3720, y: 2290), CodablePoint(x: 3710, y: 2220)]),
+            MapObjectDefinition(id: "object-kitchen-side-counter", name: "Kitchen Side Counter", type: .obstacle, position: CodablePoint(x: 4115, y: 2625), size: CodableSize(width: 250, height: 330), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4050, y: 2460), CodablePoint(x: 4240, y: 2460), CodablePoint(x: 4240, y: 2510), CodablePoint(x: 4140, y: 2790), CodablePoint(x: 3990, y: 2790), CodablePoint(x: 3990, y: 2750)]),
+            MapObjectDefinition(id: "object-lab-lower-bench", name: "Lab Lower Bench", type: .obstacle, position: CodablePoint(x: 1470, y: 925), size: CodableSize(width: 820, height: 330), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1060, y: 760), CodablePoint(x: 1880, y: 760), CodablePoint(x: 1880, y: 1090), CodablePoint(x: 1160, y: 1090), CodablePoint(x: 1130, y: 1000), CodablePoint(x: 1130, y: 870), CodablePoint(x: 1080, y: 860)]),
+            MapObjectDefinition(id: "object-lab-main-table", name: "Lab Main Table", type: .obstacle, position: CodablePoint(x: 1605, y: 1820), size: CodableSize(width: 450, height: 140), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1380, y: 1750), CodablePoint(x: 1830, y: 1750), CodablePoint(x: 1790, y: 1890), CodablePoint(x: 1430, y: 1890)]),
+            MapObjectDefinition(id: "object-lab-microscope-station", name: "Lab Microscope Station", type: .obstacle, position: CodablePoint(x: 780, y: 985), size: CodableSize(width: 500, height: 430), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 530, y: 770), CodablePoint(x: 920, y: 770), CodablePoint(x: 1030, y: 1120), CodablePoint(x: 1020, y: 1190), CodablePoint(x: 700, y: 1200)]),
+            MapObjectDefinition(id: "object-sleeping-bed", name: "Sleeping Bed", type: .obstacle, position: CodablePoint(x: 1620, y: 2825), size: CodableSize(width: 500, height: 250), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1390, y: 2700), CodablePoint(x: 1850, y: 2700), CodablePoint(x: 1870, y: 2950), CodablePoint(x: 1430, y: 2950), CodablePoint(x: 1380, y: 2880), CodablePoint(x: 1370, y: 2790)]),
+            MapObjectDefinition(id: "object-sleeping-main-console", name: "Sleeping Main Console", type: .obstacle, position: CodablePoint(x: 1310, y: 2335), size: CodableSize(width: 340, height: 350), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1140, y: 2180), CodablePoint(x: 1390, y: 2160), CodablePoint(x: 1480, y: 2480), CodablePoint(x: 1460, y: 2510), CodablePoint(x: 1270, y: 2510)]),
+            MapObjectDefinition(id: "object-storage-cabinets", name: "Storage Cabinets", type: .obstacle, position: CodablePoint(x: 4195, y: 1850), size: CodableSize(width: 730, height: 380), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3830, y: 1790), CodablePoint(x: 3870, y: 1660), CodablePoint(x: 4550, y: 1660), CodablePoint(x: 4560, y: 1930), CodablePoint(x: 4510, y: 2040), CodablePoint(x: 3840, y: 2030)]),
+            MapObjectDefinition(id: "object-storage-containers", name: "Storage Containers", type: .obstacle, position: CodablePoint(x: 4225, y: 1010), size: CodableSize(width: 330, height: 180), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4080, y: 930), CodablePoint(x: 4370, y: 920), CodablePoint(x: 4390, y: 1010), CodablePoint(x: 4350, y: 1100), CodablePoint(x: 4090, y: 1090), CodablePoint(x: 4060, y: 1000)]),
+            MapObjectDefinition(id: "object-storage-crates", name: "Storage Crates", type: .obstacle, position: CodablePoint(x: 4090, y: 1245), size: CodableSize(width: 320, height: 390), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3930, y: 1250), CodablePoint(x: 4000, y: 1050), CodablePoint(x: 4210, y: 1060), CodablePoint(x: 4250, y: 1240), CodablePoint(x: 4160, y: 1440), CodablePoint(x: 3930, y: 1420)]),
+            MapObjectDefinition(id: "object-storage-machinery", name: "Storage Machinery", type: .obstacle, position: CodablePoint(x: 4590, y: 1515), size: CodableSize(width: 180, height: 370), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4580, y: 1330), CodablePoint(x: 4680, y: 1430), CodablePoint(x: 4600, y: 1700), CodablePoint(x: 4500, y: 1600)]),
+            MapObjectDefinition(id: "object-storage-tool-rack", name: "Storage Tool Rack", type: .obstacle, position: CodablePoint(x: 4720, y: 950), size: CodableSize(width: 400, height: 400), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4560, y: 750), CodablePoint(x: 4920, y: 750), CodablePoint(x: 4770, y: 1150), CodablePoint(x: 4550, y: 1140), CodablePoint(x: 4520, y: 960)])
+            ],
+            stations: [
+            MapStationDefinition(id: "station-cockpit-communications", name: "Cockpit Communications", kind: .mission, roomID: .cockpit, position: CodablePoint(x: 3082, y: 3293.11), interactionID: "cockpit-communications", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-cockpit-flight-console", name: "Cockpit Flight Console", kind: .mission, roomID: .cockpit, position: CodablePoint(x: 2331.56, y: 2852.44), interactionID: "cockpit-flight-console", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-cockpit-navigation-control", name: "Cockpit Navigation Control", kind: .mission, roomID: .cockpit, position: CodablePoint(x: 2749.78, y: 3281.44), interactionID: "cockpit-navigation-control", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-calibration-port", name: "Engine Calibration Port", kind: .mission, roomID: .engine, position: CodablePoint(x: 2679.78, y: 1663.11), interactionID: "engine-calibration-port", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-control-relay", name: "Engine Control Relay", kind: .mission, roomID: .engine, position: CodablePoint(x: 3151.56, y: 1982.89), interactionID: "engine-control-relay", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-cooling-restart", name: "Engine Cooling Restart", kind: .mission, roomID: .engine, position: CodablePoint(x: 3021.33, y: 1667.56), interactionID: "engine-cooling-restart", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-cooling-valve", name: "Engine Cooling Valve", kind: .mission, roomID: .engine, position: CodablePoint(x: 3066, y: 1989.33), interactionID: "engine-cooling-valve", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-core-reconnect", name: "Engine Core Reconnect", kind: .mission, roomID: .engine, position: CodablePoint(x: 2882.67, y: 1667.56), interactionID: "engine-core-reconnect", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-ignition-coil", name: "Engine Ignition Coil", kind: .mission, roomID: .engine, position: CodablePoint(x: 2512, y: 1989.33), interactionID: "engine-ignition-coil", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-navigation-sync", name: "Engine Navigation Sync", kind: .mission, roomID: .engine, position: CodablePoint(x: 3023.33, y: 1667.56), interactionID: "engine-navigation-sync", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-power-connector", name: "Engine Power Connector", kind: .mission, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1989.33), interactionID: "engine-power-connector", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-pressure-feed", name: "Engine Pressure Feed", kind: .mission, roomID: .engine, position: CodablePoint(x: 3191.56, y: 1668.89), interactionID: "engine-pressure-feed", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-propulsion-calibration", name: "Engine Propulsion Calibration", kind: .mission, roomID: .engine, position: CodablePoint(x: 2882, y: 1667.56), interactionID: "engine-propulsion-calibration", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-reactor-link", name: "Engine Reactor Link", kind: .mission, roomID: .engine, position: CodablePoint(x: 2439.78, y: 1991.89), interactionID: "engine-reactor-link", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-engine-reactor-stabilizer", name: "Engine Reactor Stabilizer", kind: .mission, roomID: .engine, position: CodablePoint(x: 3191.56, y: 1663.11), interactionID: "engine-reactor-stabilizer", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-kitchen-food", name: "Kitchen Food Station", kind: .food, roomID: .kitchen, position: CodablePoint(x: 4107.56, y: 2569.11), interactionID: "kitchen-food", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-lab-memory-repair", name: "Lab Memory Repair", kind: .mission, roomID: .laboratory, position: CodablePoint(x: 1770.67, y: 1513.56), interactionID: "lab-memory-repair", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-lab-scanner-repair", name: "Lab Scanner Repair", kind: .mission, roomID: .laboratory, position: CodablePoint(x: 1539.11, y: 1843.11), interactionID: "lab-scanner-repair", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-lab-terminal-repair", name: "Lab Terminal Repair", kind: .mission, roomID: .laboratory, position: CodablePoint(x: 1138.44, y: 1793.56), interactionID: "lab-terminal-repair", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-storage-calibration-unit", name: "Storage Calibration Unit", kind: .mission, roomID: .storage, position: CodablePoint(x: 4046.67, y: 1741.78), interactionID: "storage-calibration-unit", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-storage-door-controller", name: "Storage Door Controller", kind: .mission, roomID: .storage, position: CodablePoint(x: 3705.78, y: 1023.56), interactionID: "storage-door-controller", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-storage-robotic-arm", name: "Storage Robotic Arm", kind: .mission, roomID: .storage, position: CodablePoint(x: 3707.56, y: 917.33), interactionID: "storage-robotic-arm", isEnabled: true, isRequired: true, vertices: nil),
+            MapStationDefinition(id: "station-storage-tool-terminal", name: "Storage Tool Terminal", kind: .mission, roomID: .storage, position: CodablePoint(x: 4604.89, y: 1493.56), interactionID: "storage-tool-terminal", isEnabled: true, isRequired: true, vertices: nil)
+            ],
+            spawnPoints: [
+            MapSpawnPointDefinition(id: "spawn-cockpit", name: "Cockpit Spawn", roomID: .cockpit, position: CodablePoint(x: 2752, y: 2919.11), isRequired: true),
+            MapSpawnPointDefinition(id: "spawn-engine", name: "Engine Spawn", roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapSpawnPointDefinition(id: "spawn-kitchen", name: "Kitchen Spawn", roomID: .kitchen, position: CodablePoint(x: 3847.56, y: 2765.56), isRequired: true),
+            MapSpawnPointDefinition(id: "spawn-laboratory", name: "Lab Spawn", roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
+            MapSpawnPointDefinition(id: "spawn-sleeping", name: "Sleeping Spawn", roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
+            MapSpawnPointDefinition(id: "spawn-storage", name: "Storage Spawn", roomID: .storage, position: CodablePoint(x: 4196.67, y: 1550.67), isRequired: true)
+            ],
+            checkpoints: [
+            MapCheckpointDefinition(id: "checkpoint-cockpit", name: "cockpit", checkpointID: .cockpit, roomID: .cockpit, position: CodablePoint(x: 2752, y: 2899.11), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engineBlocked", name: "engineBlocked", checkpointID: .engineBlocked, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engineDisruption", name: "engineDisruption", checkpointID: .engineDisruption, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engineFinal", name: "engineFinal", checkpointID: .engineFinal, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-enginePhaseOne", name: "enginePhaseOne", checkpointID: .enginePhaseOne, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-laboratory", name: "laboratory", checkpointID: .laboratory, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-sleepingRoom", name: "sleepingRoom", checkpointID: .sleepingRoom, roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-storage", name: "storage", checkpointID: .storage, roomID: .storage, position: CodablePoint(x: 4196.67, y: 1550.67), isRequired: true)
+            ]
         )
     }
 }
