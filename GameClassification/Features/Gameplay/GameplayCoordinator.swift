@@ -64,9 +64,53 @@ final class GameplayCoordinator {
 
     func retryCheckpoint() {
         AudioManager.shared.playButtonSound()
-        _ = sessionState.handle(.checkpointRetryRequested)
-        presentingViewController?.dismiss(animated: true)
-        activeGameScene?.restorePlayerFromSession()
+        if sessionState.phase == .gameOver {
+            guard let presenter = presentingViewController, presenter.presentedViewController == nil else { return }
+            sessionState.beginDrawing(objectiveID: "retry-angel")
+            
+            let challenge = DrawingChallenge(
+                id: "retry-angel",
+                label: "angel",
+                displayName: "ANGEL"
+            )
+            
+            let controller = DrawingChallengeViewController()
+            controller.challenge = challenge
+            controller.challengeIndex = 1
+            controller.totalChallenges = 1
+            controller.modalPresentationStyle = .overFullScreen
+            controller.modalTransitionStyle = .crossDissolve
+            
+            controller.onSubmit = { [weak self] drawing in
+                guard let self else {
+                    return DrawingSubmissionOutcome(accepted: false, message: "Game session ended.", recognition: nil)
+                }
+                let command = StoryCommand.submitDrawing(
+                    commandID: UUID(),
+                    objectiveID: challenge.id,
+                    drawingData: drawing.dataRepresentation(),
+                    playerID: sessionState.localPlayer.id
+                )
+                let result = await authority.execute(command)
+                return DrawingSubmissionOutcome(accepted: result.accepted, message: result.message, recognition: result.recognition)
+            }
+            
+            controller.onSuccess = { [weak self] in
+                guard let self else { return }
+                _ = self.sessionState.handle(.checkpointRetryRequested)
+                self.activeGameScene?.restorePlayerFromSession()
+            }
+            
+            controller.onCancel = { [weak self] in
+                self?.sessionState.endDrawing()
+            }
+            
+            presenter.present(controller, animated: true)
+        } else {
+            _ = sessionState.handle(.checkpointRetryRequested)
+            presentingViewController?.dismiss(animated: true)
+            activeGameScene?.restorePlayerFromSession()
+        }
     }
 
     func playAgain() {

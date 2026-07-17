@@ -5,12 +5,10 @@ enum StoryContent {
     // MARK: - Category Pools
 
     static let hewanPool: [DrawingPrompt] = [
-        "ant", "bee", "butterfly", "camel", "cat", "cow", "crab", "crocodile",
-        "dog", "dolphin", "dragon", "elephant", "fish", "flying bird", "frog",
-        "giraffe", "hedgehog", "horse", "kangaroo", "lion", "lobster", "monkey",
-        "mouse (animal)", "octopus", "owl", "penguin", "pig", "rabbit", "rooster",
-        "scorpion", "sea turtle", "shark", "sheep", "snail", "snake", "spider",
-        "squirrel", "swan", "tiger", "zebra", "feather"
+        "ant", "bee", "butterfly", "camel", "cat", "crab", "crocodile", "feather",
+        "fish", "frog", "giraffe", "hedgehog", "kangaroo", "lobster", "mouse",
+        "octopus", "owl", "penguin", "pig", "rabbit", "rooster", "sea turtle",
+        "sheep", "snail", "snake", "spider", "swan", "tiger", "zebra"
     ].map { prompt($0) }
 
     static let tanamanPool: [DrawingPrompt] = [
@@ -30,17 +28,17 @@ enum StoryContent {
     ].map { prompt($0) }
 
     static let transportasiPool: [DrawingPrompt] = [
-        "airplane", "bicycle", "helicopter", "kayak", "rollerblades", "sedan",
-        "ship", "skateboard", "rocket", "submarine", "train"
+        "bicycle", "helicopter", "kayak", "rollerblades", "sedan",
+        "ship", "skateboard", "rocket", "train"
     ].map { prompt($0) }
 
     static let otherPool: [DrawingPrompt] = [
-        "diamond", "envelope", "gift", "parachute", "teddy-bear"
+        "diamond", "envelope", "gift", "parachute", "teddy bear"
     ].map { prompt($0) }
 
     static let elektronikPool: [DrawingPrompt] = [
         "alarm clock", "camera", "computer monitor", "head-phones",
-        "keyboard-computer", "laptop", "microphone", "radio", "satellite"
+        "laptop", "microphone", "radio", "satellite"
     ].map { prompt($0) }
 
     static let senjataPool: [DrawingPrompt] = [
@@ -48,16 +46,16 @@ enum StoryContent {
     ].map { prompt($0) }
 
     static let alatPool: [DrawingPrompt] = [
-        "backpack", "axe", "binoculars", "book", "bowl", "calculator", "comb",
-        "computer-mouse", "flashlight", "fork", "frying-pan", "hammer",
+        "axe", "backpack", "binoculars", "book", "bowl", "calculator", "comb",
+        "computer mouse", "flashlight", "fork", "frying-pan", "hammer",
         "hourglass", "key", "knife", "ladder", "microscope", "mug",
-        "paper clip", "pen", "scissors", "screwdriver", "spoon", "stapler",
-        "syringe", "teapot", "toothbrush", "wheel", "wineglass", "power outlet"
+        "paper clip", "pen", "power outlet", "scissors", "screwdriver", "spoon", "stapler",
+        "syringe", "teapot", "toothbrush", "wheel", "wineglass"
     ].map { prompt($0) }
 
     static let furniturePool: [DrawingPrompt] = [
-        "bed", "bell", "cabinet", "candle", "chair", "chandelier", "door",
-        "fan", "guitar", "lightbulb", "table", "tennis-racket",
+        "bed", "bell", "cabinet", "candle", "chair", "chandelier", "closet", "door",
+        "fan", "guitar", "lightbulb", "table", "tennis racket",
         "umbrella"
     ].map { prompt($0) }
 
@@ -78,7 +76,7 @@ enum StoryContent {
                   ["reach-laboratory"],
                   .none,
                   // .easel(EaselDefinition(pool: hewanPool + tanamanPool + manusiaPool, count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
-                  .easel(EaselDefinition(pool: [prompt("eyeglasses"), prompt("spider"), prompt("keyboard-computer")], count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
+                  .easel(EaselDefinition(pool: [prompt("eyeglasses"), prompt("spider"), prompt("cactus")], count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
 
         // Engine Room Easel 1 — 6 random from landscape + transportasi + other
         // Each drawing gives +10 engine progress.

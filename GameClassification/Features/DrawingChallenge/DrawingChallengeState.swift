@@ -25,7 +25,7 @@ struct DrawingChallenge: Equatable, Sendable {
 
     static let foodPool: [DrawingChallenge] = {
         let buah = ["apple", "banana", "grapes", "pear", "pineapple", "pumpkin", "strawberry", "tomato"]
-        let makanan = ["bread", "cake", "carrot", "donut", "hamburger", "hot-dog", "cone-ice-cream", "mushroom", "pizza", "pretzel"]
+        let makanan = ["bread", "cake", "carrot", "cone ice cream", "donut", "hamburger", "hot-dog", "mushroom", "pizza", "pretzel"]
         return (buah + makanan).map { label in
             DrawingChallenge(id: "kitchen-\(label)", label: label, displayName: label.uppercased())
         }

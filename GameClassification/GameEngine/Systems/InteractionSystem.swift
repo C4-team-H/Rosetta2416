@@ -62,7 +62,7 @@ extension GameScene {
         guard albumBookButton == nil else { return }
         hideInteractionButton()
         hideFoodInteractionButton()
-        let button = makeActionButton(name: "albumButton", title: "BACA", color: SKColor(red: 0.25, green: 0.45, blue: 0.80, alpha: 1))
+        let button = makeActionButton(name: "albumButton", title: "READ", color: SKColor(red: 0.25, green: 0.45, blue: 0.80, alpha: 1))
         albumBookButton = button
         cameraNode.addChild(button)
     }

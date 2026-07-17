@@ -67,14 +67,18 @@ final class GameSessionState {
     }
 
     func beginDrawing(objectiveID: String) {
-        guard phase == .playing else { return }
+        guard phase == .playing || (phase == .gameOver && objectiveID == "retry-angel") else { return }
         phase = .drawing(objectiveID)
         stats.drawingAttempts += 1
     }
 
     func endDrawing() {
-        guard case .drawing = phase else { return }
-        phase = .playing
+        guard case let .drawing(objectiveID) = phase else { return }
+        if objectiveID == "retry-angel" {
+            phase = .gameOver
+        } else {
+            phase = .playing
+        }
     }
 
     func endCutscene() {

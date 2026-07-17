@@ -7,41 +7,37 @@ final class AlbumBookViewController: UIViewController {
 
     // MARK: - Data
 
-    /// All 172 asset labels sorted alphabetically.
+    /// All 157 asset labels sorted alphabetically.
     static let allLabels: [String] = [
-        "airplane", "alarm clock", "angel", "ant", "apple", "axe",
+        "alarm clock", "angel", "ant", "apple", "axe",
         "backpack", "banana", "bed", "bee", "bell", "bicycle", "binoculars", "book",
         "bowl", "brain", "bread", "butterfly",
         "cabinet", "cactus", "cake", "calculator", "camel", "camera", "candle",
         "cannon", "carrot", "castle", "cat", "chair", "chandelier", "closet",
-        "cloud", "comb", "computer monitor", "computer-mouse", "cone-ice-cream",
-        "cow", "crab", "crocodile", "crown",
-        "diamond", "dog", "dolphin", "donut", "door", "dragon",
-        "ear", "elephant", "envelope", "eye", "eyeglasses",
+        "cloud", "comb", "computer monitor", "computer mouse", "cone ice cream",
+        "crab", "crocodile", "crown",
+        "diamond", "donut", "door",
+        "ear", "envelope", "eye", "eyeglasses",
         "face", "fan", "feather", "fire hydrant", "fish", "flashlight",
-        "flower with stem", "flying bird", "foot", "fork", "frog", "frying-pan",
+        "flower with stem", "foot", "fork", "frog", "frying-pan",
         "gift", "giraffe", "grapes", "guitar",
         "hamburger", "hammer", "hand", "hat", "head-phones", "hedgehog",
-        "helicopter", "helmet", "horse", "hot-dog", "hourglass", "house",
-        "human-skeleton",
-        "kangaroo", "kayak", "key", "keyboard-computer", "knife",
-        "ladder", "laptop", "leaf", "lightbulb", "lion", "lobster",
-        "microphone", "microscope", "monkey", "moon", "mouse (animal)", "mouth", "mug", "mushroom",
-        "nose",
-        "octopus", "owl",
+        "helicopter", "helmet", "hot-dog", "hourglass", "house",
+        "human-skeleton", "kangaroo", "kayak", "key", "knife",
+        "ladder", "laptop", "leaf", "lightbulb", "lobster",
+        "microphone", "microscope", "moon", "mouse", "mouth", "mug", "mushroom",
+        "nose", "octopus", "owl",
         "palm tree", "pant", "paper clip", "parachute", "pear", "pen",
         "penguin", "person sitting", "person walking", "pig", "pineapple", "pizza",
         "potted plant", "power outlet", "pretzel", "pumpkin",
         "rabbit", "radio", "rainbow", "rocket", "rollerblades", "rooster",
-        "satellite", "scissors", "scorpion", "screwdriver", "sea turtle", "sedan",
-        "shark", "sheep", "ship", "shoe", "skateboard", "skull", "skyscraper",
-        "snail", "snake", "socks", "spider", "spoon", "squirrel", "stapler",
-        "strawberry", "streetlight", "submarine", "suitcase", "sun", "swan", "syringe",
-        "t-shirt", "table", "teapot", "teddy-bear", "tennis-racket", "tent",
+        "satellite", "scissors", "screwdriver", "sea turtle", "sedan",
+        "sheep", "ship", "shoe", "skateboard", "skull", "skyscraper",
+        "snail", "snake", "socks", "spider", "spoon", "stapler",
+        "strawberry", "streetlight", "suitcase", "sun", "swan", "syringe",
+        "t-shirt", "table", "teapot", "teddy bear", "tennis racket", "tent",
         "tiger", "tomato", "tooth", "toothbrush", "traffic light", "train", "tree",
-        "ufo", "umbrella",
-        "wheel", "windmill", "wineglass", "wrist-watch",
-        "zebra"
+        "ufo", "umbrella", "wheel", "windmill", "wineglass", "wrist-watch", "zebra"
     ]
 
     struct RoomSection {
@@ -50,26 +46,29 @@ final class AlbumBookViewController: UIViewController {
     }
 
     private let sections: [RoomSection] = [
-        RoomSection(name: "Laboratorium", items: [
-            "angel", "ant", "bee", "brain", "butterfly", "cactus", "camel", "cat", "cow", "crab", "crocodile", "crown", "dog", "dolphin", "dragon", "ear", "elephant", "eye", "eyeglasses", "face", "feather", "fish", "flower with stem", "flying bird", "foot", "frog", "giraffe", "hand", "hat", "hedgehog", "helmet", "horse", "human-skeleton", "kangaroo", "leaf", "lion", "lobster", "monkey", "mouse (animal)", "mouth", "nose", "octopus", "owl", "palm tree", "pant", "penguin", "person sitting", "person walking", "pig", "potted plant", "rabbit", "rooster", "scorpion", "sea turtle", "shark", "sheep", "shoe", "skull", "snail", "snake", "socks", "spider", "squirrel", "swan", "t-shirt", "tiger", "tooth", "tree", "wrist-watch", "zebra"
-        ]),
-        RoomSection(name: "Engine Room", items: [
-            "airplane", "alarm clock", "bicycle", "camera", "cannon", "castle", "cloud", "computer monitor", "diamond", "envelope", "fire hydrant", "gift", "head-phones", "helicopter", "house", "kayak", "keyboard-computer", "laptop", "microphone", "parachute", "radio", "rainbow", "rocket", "rollerblades", "satellite", "sedan", "ship", "skateboard", "skyscraper", "streetlight", "submarine", "teddy-bear", "tent", "traffic light", "train", "windmill"
-        ]),
-        RoomSection(name: "Storage", items: [
-            "axe", "backpack", "bed", "bell", "binoculars", "book", "bowl", "cabinet", "calculator", "candle", "chair", "chandelier", "closet", "comb", "computer-mouse", "door", "fan", "flashlight", "fork", "frying-pan", "guitar", "hammer", "hourglass", "key", "knife", "ladder", "lightbulb", "microscope", "mug", "paper clip", "pen", "power outlet", "scissors", "screwdriver", "spoon", "stapler", "syringe", "table", "teapot", "tennis-racket", "toothbrush", "umbrella", "wheel", "wineglass"
-        ]),
-        RoomSection(name: "Kitchen", items: [
-            "apple", "banana", "bread", "cake", "carrot", "cone-ice-cream", "donut", "grapes", "hamburger", "hot-dog", "mushroom", "pear", "pineapple", "pizza", "pretzel", "pumpkin", "strawberry", "tomato"
-        ]),
         RoomSection(name: "Cockpit", items: [
             "moon", "sun", "ufo"
+        ]),
+        RoomSection(name: "Engine Room", items: [
+            "alarm clock", "bicycle", "camera", "cannon", "castle", "cloud", "computer monitor", "diamond", "envelope", "fire hydrant", "gift", "head-phones", "helicopter", "house", "kayak", "laptop", "microphone", "parachute", "radio", "rainbow", "rocket", "rollerblades", "satellite", "sedan", "ship", "skateboard", "skyscraper", "streetlight", "teddy bear", "tent", "traffic light", "train", "windmill"
+        ]),
+        RoomSection(name: "Kitchen", items: [
+            "apple", "banana", "bread", "cake", "carrot", "cone ice cream", "donut", "grapes", "hamburger", "hot-dog", "mushroom", "pear", "pineapple", "pizza", "pretzel", "pumpkin", "strawberry", "tomato"
+        ]),
+        RoomSection(name: "Laboratorium", items: [
+            "ant", "bee", "brain", "butterfly", "cactus", "camel", "cat", "crab", "crocodile", "crown", "ear", "eye", "eyeglasses", "face", "feather", "fish", "flower with stem", "foot", "frog", "giraffe", "hand", "hat", "hedgehog", "helmet", "human-skeleton", "kangaroo", "leaf", "lobster", "mouse", "mouth", "nose", "octopus", "owl", "palm tree", "pant", "penguin", "person sitting", "person walking", "pig", "potted plant", "rabbit", "rooster", "sea turtle", "sheep", "shoe", "skull", "snail", "snake", "socks", "spider", "suitcase", "swan", "t-shirt", "tiger", "tooth", "tree", "wrist-watch", "zebra"
+        ]),
+        RoomSection(name: "Others", items: [
+            "angel"
+        ]),
+        RoomSection(name: "Storage", items: [
+            "axe", "backpack", "bed", "bell", "binoculars", "book", "bowl", "cabinet", "calculator", "candle", "chair", "chandelier", "closet", "comb", "computer mouse", "door", "fan", "flashlight", "fork", "frying-pan", "guitar", "hammer", "hourglass", "key", "knife", "ladder", "lightbulb", "microscope", "mug", "paper clip", "pen", "power outlet", "scissors", "screwdriver", "spoon", "stapler", "syringe", "table", "teapot", "tennis racket", "toothbrush", "umbrella", "wheel", "wineglass"
         ])
     ]
 
     private var selectedIndex = 0
-    private var expandedSections: Set<Int> = [0] // Laboratorium expanded by default
-    private var selectedIndexPath: IndexPath? = IndexPath(row: 0, section: 0)
+    private var expandedSections: Set<Int> = []
+    private var selectedIndexPath: IndexPath? = nil
 
     // MARK: - UI Components
 
@@ -109,9 +108,14 @@ final class AlbumBookViewController: UIViewController {
 
     private lazy var closeButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("✕", for: .normal)
-        btn.titleLabel?.font = GameFont.custom(size: 18, weight: 600).uiFont
-        btn.setTitleColor(.white, for: .normal)
+        let config = UIImage.SymbolConfiguration(font: GameFont.subheadline.uiFont)
+        btn.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        btn.tintColor = .white
+        btn.backgroundColor = UIColor.white.withAlphaComponent(0.10)
+        btn.layer.cornerRadius = 22
+        btn.layer.borderWidth = 1
+        btn.layer.borderColor = UIColor.white.withAlphaComponent(0.16).cgColor
+        btn.layer.masksToBounds = true
         btn.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
@@ -129,6 +133,10 @@ final class AlbumBookViewController: UIViewController {
         tv.backgroundColor = .clear
         tv.separatorColor = UIColor.white.withAlphaComponent(0.08)
         tv.showsVerticalScrollIndicator = true
+        if #available(iOS 15.0, *) {
+            tv.sectionHeaderTopPadding = 0
+        }
+        tv.tableFooterView = UIView()
         tv.translatesAutoresizingMaskIntoConstraints = false
         return tv
     }()
@@ -161,15 +169,7 @@ final class AlbumBookViewController: UIViewController {
         label.font = GameFont.custom(size: 22, weight: 700).uiFont
         label.textColor = .white
         label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let imageCountLabel: UILabel = {
-        let label = UILabel()
-        label.font = GameFont.custom(size: 13, weight: 400).uiFont
-        label.textColor = UIColor.white.withAlphaComponent(0.45)
-        label.textAlignment = .center
+        label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -179,8 +179,7 @@ final class AlbumBookViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        let globalIndex = getGlobalIndex(for: IndexPath(row: 0, section: 0))
-        updateRightPanel(index: globalIndex, animated: false)
+        updateRightPanel(index: nil, animated: false)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -267,7 +266,6 @@ final class AlbumBookViewController: UIViewController {
         // Right panel
         containerView.addSubview(imageTitleLabel)
         containerView.addSubview(imageContainerView)
-        containerView.addSubview(imageCountLabel)
         imageContainerView.addSubview(imageView)
 
         NSLayoutConstraint.activate([
@@ -277,21 +275,16 @@ final class AlbumBookViewController: UIViewController {
             imageContainerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -24),
             imageContainerView.bottomAnchor.constraint(equalTo: imageTitleLabel.topAnchor, constant: -12),
 
-            // Coretan/Doodle Image (centered, exactly 224x224 to prevent stretching/pixelation)
-            imageView.centerXAnchor.constraint(equalTo: imageContainerView.centerXAnchor),
-            imageView.centerYAnchor.constraint(equalTo: imageContainerView.centerYAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 224),
-            imageView.heightAnchor.constraint(equalToConstant: 224),
+            // Coretan/Doodle Image (expanded to fit the frame, preserving aspect ratio)
+            imageView.topAnchor.constraint(equalTo: imageContainerView.topAnchor, constant: 16),
+            imageView.leadingAnchor.constraint(equalTo: imageContainerView.leadingAnchor, constant: 16),
+            imageView.trailingAnchor.constraint(equalTo: imageContainerView.trailingAnchor, constant: -16),
+            imageView.bottomAnchor.constraint(equalTo: imageContainerView.bottomAnchor, constant: -16),
 
             // Animal Name Label (moved below the image)
             imageTitleLabel.leadingAnchor.constraint(equalTo: panelDivider.trailingAnchor, constant: 24),
             imageTitleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -24),
-            imageTitleLabel.bottomAnchor.constraint(equalTo: imageCountLabel.topAnchor, constant: -4),
-
-            // Image Count Label (anchored to the bottom)
-            imageCountLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
-            imageCountLabel.leadingAnchor.constraint(equalTo: panelDivider.trailingAnchor, constant: 24),
-            imageCountLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -24)
+            imageTitleLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24)
         ])
 
         tableView.dataSource = self
@@ -301,12 +294,17 @@ final class AlbumBookViewController: UIViewController {
 
     // MARK: - Right Panel Update
 
-    private func updateRightPanel(index: Int, animated: Bool = true) {
-        guard index < Self.allLabels.count else { return }
+    private func updateRightPanel(index: Int?, animated: Bool = true) {
+        guard let index = index, index < Self.allLabels.count else {
+            imageContainerView.isHidden = true
+            imageTitleLabel.isHidden = true
+            return
+        }
+        imageContainerView.isHidden = false
+        imageTitleLabel.isHidden = false
         selectedIndex = index
         let label = Self.allLabels[index]
         imageTitleLabel.text = label.titleCased()
-        imageCountLabel.text = "\(index + 1) / \(Self.allLabels.count)"
         let newImage = UIImage(named: label)
         if animated {
             UIView.transition(with: imageView, duration: 0.22, options: .transitionCrossDissolve) {

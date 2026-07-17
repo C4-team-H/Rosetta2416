@@ -10,9 +10,9 @@ struct EnergyConfiguration: Codable, Equatable, Sendable {
 
     static let standard = EnergyConfiguration(
         maximumEnergy: 100,
-        passiveDrainPerSecond: 0.08,
-        movementDrainMultiplier: 1.5,
-        foodRestoreAmount: 40,
+        passiveDrainPerSecond: 0.15,
+        movementDrainMultiplier: 2.0,
+        foodRestoreAmount: 50,
         disruptionCost: 5,
         checkpointRestartMinimum: 50
     )

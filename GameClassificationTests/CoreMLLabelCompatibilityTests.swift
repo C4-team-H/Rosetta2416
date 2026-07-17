@@ -24,7 +24,7 @@ struct CoreMLLabelCompatibilityTests {
         }
         let kitchenLabels = DrawingChallenge.foodPool.map(\.label)
 
-        #expect(modelLabels.count == 172)
+        #expect(modelLabels.count == 159)
         #expect((storyLabels + kitchenLabels).allSatisfy(modelLabels.contains))
     }
 
