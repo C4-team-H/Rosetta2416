@@ -125,7 +125,8 @@ enum MapGeometryElement: Equatable, Identifiable {
         case let .doorway(value): value.doorwayBounds
         case let .blockedArea(value): value.shape.bounds
         case let .object(value): value.objectBounds
-        case .station, .spawnPoint, .checkpoint: nil
+        case let .station(value): validPolygonPoints(value.vertices).map(pointsBounds)
+        case .spawnPoint, .checkpoint: nil
         }
     }
 
@@ -136,6 +137,7 @@ enum MapGeometryElement: Equatable, Identifiable {
         case let .wall(value): validPolygonPoints(value.vertices)
         case let .doorway(value): validPolygonPoints(value.vertices)
         case let .object(value): validPolygonPoints(value.vertices)
+        case let .station(value): validPolygonPoints(value.vertices)
         default: nil
         }
     }
@@ -147,6 +149,7 @@ enum MapGeometryElement: Equatable, Identifiable {
         case let .wall(value): [value.vertices].compactMap { $0 }
         case let .doorway(value): [value.vertices].compactMap { $0 }
         case let .object(value): [value.vertices].compactMap { $0 }
+        case let .station(value): [value.vertices].compactMap { $0 }
         default: []
         }
     }
@@ -234,6 +237,8 @@ enum MapEditorMode: String, CaseIterable, Identifiable, Sendable {
     case move
     case resize
     case editNodes
+    case addNode
+    case deleteNode
     case create
     case delete
     case testCollision

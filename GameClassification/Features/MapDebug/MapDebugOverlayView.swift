@@ -8,6 +8,7 @@ struct MapDebugOverlayView: View {
     @State private var dragIsActive = false
     @State private var didConfigureCompactLayout = false
     @State private var lastCameraDragTranslation = CGSize.zero
+    @State private var lastCameraDragStartLocation: CGPoint?
     @State private var lastMagnification: CGFloat = 1
 
     var body: some View {
@@ -69,6 +70,20 @@ struct MapDebugOverlayView: View {
             viewModel.isShowingLayers = false
             viewModel.isShowingInspector = false
         }
+        .onChange(of: viewModel.settings.editorMode) { _, _ in
+            resetCameraDragState()
+        }
+        .onChange(of: viewModel.settings.isMapDebugEnabled) { _, _ in
+            resetCameraDragState()
+        }
+        .onDisappear {
+            resetCameraDragState()
+        }
+    }
+
+    private func resetCameraDragState() {
+        lastCameraDragTranslation = .zero
+        lastCameraDragStartLocation = nil
     }
 
     private var enableButton: some View {
@@ -111,9 +126,13 @@ struct MapDebugOverlayView: View {
                         }
                     )
                     .simultaneousGesture(
-                        DragGesture(minimumDistance: 3, coordinateSpace: .local)
+                        DragGesture(minimumDistance: 1, coordinateSpace: .local)
                             .onChanged { value in
                                 if viewModel.settings.editorMode == .navigate {
+                                    if lastCameraDragStartLocation != value.startLocation {
+                                        lastCameraDragStartLocation = value.startLocation
+                                        lastCameraDragTranslation = .zero
+                                    }
                                     let incrementalTranslation = CGSize(
                                         width: value.translation.width - lastCameraDragTranslation.width,
                                         height: value.translation.height - lastCameraDragTranslation.height
@@ -130,7 +149,7 @@ struct MapDebugOverlayView: View {
                             }
                             .onEnded { value in
                                 if viewModel.settings.editorMode == .navigate {
-                                    lastCameraDragTranslation = .zero
+                                    resetCameraDragState()
                                     return
                                 }
                                 viewModel.endDrag(screenPoint: value.location)
@@ -154,7 +173,8 @@ struct MapDebugOverlayView: View {
                             }
                     )
 
-                if viewModel.settings.editorMode != .testCollision {
+                if viewModel.settings.editorMode != .navigate
+                    && viewModel.settings.editorMode != .testCollision {
                     MapDebugCameraGestureBridge(
                         onPan: viewModel.panCamera(screenTranslation:)
                     )
@@ -450,13 +470,19 @@ private struct MapDebugCanvas: View {
             return false
         }()
         if !vertices.isEmpty,
-           viewModel.settings.editorMode == .editNodes || isEditableShape {
+           viewModel.settings.editorMode == .editNodes
+            || viewModel.settings.editorMode == .addNode
+            || viewModel.settings.editorMode == .deleteNode
+            || isEditableShape {
             var outline = Path()
             outline.move(to: vertices[0])
             vertices.dropFirst().forEach { outline.addLine(to: $0) }
             if shouldCloseNodeOutline(for: selected) { outline.closeSubpath() }
             context.stroke(outline, with: .color(.white), style: StrokeStyle(lineWidth: 3, dash: [8, 4]))
-            if viewModel.settings.editorMode == .resize || viewModel.settings.editorMode == .editNodes {
+            if viewModel.settings.editorMode == .resize
+                || viewModel.settings.editorMode == .editNodes
+                || viewModel.settings.editorMode == .addNode
+                || viewModel.settings.editorMode == .deleteNode {
                 for (index, point) in vertices.enumerated() {
                     let handle = CGRect(x: point.x - 9, y: point.y - 9, width: 18, height: 18)
                     let isSelected = viewModel.activeVertexIndex == index

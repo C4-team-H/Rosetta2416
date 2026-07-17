@@ -427,6 +427,20 @@ struct MapStationDefinition: Identifiable, Codable, Equatable, Sendable {
     var interactionID: String?
     var isEnabled: Bool
     var isRequired: Bool
+    /// Optional world-space editor footprint. Its bounds center remains the
+    /// authoritative station position used by gameplay and interaction nodes.
+    var vertices: [CodablePoint]? = nil
+
+    var stationPoints: [CGPoint] {
+        validPolygonPoints(vertices) ?? rectanglePoints(CGRect(
+            x: position.x - 100,
+            y: position.y - 80,
+            width: 200,
+            height: 160
+        ))
+    }
+
+    var stationBounds: CGRect { pointsBounds(stationPoints) }
 }
 
 struct MapSpawnPointDefinition: Identifiable, Codable, Equatable, Sendable {

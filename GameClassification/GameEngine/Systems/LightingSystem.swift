@@ -61,6 +61,7 @@ final class LightingSystem {
 
     private func flash(in scene: GameScene, color: SKColor, duration: TimeInterval) {
         let overlay = SKSpriteNode(color: color, size: scene.size)
+        overlay.name = "lightingFlashOverlay"
         overlay.alpha = 0
         overlay.zPosition = 24
         scene.cameraNode.addChild(overlay)

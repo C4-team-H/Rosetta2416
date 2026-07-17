@@ -18,6 +18,16 @@ struct MapGeometryEditorTests {
         let data = try JSONEncoder().encode(configuration)
         let decoded = try JSONDecoder().decode(MapGeometryConfiguration.self, from: data)
         #expect(decoded == configuration)
+
+        let legacyStationJSON = """
+        {"id":"legacy-station","name":"Legacy Station","kind":"mission","position":{"x":100,"y":200},"isEnabled":true,"isRequired":false}
+        """
+        let legacyStation = try JSONDecoder().decode(
+            MapStationDefinition.self,
+            from: Data(legacyStationJSON.utf8)
+        )
+        #expect(legacyStation.vertices == nil)
+        #expect(legacyStation.stationPoints.count == 4)
     }
 
     @Test("Store coalesces a drag transaction into one undo entry")
@@ -184,7 +194,7 @@ struct MapGeometryEditorTests {
     }
 
     #if DEBUG
-    @Test("Node mode drags corners and endpoints for every editable map geometry category")
+    @Test("Node mode adds, moves, and deletes points for every editable map geometry category")
     func allGeometryNodeDragging() throws {
         let defaultsName = "MapGeometryEditorTests.Nodes.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: defaultsName))
@@ -234,6 +244,46 @@ struct MapGeometryEditorTests {
             #expect(viewModel.activeVertexIndex == 0)
             viewModel.updateDrag(screenPoint: targetScreen)
             viewModel.endDrag(screenPoint: targetScreen)
+        }
+
+        func addNodeOnFirstEdge(of id: MapElementID) throws {
+            settings.editorMode = .addNode
+            store.selectedElement = MapEditorSelection(id)
+            let original = try #require(store.configuration.element(id: id))
+            camera.position = original.worldPosition
+            let points = viewModel.vertexScreenPoints(for: original)
+            #expect(points.count >= 3)
+            let edgeMidpoint = CGPoint(
+                x: (points[0].x + points[1].x) / 2,
+                y: (points[0].y + points[1].y) / 2
+            )
+
+            viewModel.tap(screenPoint: edgeMidpoint)
+
+            let edited = try #require(store.configuration.element(id: id))
+            #expect(viewModel.vertexScreenPoints(for: edited).count == points.count + 1)
+            #expect(viewModel.selectedVertexIndex == 1)
+        }
+
+        func deleteNode(of id: MapElementID, at index: Int) throws {
+            settings.editorMode = .deleteNode
+            store.selectedElement = MapEditorSelection(id)
+            let original = try #require(store.configuration.element(id: id))
+            camera.position = original.worldPosition
+            let points = viewModel.vertexScreenPoints(for: original)
+            let node = try #require(points.indices.contains(index) ? points[index] : nil)
+
+            viewModel.tap(screenPoint: node)
+
+            let edited = try #require(store.configuration.element(id: id))
+            let expectedCount = points.count > 3 ? points.count - 1 : points.count
+            #expect(viewModel.vertexScreenPoints(for: edited).count == expectedCount)
+            if points.count > 3 {
+                #expect(viewModel.selectedVertexIndex == nil)
+            } else {
+                #expect(viewModel.selectedVertexIndex == index)
+                #expect(store.statusMessage?.contains("at least three nodes") == true)
+            }
         }
 
         let room = store.configuration.rooms[0]
@@ -336,6 +386,38 @@ struct MapGeometryEditorTests {
         #expect(editedObject.vertices != nil)
         #expect(Array(editedObject.objectPoints.dropFirst()) == Array(originalObjectPoints.dropFirst()))
 
+        let missionStation = try #require(store.configuration.stations.first(where: { $0.kind == .mission }))
+        let missionStationID = MapElementID(category: .missionStation, rawValue: missionStation.id)
+        let originalStationPosition = missionStation.position
+        try dragFirstNode(of: missionStationID, by: CGVector(dx: -30, dy: -20))
+        let editedMissionStation = try #require(store.configuration.stations.first(where: { $0.id == missionStation.id }))
+        #expect(editedMissionStation.vertices?.count == 4)
+        #expect(editedMissionStation.position != originalStationPosition)
+
+        let foodStation = try #require(store.configuration.stations.first(where: { $0.kind == .food }))
+        let foodStationID = MapElementID(category: .foodStation, rawValue: foodStation.id)
+
+        let roomTriggerCountBeforeInsertion = editedRoom.roomTriggerPoints.count
+        try addNodeOnFirstEdge(of: MapElementID(category: .room, rawValue: room.id))
+        try addNodeOnFirstEdge(of: MapElementID(category: .corridor, rawValue: corridor.id))
+        try addNodeOnFirstEdge(of: MapElementID(category: .wall, rawValue: wall.id))
+        try addNodeOnFirstEdge(of: MapElementID(category: .doorway, rawValue: doorway.id))
+        try addNodeOnFirstEdge(of: MapElementID(category: .object, rawValue: object.id))
+        try addNodeOnFirstEdge(of: missionStationID)
+        try addNodeOnFirstEdge(of: foodStationID)
+        let roomAfterInsertion = try #require(store.configuration.rooms.first(where: { $0.id == room.id }))
+        #expect(roomAfterInsertion.roomTriggerPoints.count == roomTriggerCountBeforeInsertion + 1)
+
+        try deleteNode(of: MapElementID(category: .room, rawValue: room.id), at: 1)
+        try deleteNode(of: MapElementID(category: .corridor, rawValue: corridor.id), at: 1)
+        try deleteNode(of: MapElementID(category: .wall, rawValue: wall.id), at: 1)
+        try deleteNode(of: MapElementID(category: .doorway, rawValue: doorway.id), at: 1)
+        try deleteNode(of: MapElementID(category: .object, rawValue: object.id), at: 1)
+        try deleteNode(of: missionStationID, at: 1)
+        try deleteNode(of: foodStationID, at: 1)
+        let roomAfterDeletion = try #require(store.configuration.rooms.first(where: { $0.id == room.id }))
+        #expect(roomAfterDeletion.roomTriggerPoints.count == roomTriggerCountBeforeInsertion)
+
         let runtime = GameMapLayout.makeRuntimeMap(from: store.configuration, revision: 99)
         guard case .polygon = try #require(runtime.rooms.first(where: { $0.sourceID == room.id })?.walkableShape) else {
             Issue.record("A freeform room must compile into polygon walkability")
@@ -357,6 +439,30 @@ struct MapGeometryEditorTests {
             Issue.record("A freeform object must compile into polygon collision")
             return
         }
+
+        func elementCount(for category: MapElementCategory) -> Int {
+            store.configuration.allElements.filter { $0.id.category == category }.count
+        }
+        settings.editorMode = .create
+        camera.position = CGPoint(x: 2_000, y: 1_600)
+        for (index, category) in MapElementCategory.debugShapeCreationCases.enumerated() {
+            let countBefore = elementCount(for: category)
+            viewModel.selectedCreationCategory = category
+            let startWorld = CGPoint(x: 1_400 + CGFloat(index) * 220, y: 1_300)
+            let endWorld = CGPoint(x: startWorld.x + 120, y: startWorld.y + 90)
+            let startScreen = try #require(converter.worldToScreen(startWorld))
+            let endScreen = try #require(converter.worldToScreen(endWorld))
+            viewModel.beginDrag(screenPoint: startScreen)
+            viewModel.updateDrag(screenPoint: endScreen)
+            viewModel.endDrag(screenPoint: endScreen)
+            #expect(elementCount(for: category) == countBefore + 1)
+            #expect(store.selectedElement?.elementID.category == category)
+        }
+
+        let createdStationID = try #require(store.selectedElement?.elementID)
+        #expect(createdStationID.category == .foodStation)
+        try deleteNode(of: createdStationID, at: 0)
+        try deleteNode(of: createdStationID, at: 0)
     }
     #endif
 
@@ -449,7 +555,26 @@ struct MapGeometryEditorTests {
         let roundTrip = try #require(converter.screenToWorld(screenPoint))
         #expect(hypot(roundTrip.x - worldPoint.x, roundTrip.y - worldPoint.y) < 0.01)
 
-        converter.panCamera(screenTranslation: CGSize(width: 40, height: -25), worldSize: CGSize(width: 5_504, height: 4_128))
+        let initialCameraPosition = camera.position
+        #expect(converter.panCamera(
+            screenTranslation: CGSize(width: -40, height: -25),
+            worldSize: CGSize(width: 5_504, height: 4_128)
+        ))
+        #expect(camera.position.x > initialCameraPosition.x)
+        #expect(camera.position.y < initialCameraPosition.y)
+
+        let afterNegativePan = camera.position
+        #expect(converter.panCamera(
+            screenTranslation: CGSize(width: 40, height: 25),
+            worldSize: CGSize(width: 5_504, height: 4_128)
+        ))
+        #expect(camera.position.x < afterNegativePan.x)
+        #expect(camera.position.y > afterNegativePan.y)
+
+        #expect(!converter.panCamera(
+            screenTranslation: .zero,
+            worldSize: CGSize(width: 5_504, height: 4_128)
+        ))
         converter.zoomCamera(multiplier: 1.2, worldSize: CGSize(width: 5_504, height: 4_128))
         let transformedScreen = try #require(converter.worldToScreen(camera.position))
         let transformedRoundTrip = try #require(converter.screenToWorld(transformedScreen))

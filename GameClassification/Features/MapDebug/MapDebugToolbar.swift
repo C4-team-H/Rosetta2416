@@ -27,6 +27,25 @@ struct MapDebugToolbar: View {
                 }
             }
 
+            if viewModel.settings.editorMode == .create {
+                Menu {
+                    ForEach(MapElementCategory.debugShapeCreationCases, id: \.self) { category in
+                        Button {
+                            viewModel.selectedCreationCategory = category
+                        } label: {
+                            if viewModel.selectedCreationCategory == category {
+                                Label(category.debugTitle, systemImage: "checkmark")
+                            } else {
+                                Text(category.debugTitle)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(viewModel.selectedCreationCategory.debugTitle, systemImage: "square.on.square")
+                        .font(.caption.bold())
+                }
+            }
+
             Divider().overlay(.white.opacity(0.2)).frame(height: 28)
 
             Button { viewModel.store.undo() } label: { Image(systemName: "arrow.uturn.backward") }
@@ -68,6 +87,8 @@ private extension MapEditorMode {
         case .move: "Move"
         case .resize: "Resize"
         case .editNodes: "Nodes"
+        case .addNode: "Add Node"
+        case .deleteNode: "Delete Node"
         case .create: "Create"
         case .delete: "Delete"
         case .testCollision: "Test"
@@ -82,9 +103,32 @@ private extension MapEditorMode {
         case .move: "arrow.up.and.down.and.arrow.left.and.right"
         case .resize: "arrow.up.left.and.arrow.down.right"
         case .editNodes: "point.3.connected.trianglepath.dotted"
+        case .addNode: "plus.circle"
+        case .deleteNode: "minus.circle"
         case .create: "plus.square"
         case .delete: "trash"
         case .testCollision: "figure.walk"
+        }
+    }
+}
+
+extension MapElementCategory {
+    static let debugShapeCreationCases: [MapElementCategory] = [
+        .room, .corridor, .wall, .doorway, .object, .missionStation, .foodStation
+    ]
+
+    var debugTitle: String {
+        switch self {
+        case .room: "Room"
+        case .corridor: "Corridor"
+        case .wall: "Wall"
+        case .doorway: "Doorway"
+        case .blockedArea: "Blocked Area"
+        case .object: "Object"
+        case .missionStation: "Mission Station"
+        case .foodStation: "Food Station"
+        case .spawnPoint: "Spawn Point"
+        case .checkpoint: "Checkpoint"
         }
     }
 }

@@ -146,6 +146,7 @@ final class GameScene: SKScene {
         synchronizeCandleLightWithPlayer()
         mapCoordinateConverter.attach(view: view, scene: self, camera: cameraNode)
         view.showsPhysics = debugSettings.isMapDebugEnabled && debugSettings.showCollisionBodies
+        updateMapDebugTransition()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -227,8 +228,12 @@ final class GameScene: SKScene {
             checkProximityToLockedDoor()
         }
 
-        candleLight?.updateFlicker(currentTime: currentTime)
-        lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
+        if debugSettings.isMapDebugEnabled {
+            candleLight?.isHidden = true
+        } else {
+            candleLight?.updateFlicker(currentTime: currentTime)
+            lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
+        }
     }
 
     override func didSimulatePhysics() {
@@ -398,6 +403,7 @@ final class GameScene: SKScene {
         let enabled = DebugAvailability.isMapEditorAvailable && debugSettings.isMapDebugEnabled
         guard enabled != wasMapDebugEnabled else { return }
         wasMapDebugEnabled = enabled
+        synchronizeDebugLightingVisibility()
         if enabled {
             debugEntryPlayerPosition = player?.position
             tacticalMapViewModel.closeMap()
@@ -416,6 +422,17 @@ final class GameScene: SKScene {
             )
             debugEntryPlayerPosition = nil
             resetContactTracking()
+        }
+    }
+
+    func synchronizeDebugLightingVisibility() {
+        let debugEnabled = DebugAvailability.isMapEditorAvailable && debugSettings.isMapDebugEnabled
+        candleLight?.isHidden = debugEnabled
+        if debugEnabled {
+            cameraNode.enumerateChildNodes(withName: "lightingFlashOverlay") { node, _ in
+                node.removeAllActions()
+                node.removeFromParent()
+            }
         }
     }
 

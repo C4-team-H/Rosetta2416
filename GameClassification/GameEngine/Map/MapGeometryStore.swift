@@ -324,7 +324,9 @@ private extension MapGeometryElement {
             value.vertices = offsetPoints(value.vertices, dx: delta.dx, dy: delta.dy)
             return .object(value)
         case var .station(value):
-            value.position = CodablePoint(x: target.x, y: target.y); return .station(value)
+            value.position = CodablePoint(x: target.x, y: target.y)
+            value.vertices = offsetPoints(value.vertices, dx: delta.dx, dy: delta.dy)
+            return .station(value)
         case var .spawnPoint(value):
             value.position = CodablePoint(x: target.x, y: target.y); return .spawnPoint(value)
         case var .checkpoint(value):
@@ -373,7 +375,12 @@ private extension MapGeometryElement {
             value.position = CodablePoint(x: frame.midX, y: frame.midY)
             value.size = CodableSize(width: frame.width, height: frame.height)
             return .object(value)
-        case .station, .spawnPoint, .checkpoint: return nil
+        case var .station(value):
+            guard validPolygonPoints(value.vertices) != nil else { return nil }
+            value.vertices = scaledPoints(value.vertices, from: value.stationBounds, to: frame)
+            value.position = CodablePoint(x: frame.midX, y: frame.midY)
+            return .station(value)
+        case .spawnPoint, .checkpoint: return nil
         }
     }
 
@@ -426,6 +433,7 @@ private extension MapGeometryElement {
         case var .wall(value): value = MapWallDefinition(id: id, name: "\(value.name) Copy", frame: value.frame, rotation: value.rotation, isEnabled: value.isEnabled, isRequired: false, vertices: value.vertices); return .wall(value)
         case var .blockedArea(value): value = MapBlockedAreaDefinition(id: id, name: "\(value.name) Copy", shape: value.shape, isEnabled: value.isEnabled, isRequired: false); return .blockedArea(value)
         case var .object(value): value = MapObjectDefinition(id: id, name: "\(value.name) Copy", type: value.type, position: value.position, size: value.size, rotation: value.rotation, interactionID: nil, isEnabled: value.isEnabled, isRequired: false, vertices: value.vertices); return .object(value)
+        case var .station(value): value = MapStationDefinition(id: id, name: "\(value.name) Copy", kind: value.kind, roomID: value.roomID, position: value.position, interactionID: nil, isEnabled: value.isEnabled, isRequired: false, vertices: value.vertices); return .station(value)
         default: return nil
         }
     }

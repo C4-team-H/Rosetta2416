@@ -69,19 +69,24 @@ final class MapEditorCoordinateConverter {
         )
     }
 
-    func panCamera(screenTranslation: CGSize, worldSize: CGSize) {
+    @discardableResult
+    func panCamera(screenTranslation: CGSize, worldSize: CGSize) -> Bool {
         guard let camera,
-              let start = screenToWorld(.zero),
-              let translated = screenToWorld(CGPoint(x: screenTranslation.width, y: screenTranslation.height)) else { return }
+              screenTranslation.width.isFinite,
+              screenTranslation.height.isFinite,
+              screenTranslation != .zero,
+              let worldDelta = unboundedWorldDelta(for: screenTranslation) else { return false }
+        let previousPosition = camera.position
         camera.position = clampedCameraPosition(
             CGPoint(
-                x: camera.position.x - (translated.x - start.x),
-                y: camera.position.y - (translated.y - start.y)
+                x: camera.position.x - worldDelta.dx,
+                y: camera.position.y - worldDelta.dy
             ),
             camera: camera,
             worldSize: worldSize
         )
         refresh()
+        return camera.position != previousPosition
     }
 
     func zoomCamera(multiplier: CGFloat, worldSize: CGSize) {
@@ -121,5 +126,19 @@ final class MapEditorCoordinateConverter {
             cameraScale: camera.xScale,
             worldSize: worldSize
         )
+    }
+
+    /// Converts a translation vector rather than an input location. Gesture
+    /// translations may be negative or larger than the viewport, so this
+    /// intentionally bypasses `screenToWorld`'s hit-testing bounds.
+    private func unboundedWorldDelta(for screenTranslation: CGSize) -> CGVector? {
+        guard let scene, let view else { return nil }
+        let anchor = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
+        let start = scene.convertPoint(fromView: anchor)
+        let translated = scene.convertPoint(fromView: CGPoint(
+            x: anchor.x + screenTranslation.width,
+            y: anchor.y + screenTranslation.height
+        ))
+        return CGVector(dx: translated.x - start.x, dy: translated.y - start.y)
     }
 }

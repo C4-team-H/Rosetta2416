@@ -17,6 +17,24 @@ struct MapDebugInspectorView: View {
                 creationPicker
             }
 
+            if viewModel.settings.editorMode == .addNode {
+                Label(
+                    "Select a room, corridor, wall, doorway, object, or station, then tap one of its edges to insert a new node.",
+                    systemImage: "plus.circle"
+                )
+                .font(.caption2)
+                .foregroundStyle(.cyan)
+            }
+
+            if viewModel.settings.editorMode == .deleteNode {
+                Label(
+                    "Tap a numbered node on a room, corridor, wall, doorway, object, or station to delete it. Every shape keeps at least three nodes.",
+                    systemImage: "minus.circle"
+                )
+                .font(.caption2)
+                .foregroundStyle(.red)
+            }
+
             if let element = viewModel.selectedElement {
                 MapDebugSelectedElementEditor(viewModel: viewModel, element: element)
                     .id(element.id)
@@ -56,14 +74,13 @@ struct MapDebugInspectorView: View {
     private var creationPicker: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text("CREATE ELEMENT").font(.caption2.bold()).foregroundStyle(.cyan)
-            Picker("Element", selection: Bindable(viewModel).selectedCreationCategory) {
-                ForEach(MapElementCategory.allCases, id: \.self) { category in
-                    Text(category.title).tag(category)
+            Picker("Category", selection: Bindable(viewModel).selectedCreationCategory) {
+                ForEach(MapElementCategory.debugShapeCreationCases, id: \.self) { category in
+                    Text(category.debugTitle).tag(category)
                 }
             }
             .pickerStyle(.menu)
-            Text([.missionStation, .foodStation, .spawnPoint, .checkpoint].contains(viewModel.selectedCreationCategory)
-                 ? "Tap to place a point." : "Drag on the map to create a rectangle.")
+            Text("Drag on the map to create a new \(viewModel.selectedCreationCategory.debugTitle.lowercased()).")
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.6))
         }
@@ -103,7 +120,7 @@ private struct MapDebugSelectedElementEditor: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 Text(element.id.rawValue).font(.caption.monospaced().bold()).foregroundStyle(.cyan)
-                Text(element.id.category.title.uppercased()).font(.caption2.bold()).foregroundStyle(.white.opacity(0.55))
+                Text(element.id.category.debugTitle.uppercased()).font(.caption2.bold()).foregroundStyle(.white.opacity(0.55))
 
                 TextField("Name", text: $name)
                     .textFieldStyle(.roundedBorder)
@@ -233,20 +250,4 @@ private struct MapDebugSelectedElementEditor: View {
     }
 }
 
-private extension MapElementCategory {
-    var title: String {
-        switch self {
-        case .room: "Room"
-        case .corridor: "Corridor"
-        case .wall: "Wall"
-        case .doorway: "Doorway"
-        case .blockedArea: "Blocked Area"
-        case .object: "Object"
-        case .missionStation: "Mission Station"
-        case .foodStation: "Food Station"
-        case .spawnPoint: "Spawn Point"
-        case .checkpoint: "Checkpoint"
-        }
-    }
-}
 #endif

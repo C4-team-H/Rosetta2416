@@ -27,6 +27,9 @@ struct MapDebugLayerControls: View {
             Toggle("Coordinates", isOn: bind(\.showCoordinates))
             Toggle("Grid", isOn: bind(\.showGrid))
             Toggle("Physics", isOn: bind(\.showCollisionBodies))
+            Label("Candle overlay disabled", systemImage: "lightbulb.slash")
+                .font(.caption2)
+                .foregroundStyle(.cyan)
             Button("Show All") { viewModel.settings.resetVisibility() }
                 .font(.caption.bold())
         }

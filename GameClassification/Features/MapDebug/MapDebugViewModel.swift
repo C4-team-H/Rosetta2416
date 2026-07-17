@@ -81,6 +81,14 @@ final class MapDebugViewModel {
     func tap(screenPoint: CGPoint) {
         guard let world = converter.screenToWorld(screenPoint) else { return }
         cursorWorldPosition = world
+        if settings.editorMode == .addNode {
+            addNode(at: world, screenPoint: screenPoint)
+            return
+        }
+        if settings.editorMode == .deleteNode {
+            deleteNode(at: screenPoint)
+            return
+        }
         if settings.editorMode == .create,
            isPointCategory(selectedCreationCategory) {
             createPointElement(category: selectedCreationCategory, at: grid.snapped(world))
@@ -103,6 +111,63 @@ final class MapDebugViewModel {
         if settings.editorMode == .delete {
             pendingDelete = hit.id
         }
+    }
+
+    private func addNode(at worldPoint: CGPoint, screenPoint: CGPoint) {
+        var candidates: [MapGeometryElement] = []
+        if let selected = store.selectedGeometry, selected.supportsNodeInsertion {
+            candidates.append(selected)
+        }
+        for candidate in hitCandidates(screenPoint: screenPoint)
+            where candidate.supportsNodeInsertion && !candidates.contains(where: { $0.id == candidate.id }) {
+            candidates.append(candidate)
+        }
+
+        let tolerance = worldTolerance(at: screenPoint)
+        for candidate in candidates {
+            guard let insertion = candidate.insertingNodeForEditor(
+                near: worldPoint,
+                maximumDistance: tolerance,
+                grid: grid
+            ) else { continue }
+            store.selectedElement = MapEditorSelection(candidate.id)
+            store.update(insertion.element)
+            selectedVertexIndex = insertion.index
+            store.statusMessage = "Added node \(insertion.index + 1) to \(candidate.name)"
+            return
+        }
+        store.statusMessage = "Tap near an edge of a selected room, corridor, wall, doorway, object, or station"
+    }
+
+    private func deleteNode(at screenPoint: CGPoint) {
+        var candidates: [MapGeometryElement] = []
+        if let selected = store.selectedGeometry, selected.supportsNodeDeletion {
+            candidates.append(selected)
+        }
+        for candidate in hitCandidates(screenPoint: screenPoint)
+            where candidate.supportsNodeDeletion && !candidates.contains(where: { $0.id == candidate.id }) {
+            candidates.append(candidate)
+        }
+
+        for candidate in candidates {
+            guard let index = nearestVertexIndex(
+                at: screenPoint,
+                for: candidate,
+                maximumScreenDistance: 28
+            ) else { continue }
+            guard let edited = candidate.deletingNodeForEditor(at: index) else {
+                store.selectedElement = MapEditorSelection(candidate.id)
+                selectedVertexIndex = index
+                store.statusMessage = "Cannot delete node: every shape requires at least three nodes"
+                return
+            }
+            store.selectedElement = MapEditorSelection(candidate.id)
+            store.update(edited)
+            selectedVertexIndex = nil
+            store.statusMessage = "Deleted node \(index + 1) from \(candidate.name)"
+            return
+        }
+        store.statusMessage = "Tap a numbered node on a selected room, corridor, wall, doorway, object, or station"
     }
 
     func beginDrag(screenPoint: CGPoint) {
@@ -392,9 +457,19 @@ final class MapDebugViewModel {
 
     private func vertexIndex(at screenPoint: CGPoint) -> Int? {
         guard let selected = store.selectedGeometry, !selected.editorVertices.isEmpty else { return nil }
-        return vertexScreenPoints(for: selected).enumerated().min {
+        return nearestVertexIndex(at: screenPoint, for: selected, maximumScreenDistance: 28)
+    }
+
+    private func nearestVertexIndex(
+        at screenPoint: CGPoint,
+        for element: MapGeometryElement,
+        maximumScreenDistance: CGFloat
+    ) -> Int? {
+        vertexScreenPoints(for: element).enumerated().min {
             distance($0.element, screenPoint) < distance($1.element, screenPoint)
-        }.flatMap { distance($0.element, screenPoint) <= 28 ? $0.offset : nil }
+        }.flatMap {
+            distance($0.element, screenPoint) <= maximumScreenDistance ? $0.offset : nil
+        }
     }
 
     func handlePoints(for frame: CGRect) -> [MapResizeHandle: CGPoint] {
@@ -450,7 +525,31 @@ final class MapDebugViewModel {
             element = .blockedArea(MapBlockedAreaDefinition(id: id, name: "Debug Blocked Area", shape: .rectangle(codableFrame), isEnabled: true, isRequired: false))
         case .object:
             element = .object(MapObjectDefinition(id: id, name: "Debug Object", type: .obstacle, position: CodablePoint(x: frame.midX, y: frame.midY), size: CodableSize(width: frame.width, height: frame.height), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false))
-        case .missionStation, .foodStation, .spawnPoint, .checkpoint:
+        case .missionStation:
+            element = .station(MapStationDefinition(
+                id: id,
+                name: "Unbound Mission Station",
+                kind: .mission,
+                roomID: nil,
+                position: CodablePoint(x: frame.midX, y: frame.midY),
+                interactionID: nil,
+                isEnabled: true,
+                isRequired: false,
+                vertices: rectanglePoints(frame).map { CodablePoint($0) }
+            ))
+        case .foodStation:
+            element = .station(MapStationDefinition(
+                id: id,
+                name: "Debug Food Station",
+                kind: .food,
+                roomID: nil,
+                position: CodablePoint(x: frame.midX, y: frame.midY),
+                interactionID: nil,
+                isEnabled: true,
+                isRequired: false,
+                vertices: rectanglePoints(frame).map { CodablePoint($0) }
+            ))
+        case .spawnPoint, .checkpoint:
             element = nil
         }
         if let element { store.insert(element) }
@@ -484,7 +583,7 @@ final class MapDebugViewModel {
     }
 
     private func isPointCategory(_ category: MapElementCategory) -> Bool {
-        [.missionStation, .foodStation, .spawnPoint, .checkpoint].contains(category)
+        [.spawnPoint, .checkpoint].contains(category)
     }
 
     private func resizedFrame(
@@ -565,6 +664,181 @@ private extension MapGeometryElement {
         }
     }
 
+    var supportsNodeInsertion: Bool {
+        switch self {
+        case .room, .corridor, .wall, .doorway, .object, .station: true
+        default: false
+        }
+    }
+
+    var supportsNodeDeletion: Bool { supportsNodeInsertion }
+
+    func insertingNodeForEditor(
+        near point: CGPoint,
+        maximumDistance: CGFloat,
+        grid: MapEditorGridConfiguration
+    ) -> (element: MapGeometryElement, index: Int)? {
+        let points = editorVertices
+        guard points.count >= 3,
+              let edge = nearestClosedEdge(to: point, in: points),
+              edge.distance <= maximumDistance else { return nil }
+        let insertedPoint = grid.snapped(edge.point)
+        let start = points[edge.index]
+        let end = points[(edge.index + 1) % points.count]
+        guard hypot(insertedPoint.x - start.x, insertedPoint.y - start.y) >= 1,
+              hypot(insertedPoint.x - end.x, insertedPoint.y - end.y) >= 1 else { return nil }
+        let insertionIndex = edge.index + 1
+
+        switch self {
+        case var .room(room):
+            var walkable = room.walkablePoints
+            walkable.insert(insertedPoint, at: insertionIndex)
+            var triggers = room.roomTriggerPoints
+            if triggers.count != points.count {
+                let source = pointsBounds(points)
+                let destination = room.triggerFrame.cgRect
+                triggers = points.map { point in
+                    CGPoint(
+                        x: destination.minX + (point.x - source.minX) / max(source.width, 0.001) * destination.width,
+                        y: destination.minY + (point.y - source.minY) / max(source.height, 0.001) * destination.height
+                    )
+                }
+            }
+            let triggerStart = triggers[edge.index]
+            let triggerEnd = triggers[(edge.index + 1) % triggers.count]
+            let projectedTrigger = CGPoint(
+                x: triggerStart.x + (triggerEnd.x - triggerStart.x) * edge.fraction,
+                y: triggerStart.y + (triggerEnd.y - triggerStart.y) * edge.fraction
+            )
+            let snapOffset = CGVector(
+                dx: insertedPoint.x - edge.point.x,
+                dy: insertedPoint.y - edge.point.y
+            )
+            triggers.insert(
+                CGPoint(
+                    x: projectedTrigger.x + snapOffset.dx,
+                    y: projectedTrigger.y + snapOffset.dy
+                ),
+                at: insertionIndex
+            )
+            room.vertices = walkable.map { CodablePoint($0) }
+            room.triggerVertices = triggers.map { CodablePoint($0) }
+            room.frame = CodableRect(pointsBounds(walkable))
+            room.triggerFrame = CodableRect(pointsBounds(triggers))
+            return (.room(room), insertionIndex)
+
+        case var .corridor(corridor):
+            var edited = corridor.walkablePoints
+            edited.insert(insertedPoint, at: insertionIndex)
+            corridor.vertices = edited.map { CodablePoint($0) }
+            corridor.frame = CodableRect(pointsBounds(edited))
+            return (.corridor(corridor), insertionIndex)
+
+        case var .wall(wall):
+            var edited = wall.rotatedCorners
+            edited.insert(insertedPoint, at: insertionIndex)
+            wall.vertices = edited.map { CodablePoint($0) }
+            wall.frame = CodableRect(pointsBounds(edited))
+            return (.wall(wall), insertionIndex)
+
+        case var .doorway(doorway):
+            var edited = doorway.doorwayPoints
+            edited.insert(insertedPoint, at: insertionIndex)
+            doorway.vertices = edited.map { CodablePoint($0) }
+            doorway.frame = CodableRect(pointsBounds(edited))
+            return (.doorway(doorway), insertionIndex)
+
+        case var .object(object):
+            var edited = object.objectPoints
+            edited.insert(insertedPoint, at: insertionIndex)
+            let bounds = pointsBounds(edited)
+            object.vertices = edited.map { CodablePoint($0) }
+            object.position = CodablePoint(x: bounds.midX, y: bounds.midY)
+            object.size = CodableSize(width: bounds.width, height: bounds.height)
+            return (.object(object), insertionIndex)
+
+        case var .station(station):
+            var edited = station.stationPoints
+            edited.insert(insertedPoint, at: insertionIndex)
+            let bounds = pointsBounds(edited)
+            station.vertices = edited.map { CodablePoint($0) }
+            station.position = CodablePoint(x: bounds.midX, y: bounds.midY)
+            return (.station(station), insertionIndex)
+
+        default:
+            return nil
+        }
+    }
+
+    func deletingNodeForEditor(at index: Int) -> MapGeometryElement? {
+        let points = editorVertices
+        guard points.count > 3, points.indices.contains(index) else { return nil }
+
+        switch self {
+        case var .room(room):
+            var walkable = room.walkablePoints
+            walkable.remove(at: index)
+            var triggers = room.roomTriggerPoints
+            if triggers.count != points.count {
+                let source = pointsBounds(points)
+                let destination = room.triggerFrame.cgRect
+                triggers = points.map { point in
+                    CGPoint(
+                        x: destination.minX + (point.x - source.minX) / max(source.width, 0.001) * destination.width,
+                        y: destination.minY + (point.y - source.minY) / max(source.height, 0.001) * destination.height
+                    )
+                }
+            }
+            triggers.remove(at: index)
+            room.vertices = walkable.map { CodablePoint($0) }
+            room.triggerVertices = triggers.map { CodablePoint($0) }
+            room.frame = CodableRect(pointsBounds(walkable))
+            room.triggerFrame = CodableRect(pointsBounds(triggers))
+            return .room(room)
+
+        case var .corridor(corridor):
+            var edited = corridor.walkablePoints
+            edited.remove(at: index)
+            corridor.vertices = edited.map { CodablePoint($0) }
+            corridor.frame = CodableRect(pointsBounds(edited))
+            return .corridor(corridor)
+
+        case var .wall(wall):
+            var edited = wall.rotatedCorners
+            edited.remove(at: index)
+            wall.vertices = edited.map { CodablePoint($0) }
+            wall.frame = CodableRect(pointsBounds(edited))
+            return .wall(wall)
+
+        case var .doorway(doorway):
+            var edited = doorway.doorwayPoints
+            edited.remove(at: index)
+            doorway.vertices = edited.map { CodablePoint($0) }
+            doorway.frame = CodableRect(pointsBounds(edited))
+            return .doorway(doorway)
+
+        case var .object(object):
+            var edited = object.objectPoints
+            edited.remove(at: index)
+            let bounds = pointsBounds(edited)
+            object.vertices = edited.map { CodablePoint($0) }
+            object.position = CodablePoint(x: bounds.midX, y: bounds.midY)
+            object.size = CodableSize(width: bounds.width, height: bounds.height)
+            return .object(object)
+
+        case var .station(station):
+            var edited = station.stationPoints
+            edited.remove(at: index)
+            let bounds = pointsBounds(edited)
+            station.vertices = edited.map { CodablePoint($0) }
+            station.position = CodablePoint(x: bounds.midX, y: bounds.midY)
+            return .station(station)
+
+        default:
+            return nil
+        }
+    }
+
     var editorVertices: [CGPoint] {
         switch self {
         case let .room(room):
@@ -582,6 +856,8 @@ private extension MapGeometryElement {
             }
         case let .object(object):
             return object.objectPoints
+        case let .station(station):
+            return station.stationPoints
         default:
             return []
         }
@@ -655,6 +931,14 @@ private extension MapGeometryElement {
             object.position = CodablePoint(x: bounds.midX, y: bounds.midY)
             object.size = CodableSize(width: bounds.width, height: bounds.height)
             return .object(object)
+        case var .station(station):
+            var points = station.stationPoints
+            guard points.indices.contains(index) else { return self }
+            points[index] = point
+            let bounds = pointsBounds(points)
+            station.vertices = points.map { CodablePoint($0) }
+            station.position = CodablePoint(x: bounds.midX, y: bounds.midY)
+            return .station(station)
         default:
             return self
         }
@@ -687,11 +971,56 @@ private extension MapGeometryElement {
             value.position = CodablePoint(target)
             value.vertices = value.vertices?.map { CodablePoint(x: $0.x + adjusted.dx, y: $0.y + adjusted.dy) }
             return .object(value)
-        case var .station(value): value.position = CodablePoint(target); return .station(value)
+        case var .station(value):
+            value.position = CodablePoint(target)
+            value.vertices = value.vertices?.map {
+                CodablePoint(x: $0.x + adjusted.dx, y: $0.y + adjusted.dy)
+            }
+            return .station(value)
         case var .spawnPoint(value): value.position = CodablePoint(target); return .spawnPoint(value)
         case var .checkpoint(value): value.position = CodablePoint(target); return .checkpoint(value)
         }
     }
+}
+
+private struct MapEditorEdgeProjection {
+    let index: Int
+    let point: CGPoint
+    let fraction: CGFloat
+    let distance: CGFloat
+}
+
+private func nearestClosedEdge(
+    to point: CGPoint,
+    in vertices: [CGPoint]
+) -> MapEditorEdgeProjection? {
+    guard vertices.count >= 2 else { return nil }
+    return vertices.indices.map { index in
+        let start = vertices[index]
+        let end = vertices[(index + 1) % vertices.count]
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let lengthSquared = dx * dx + dy * dy
+        let fraction: CGFloat
+        if lengthSquared > 0 {
+            fraction = min(max(
+                ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared,
+                0
+            ), 1)
+        } else {
+            fraction = 0
+        }
+        let projected = CGPoint(
+            x: start.x + dx * fraction,
+            y: start.y + dy * fraction
+        )
+        return MapEditorEdgeProjection(
+            index: index,
+            point: projected,
+            fraction: fraction,
+            distance: hypot(point.x - projected.x, point.y - projected.y)
+        )
+    }.min { $0.distance < $1.distance }
 }
 
 private func rectangleEditorVertices(

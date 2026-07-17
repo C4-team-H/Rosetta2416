@@ -1,3 +1,4 @@
+import Foundation
 import SpriteKit
 import Testing
 @testable import GameClassification
@@ -59,7 +60,31 @@ struct LightingSystemTests {
         #expect(abs(light.lightPosition.y - movedExpected.y) < 0.001)
     }
 
-    private func makeScene() -> GameScene {
+    #if DEBUG
+    @Test("Map debug mode hides candle and transient lighting overlays")
+    func debugModeDisablesLightingOverlay() throws {
+        let defaultsName = "LightingSystemTests.Debug.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let settings = GameDebugSettings(defaults: defaults)
+        let scene = makeScene(debugSettings: settings)
+        let flash = SKNode()
+        flash.name = "lightingFlashOverlay"
+        scene.cameraNode.addChild(flash)
+
+        settings.isMapDebugEnabled = true
+        scene.synchronizeDebugLightingVisibility()
+
+        #expect(scene.candleLight?.isHidden == true)
+        #expect(scene.cameraNode.childNode(withName: "lightingFlashOverlay") == nil)
+
+        settings.isMapDebugEnabled = false
+        scene.synchronizeDebugLightingVisibility()
+        #expect(scene.candleLight?.isHidden == false)
+    }
+    #endif
+
+    private func makeScene(debugSettings: GameDebugSettings? = nil) -> GameScene {
         let session = GameSessionState(
             localPlayer: PlayerState(
                 id: "lighting-test-player",
@@ -69,7 +94,12 @@ struct LightingSystemTests {
             )
         )
         let map = TacticalMapViewModel(sessionState: session)
-        let scene = GameScene(size: CGSize(width: 844, height: 390), sessionState: session, tacticalMapViewModel: map)
+        let scene = GameScene(
+            size: CGSize(width: 844, height: 390),
+            sessionState: session,
+            tacticalMapViewModel: map,
+            debugSettings: debugSettings
+        )
         scene.candleLight = CandleLightNode(sceneSize: scene.size)
         scene.gridContainer = SKNode()
         return scene

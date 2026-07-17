@@ -132,7 +132,8 @@ enum MapGeometryExporter {
         line("MapStationDefinition", [
             "id: \(quoted(value.id))", "name: \(quoted(value.name))", "kind: .\(value.kind.rawValue)",
             "roomID: \(value.roomID.map { ".\($0.rawValue)" } ?? "nil")", "position: \(point(value.position))",
-            "interactionID: \(optionalString(value.interactionID))", "isEnabled: \(value.isEnabled)", "isRequired: \(value.isRequired)"
+            "interactionID: \(optionalString(value.interactionID))", "isEnabled: \(value.isEnabled)", "isRequired: \(value.isRequired)",
+            "vertices: \(optionalPoints(value.vertices))"
         ])
     }
 
