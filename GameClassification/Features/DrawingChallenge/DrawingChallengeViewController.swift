@@ -42,6 +42,8 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         label.font = GameFont.title2Bold.uiFont
         label.textColor = .white
         label.textAlignment = .center
+        label.numberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -79,19 +81,21 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     private let cancelButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle(" Batal", for: .normal)
-        button.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+        let config = UIImage.SymbolConfiguration(font: GameFont.subheadline.uiFont)
+        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
         button.tintColor = .white
-        button.backgroundColor = UIColor(red: 0.74, green: 0.25, blue: 0.25, alpha: 1.0) // Slate red
-        button.layer.cornerRadius = 10
-        button.titleLabel?.font = GameFont.custom(size: 16, weight: 700).uiFont
+        button.backgroundColor = UIColor.white.withAlphaComponent(0.10)
+        button.layer.cornerRadius = 22
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.white.withAlphaComponent(0.16).cgColor
+        button.layer.masksToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
     private let clearButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle(" Hapus", for: .normal)
+        button.setTitle(" Delete", for: .normal)
         button.setImage(UIImage(systemName: "trash.fill"), for: .normal)
         button.tintColor = .white
         button.backgroundColor = UIColor(red: 0.25, green: 0.45, blue: 0.74, alpha: 1.0) // Slate blue
@@ -103,7 +107,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     private let submitButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle(" Kirim", for: .normal)
+        button.setTitle(" Submit", for: .normal)
         button.setImage(UIImage(systemName: "paperplane.fill"), for: .normal)
         button.tintColor = .white
         button.backgroundColor = UIColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0) // Success green
@@ -124,8 +128,8 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         view.backgroundColor = UIColor.black.withAlphaComponent(0.65) // Dark overlay background
         
         // Update label dinamis sesuai tantangan yang dipilih GameScene.
-        titleLabel.text = "TANTANGAN: GAMBAR \(challenge.displayName)"
-        subtitleLabel.text = "Ronde \(challengeIndex) dari \(totalChallenges). Gambarkan \(challenge.displayName) menggunakan jari/apple pencil pada kanvas putih di bawah."
+        titleLabel.text = "CHALLENGE: DRAW THE \(challenge.displayName)"
+        subtitleLabel.text = "Round \(challengeIndex) of \(totalChallenges). Draw the \(challenge.displayName) on the white canvas below using your finger or Apple Pencil."
         
         setupViews()
         setupCanvas()
@@ -147,8 +151,8 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         containerView.addSubview(subtitleLabel)
         containerView.addSubview(canvasView)
         containerView.addSubview(buttonStackView)
+        containerView.addSubview(cancelButton)
         
-        buttonStackView.addArrangedSubview(cancelButton)
         buttonStackView.addArrangedSubview(clearButton)
         buttonStackView.addArrangedSubview(submitButton)
         
@@ -160,10 +164,16 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
             containerView.widthAnchor.constraint(equalToConstant: min(500, view.bounds.width - 40)),
             containerView.heightAnchor.constraint(equalToConstant: min(600, view.bounds.height - 60)),
             
+            // Cancel Button (X icon at top right)
+            cancelButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
+            cancelButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            cancelButton.widthAnchor.constraint(equalToConstant: 44),
+            cancelButton.heightAnchor.constraint(equalToConstant: 44),
+            
             // Title
             titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 68),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -68),
             
             // Subtitle
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
@@ -234,11 +244,11 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     @objc private func submitTapped() {
         AudioManager.shared.playButtonSound()
         guard !canvasView.drawing.bounds.isEmpty else {
-            showAlert(title: "Kanvas Kosong", message: "Silakan gambar \(challenge.displayName) terlebih dahulu sebelum menekan Kirim.")
+            showAlert(title: "Empty Canvas", message: "Please draw the \(challenge.displayName) before submitting.")
             return
         }
         guard let onSubmit else {
-            showAlert(title: "Kesalahan", message: "Tantangan belum dikonfigurasi.")
+            showAlert(title: "Error", message: "The challenge has not been configured.")
             return
         }
 
@@ -270,15 +280,15 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     private func showSuccessAlert() {
         let isLast = challengeIndex >= totalChallenges
-        let title = isLast ? "Semua Tantangan Selesai!" : "Berhasil!"
+        let title = isLast ? "All Challenges Completed!" : "Correct!"
         let message: String
         if isLast {
-            message = "Luar biasa! Anda menyelesaikan semua \(totalChallenges) tantangan gambar!"
+            message = "Awesome! You completed all \(totalChallenges) drawing challenges!"
         } else {
-            message = "Luar biasa! \(challenge.displayName) benar. Tantangan \(challengeIndex) dari \(totalChallenges) selesai."
+            message = "Great job! Your \(challenge.displayName) was recognized. Challenge \(challengeIndex) of \(totalChallenges) completed."
         }
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Lanjutkan", style: .default, handler: { [weak self] _ in
+        alert.addAction(UIAlertAction(title: "Continue", style: .default, handler: { [weak self] _ in
             AudioManager.shared.playButtonSound()
             self?.dismiss(animated: true) {
                 self?.onSuccess?()
@@ -288,8 +298,8 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     }
 
     private func showFailureAlert(message: String? = nil) {
-        let alert = UIAlertController(title: "Kurang Tepat", message: message ?? "Gambar Anda belum terdeteksi sebagai \(challenge.displayName). Silakan gambar ulang.", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Coba Lagi", style: .default, handler: { [weak self] _ in
+        let alert = UIAlertController(title: "Not Quite Right", message: message ?? "Your drawing wasn't recognized as a \(challenge.displayName). Please try drawing it again.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: { [weak self] _ in
             AudioManager.shared.playButtonSound()
             self?.challengeViewModel.retry()
             self?.submitButton.isEnabled = true

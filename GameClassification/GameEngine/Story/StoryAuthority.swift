@@ -45,7 +45,17 @@ final class LocalStoryAuthority: StoryAuthority {
                     }
                     sessionState.storySystem.markKitchenLabelCompleted(challenge.label)
                     _ = sessionState.handle(.foodCompleted)
-                    return StoryAuthorityResult(accepted: true, message: "Energy restored by 40%.", effects: [], recognition: recognition)
+                    return StoryAuthorityResult(accepted: true, message: "Energy restored by 50%.", effects: [], recognition: recognition)
+                }
+
+                if objectiveID == "retry-angel" {
+                    let accepted = normalize(recognition.label) == "angel"
+                    return StoryAuthorityResult(
+                        accepted: accepted,
+                        message: accepted ? "Angel recognized!" : "Drawing not recognized. Try again.",
+                        effects: [],
+                        recognition: recognition
+                    )
                 }
 
                 let effects = sessionState.handle(.drawingValidated(objectiveID: objectiveID, result: recognition))
