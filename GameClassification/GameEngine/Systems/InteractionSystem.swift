@@ -40,6 +40,38 @@ extension GameScene {
         distance <= 80 ? showFoodInteractionButton() : hideFoodInteractionButton()
     }
 
+    func checkProximityToAlbumBook() {
+        guard let player, let albumBookNode else {
+            hideAlbumButton()
+            return
+        }
+        let distance = hypot(player.position.x - albumBookNode.position.x, player.position.y - albumBookNode.position.y)
+        if distance <= 76 {
+            showAlbumButton()
+        } else {
+            hideAlbumButton()
+        }
+    }
+
+    func requestAlbumInteraction() {
+        eventDelegate?.gameSceneDidRequestAlbum(self)
+    }
+
+    private func showAlbumButton() {
+        // Don't show if another action button is already shown
+        guard albumBookButton == nil else { return }
+        hideInteractionButton()
+        hideFoodInteractionButton()
+        let button = makeActionButton(name: "albumButton", title: "BACA", color: SKColor(red: 0.25, green: 0.45, blue: 0.80, alpha: 1))
+        albumBookButton = button
+        cameraNode.addChild(button)
+    }
+
+    func hideAlbumButton() {
+        albumBookButton?.removeFromParent()
+        albumBookButton = nil
+    }
+
     func checkProximityToLockedDoor() {
         guard let player else { return }
         let nearest = GameMapLayout.doorDefinitions

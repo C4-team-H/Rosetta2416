@@ -128,6 +128,12 @@ final class GameSessionState {
         stats.successfulDrawings += 1
     }
 
+    func markAlbumOpened() {
+        guard !storySystem.state.hasOpenedAlbum else { return }
+        storySystem.markAlbumOpened()
+        persistLatest()
+    }
+
     func updateLocalPlayer(position: CGPoint) {
         guard position.isFinite, localPlayer.worldPosition != position else { return }
         localPlayer.worldPosition = position

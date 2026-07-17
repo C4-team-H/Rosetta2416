@@ -85,6 +85,18 @@ enum TacticalMapMarkerFactory {
                 )
             }
         }
+
+        // Album Book — only shown after the player has opened it at least once
+        if story.state.hasOpenedAlbum {
+            markers.append(MapMarker(
+                id: "album-book",
+                kind: .albumBook,
+                status: .unlocked,
+                worldPosition: CGPoint(x: 230, y: 850),
+                title: "Reference Album"
+            ))
+        }
+
         return markers
     }
 }

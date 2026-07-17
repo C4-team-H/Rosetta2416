@@ -30,6 +30,10 @@ extension GameScene {
                     AudioManager.shared.playButtonSound()
                     requestFoodInteraction()
                     return
+                } else if node.name == "albumButton" {
+                    AudioManager.shared.playButtonSound()
+                    requestAlbumInteraction()
+                    return
                 }
             }
             
