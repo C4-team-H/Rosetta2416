@@ -114,7 +114,7 @@ private extension MapEditorMode {
 
 extension MapElementCategory {
     static let debugShapeCreationCases: [MapElementCategory] = [
-        .room, .corridor, .wall, .doorway, .object, .missionStation, .foodStation
+        .room, .corridor, .wall, .doorway, .blockedArea, .object, .missionStation, .foodStation
     ]
 
     var debugTitle: String {

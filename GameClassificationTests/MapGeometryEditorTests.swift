@@ -370,6 +370,25 @@ struct MapGeometryEditorTests {
         #expect(editedBlockedFrame != originalBlockedFrame)
         #expect(editedBlockedFrame.maxX == originalBlockedFrame.maxX)
         #expect(editedBlockedFrame.maxY == originalBlockedFrame.maxY)
+        let blockedID = MapElementID(category: .blockedArea, rawValue: blockedRectangle.id)
+
+        let blockedEdgeChain = MapBlockedAreaDefinition(
+            id: "blocked-edge-chain-node-test",
+            name: "Blocked Edge Chain Node Test",
+            shape: .edgeChain([
+                CodablePoint(x: 1_300, y: 1_000),
+                CodablePoint(x: 1_420, y: 1_000),
+                CodablePoint(x: 1_420, y: 1_120),
+                CodablePoint(x: 1_540, y: 1_120)
+            ]),
+            isEnabled: true,
+            isRequired: false
+        )
+        store.insert(.blockedArea(blockedEdgeChain))
+        let blockedEdgeChainID = MapElementID(
+            category: .blockedArea,
+            rawValue: blockedEdgeChain.id
+        )
 
         var object = store.configuration.objects[0]
         object.rotation = .pi / 4
@@ -402,21 +421,57 @@ struct MapGeometryEditorTests {
         try addNodeOnFirstEdge(of: MapElementID(category: .corridor, rawValue: corridor.id))
         try addNodeOnFirstEdge(of: MapElementID(category: .wall, rawValue: wall.id))
         try addNodeOnFirstEdge(of: MapElementID(category: .doorway, rawValue: doorway.id))
+        try addNodeOnFirstEdge(of: blockedID)
+        try addNodeOnFirstEdge(of: blockedEdgeChainID)
         try addNodeOnFirstEdge(of: MapElementID(category: .object, rawValue: object.id))
         try addNodeOnFirstEdge(of: missionStationID)
         try addNodeOnFirstEdge(of: foodStationID)
         let roomAfterInsertion = try #require(store.configuration.rooms.first(where: { $0.id == room.id }))
         #expect(roomAfterInsertion.roomTriggerPoints.count == roomTriggerCountBeforeInsertion + 1)
+        let blockedAfterInsertion = try #require(
+            store.configuration.blockedAreas.first(where: { $0.id == blockedRectangle.id })
+        )
+        guard case let .polygon(blockedPolygonPoints) = blockedAfterInsertion.shape else {
+            Issue.record("Adding a node to a blocked rectangle must convert it to a polygon")
+            return
+        }
+        #expect(blockedPolygonPoints.count == 5)
+        let edgeChainAfterInsertion = try #require(
+            store.configuration.blockedAreas.first(where: { $0.id == blockedEdgeChain.id })
+        )
+        guard case let .edgeChain(edgeChainPoints) = edgeChainAfterInsertion.shape else {
+            Issue.record("Adding a node must preserve blocked edge-chain topology")
+            return
+        }
+        #expect(edgeChainPoints.count == 5)
 
         try deleteNode(of: MapElementID(category: .room, rawValue: room.id), at: 1)
         try deleteNode(of: MapElementID(category: .corridor, rawValue: corridor.id), at: 1)
         try deleteNode(of: MapElementID(category: .wall, rawValue: wall.id), at: 1)
         try deleteNode(of: MapElementID(category: .doorway, rawValue: doorway.id), at: 1)
+        try deleteNode(of: blockedID, at: 1)
+        try deleteNode(of: blockedEdgeChainID, at: 1)
         try deleteNode(of: MapElementID(category: .object, rawValue: object.id), at: 1)
         try deleteNode(of: missionStationID, at: 1)
         try deleteNode(of: foodStationID, at: 1)
         let roomAfterDeletion = try #require(store.configuration.rooms.first(where: { $0.id == room.id }))
         #expect(roomAfterDeletion.roomTriggerPoints.count == roomTriggerCountBeforeInsertion)
+        let blockedAfterDeletion = try #require(
+            store.configuration.blockedAreas.first(where: { $0.id == blockedRectangle.id })
+        )
+        guard case let .polygon(blockedPointsAfterDeletion) = blockedAfterDeletion.shape else {
+            Issue.record("Deleting a node must preserve the blocked polygon")
+            return
+        }
+        #expect(blockedPointsAfterDeletion.count == 4)
+        let edgeChainAfterDeletion = try #require(
+            store.configuration.blockedAreas.first(where: { $0.id == blockedEdgeChain.id })
+        )
+        guard case let .edgeChain(edgeChainPointsAfterDeletion) = edgeChainAfterDeletion.shape else {
+            Issue.record("Deleting a node must preserve the blocked edge-chain topology")
+            return
+        }
+        #expect(edgeChainPointsAfterDeletion.count == 4)
 
         let runtime = GameMapLayout.makeRuntimeMap(from: store.configuration, revision: 99)
         guard case .polygon = try #require(runtime.rooms.first(where: { $0.sourceID == room.id })?.walkableShape) else {

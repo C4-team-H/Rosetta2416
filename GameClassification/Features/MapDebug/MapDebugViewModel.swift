@@ -136,7 +136,7 @@ final class MapDebugViewModel {
             store.statusMessage = "Added node \(insertion.index + 1) to \(candidate.name)"
             return
         }
-        store.statusMessage = "Tap near an edge of a selected room, corridor, wall, doorway, object, or station"
+        store.statusMessage = "Tap near an edge of a selected room, corridor, wall, doorway, blocked area, object, or station"
     }
 
     private func deleteNode(at screenPoint: CGPoint) {
@@ -167,7 +167,7 @@ final class MapDebugViewModel {
             store.statusMessage = "Deleted node \(index + 1) from \(candidate.name)"
             return
         }
-        store.statusMessage = "Tap a numbered node on a selected room, corridor, wall, doorway, object, or station"
+        store.statusMessage = "Tap a numbered node on a selected room, corridor, wall, doorway, blocked area, object, or station"
     }
 
     func beginDrag(screenPoint: CGPoint) {
@@ -666,7 +666,7 @@ private extension MapGeometryElement {
 
     var supportsNodeInsertion: Bool {
         switch self {
-        case .room, .corridor, .wall, .doorway, .object, .station: true
+        case .room, .corridor, .wall, .doorway, .blockedArea, .object, .station: true
         default: false
         }
     }
@@ -680,11 +680,11 @@ private extension MapGeometryElement {
     ) -> (element: MapGeometryElement, index: Int)? {
         let points = editorVertices
         guard points.count >= 3,
-              let edge = nearestClosedEdge(to: point, in: points),
+              let edge = nearestEdge(to: point, in: points, closesShape: editorEdgesAreClosed),
               edge.distance <= maximumDistance else { return nil }
         let insertedPoint = grid.snapped(edge.point)
         let start = points[edge.index]
-        let end = points[(edge.index + 1) % points.count]
+        let end = points[editorEdgesAreClosed ? (edge.index + 1) % points.count : edge.index + 1]
         guard hypot(insertedPoint.x - start.x, insertedPoint.y - start.y) >= 1,
               hypot(insertedPoint.x - end.x, insertedPoint.y - end.y) >= 1 else { return nil }
         let insertionIndex = edge.index + 1
@@ -747,6 +747,21 @@ private extension MapGeometryElement {
             doorway.vertices = edited.map { CodablePoint($0) }
             doorway.frame = CodableRect(pointsBounds(edited))
             return (.doorway(doorway), insertionIndex)
+
+        case var .blockedArea(area):
+            switch area.shape {
+            case let .rectangle(rect):
+                var edited = rectangleEditorVertices(frame: rect.cgRect)
+                edited.insert(insertedPoint, at: insertionIndex)
+                area.shape = .polygon(edited.map { CodablePoint($0) })
+            case var .polygon(points):
+                points.insert(CodablePoint(insertedPoint), at: insertionIndex)
+                area.shape = .polygon(points)
+            case var .edgeChain(points):
+                points.insert(CodablePoint(insertedPoint), at: insertionIndex)
+                area.shape = .edgeChain(points)
+            }
+            return (.blockedArea(area), insertionIndex)
 
         case var .object(object):
             var edited = object.objectPoints
@@ -817,6 +832,21 @@ private extension MapGeometryElement {
             doorway.frame = CodableRect(pointsBounds(edited))
             return .doorway(doorway)
 
+        case var .blockedArea(area):
+            switch area.shape {
+            case let .rectangle(rect):
+                var edited = rectangleEditorVertices(frame: rect.cgRect)
+                edited.remove(at: index)
+                area.shape = .polygon(edited.map { CodablePoint($0) })
+            case var .polygon(points):
+                points.remove(at: index)
+                area.shape = .polygon(points)
+            case var .edgeChain(points):
+                points.remove(at: index)
+                area.shape = .edgeChain(points)
+            }
+            return .blockedArea(area)
+
         case var .object(object):
             var edited = object.objectPoints
             edited.remove(at: index)
@@ -861,6 +891,14 @@ private extension MapGeometryElement {
         default:
             return []
         }
+    }
+
+    private var editorEdgesAreClosed: Bool {
+        if case let .blockedArea(area) = self,
+           case .edgeChain = area.shape {
+            return false
+        }
+        return true
     }
 
     func updatingVertexForEditor(at index: Int, to point: CGPoint) -> MapGeometryElement {
@@ -990,14 +1028,16 @@ private struct MapEditorEdgeProjection {
     let distance: CGFloat
 }
 
-private func nearestClosedEdge(
+private func nearestEdge(
     to point: CGPoint,
-    in vertices: [CGPoint]
+    in vertices: [CGPoint],
+    closesShape: Bool
 ) -> MapEditorEdgeProjection? {
     guard vertices.count >= 2 else { return nil }
-    return vertices.indices.map { index in
+    let edgeIndices = closesShape ? Array(vertices.indices) : Array(vertices.indices.dropLast())
+    return edgeIndices.map { index in
         let start = vertices[index]
-        let end = vertices[(index + 1) % vertices.count]
+        let end = vertices[closesShape ? (index + 1) % vertices.count : index + 1]
         let dx = end.x - start.x
         let dy = end.y - start.y
         let lengthSquared = dx * dx + dy * dy

@@ -19,7 +19,7 @@ struct MapDebugInspectorView: View {
 
             if viewModel.settings.editorMode == .addNode {
                 Label(
-                    "Select a room, corridor, wall, doorway, object, or station, then tap one of its edges to insert a new node.",
+                    "Select a room, corridor, wall, doorway, blocked area, object, or station, then tap one of its edges to insert a new node.",
                     systemImage: "plus.circle"
                 )
                 .font(.caption2)
@@ -28,7 +28,7 @@ struct MapDebugInspectorView: View {
 
             if viewModel.settings.editorMode == .deleteNode {
                 Label(
-                    "Tap a numbered node on a room, corridor, wall, doorway, object, or station to delete it. Every shape keeps at least three nodes.",
+                    "Tap a numbered node on a room, corridor, wall, doorway, blocked area, object, or station to delete it. Every shape keeps at least three nodes.",
                     systemImage: "minus.circle"
                 )
                 .font(.caption2)
