@@ -4,8 +4,9 @@ extension GameScene {
     func checkProximityToInteractiveObject() {
         guard let player else { return }
         let nearest = stationNodes
+            .filter { !$0.value.isHidden }
             .map { (id: $0.key, node: $0.value, distance: hypot(player.position.x - $0.value.position.x, player.position.y - $0.value.position.y)) }
-            .filter { $0.distance <= 76 }
+            .filter { $0.distance <= GameMapLayout.scaled(76) }
             .min { $0.distance < $1.distance }
 
         guard let nearest,
@@ -37,7 +38,7 @@ extension GameScene {
     func checkProximityToFoodObject() {
         guard let player, let foodObject else { return }
         let distance = hypot(player.position.x - foodObject.position.x, player.position.y - foodObject.position.y)
-        distance <= 80 ? showFoodInteractionButton() : hideFoodInteractionButton()
+        distance <= GameMapLayout.scaled(80) ? showFoodInteractionButton() : hideFoodInteractionButton()
     }
 
     func checkProximityToAlbumBook() {
@@ -74,7 +75,7 @@ extension GameScene {
 
     func checkProximityToLockedDoor() {
         guard let player else { return }
-        let nearest = GameMapLayout.doorDefinitions
+        let nearest = gameMap.doorways
             .filter { !sessionState.storySystem.canAccess($0.roomID) }
             .map { definition in
                 (
@@ -85,7 +86,7 @@ extension GameScene {
                     )
                 )
             }
-            .filter { $0.distance <= 88 }
+            .filter { $0.distance <= GameMapLayout.scaled(88) }
             .min { $0.distance < $1.distance }
 
         guard let nearest else {
@@ -111,8 +112,7 @@ extension GameScene {
         restorePlayerFromSession()
         resetJoystick()
         pencilTouch = nil
-        pencilTarget = nil
-        hideTargetMarker()
+        clearPencilTarget()
         isPaused = false
     }
 

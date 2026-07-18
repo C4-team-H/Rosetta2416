@@ -9,7 +9,7 @@ struct FullMapView: View {
     var body: some View {
         GeometryReader { geometry in
             let converter = MapCoordinateConverter(
-                worldSize: GameMapLayout.worldSize,
+                worldSize: viewModel.geometryStore.configuration.worldSize.cgSize,
                 viewportSize: geometry.size,
                 padding: MapDesignTokens.mapPadding
             )
@@ -29,7 +29,10 @@ struct FullMapView: View {
                     .frame(width: surfaceFrame.width, height: surfaceFrame.height)
                     .position(x: surfaceFrame.midX, y: surfaceFrame.midY)
 
-                MapBackgroundView(converter: converter)
+                MapBackgroundView(
+                    converter: converter,
+                    configuration: viewModel.geometryStore.configuration
+                )
 
                 ForEach(viewModel.visibleMarkers) { marker in
                     MapMarkerView(marker: marker)

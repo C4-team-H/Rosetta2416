@@ -9,7 +9,11 @@ enum MapDesignTokens {
     static let mapCornerRadius: CGFloat = 20
 
     static let mapBackground = Color(red: 0.025, green: 0.045, blue: 0.075)
+    static let hullFill = Color(red: 0.075, green: 0.105, blue: 0.15).opacity(0.72)
+    static let hullStroke = Color.cyan.opacity(0.38)
     static let roomFill = Color.indigo.opacity(0.2)
     static let corridorFill = Color.cyan.opacity(0.09)
+    static let objectFill = Color(red: 0.16, green: 0.2, blue: 0.27).opacity(0.82)
     static let wall = Color.cyan.opacity(0.72)
+    static let doorway = Color.yellow.opacity(0.9)
 }

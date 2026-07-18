@@ -13,11 +13,13 @@ final class GameSessionState {
     private(set) var transientMessage: String?
     private(set) var checkpointNotice: CheckpointID?
     private(set) var stats = GameSessionStats()
+    private(set) var currentRoom: RoomID?
 
     let storySystem: StoryProgressionSystem
     private var energySystem: EnergySystem
     private let dialogueManager: AIDialogueManager
     private let repository: StoryProgressRepository
+    private let safeSpawnProvider: (CheckpointID) -> CGPoint
     private var checkpointSnapshot: StorySaveSnapshot
     private var sessionRevision = 0
 
@@ -25,13 +27,15 @@ final class GameSessionState {
         localPlayer: PlayerState,
         storySystem: StoryProgressionSystem? = nil,
         repository: StoryProgressRepository? = nil,
-        dialogueManager: AIDialogueManager? = nil
+        dialogueManager: AIDialogueManager? = nil,
+        safeSpawnProvider: ((CheckpointID) -> CGPoint)? = nil
     ) {
         let storySystem = storySystem ?? StoryProgressionSystem()
         self.localPlayer = localPlayer
         self.storySystem = storySystem
         self.repository = repository ?? InMemoryStoryProgressRepository()
         self.dialogueManager = dialogueManager ?? AIDialogueManager()
+        self.safeSpawnProvider = safeSpawnProvider ?? { GameMapLayout.safeSpawn(for: $0) }
         let energySystem = EnergySystem(playerID: localPlayer.id)
         self.energySystem = energySystem
         checkpointSnapshot = StorySaveSnapshot(
@@ -64,6 +68,7 @@ final class GameSessionState {
 
     func endGameplay() {
         phase = .preparing
+        currentRoom = nil
     }
 
     func beginDrawing(objectiveID: String) {
@@ -143,6 +148,10 @@ final class GameSessionState {
         localPlayer.worldPosition = position
     }
 
+    func updateCurrentRoom(_ room: RoomID?) {
+        currentRoom = room
+    }
+
     func updateTeammate(position: CGPoint?, connectionState: TeammateConnectionState, name: String? = nil) {
         let cleanName = name?.trimmingCharacters(in: .whitespacesAndNewlines)
         let teammateName = cleanName.flatMap { $0.isEmpty ? nil : $0 } ?? "Teammate"
@@ -188,6 +197,7 @@ final class GameSessionState {
             storySystem.restore(persisted.latest.sharedStory)
             energySystem.restore(persisted.latest.localSurvival)
             localPlayer.worldPosition = safeSpawn(for: persisted.latest.sharedStory.latestCheckpoint)
+            currentRoom = nil
             stats = persisted.latest.stats
             checkpointSnapshot = persisted.checkpoint
         } catch {
@@ -199,6 +209,7 @@ final class GameSessionState {
         storySystem.restore(checkpointSnapshot.sharedStory)
         energySystem.restoreCheckpoint(checkpointSnapshot.localSurvival)
         localPlayer.worldPosition = safeSpawn(for: checkpointSnapshot.sharedStory.latestCheckpoint)
+        currentRoom = nil
         stats = checkpointSnapshot.stats
         phase = .playing
         currentDialogue = nil
@@ -212,6 +223,7 @@ final class GameSessionState {
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
         localPlayer.worldPosition = safeSpawn(for: .sleepingRoom)
+        currentRoom = nil
         stats = GameSessionStats()
         phase = .playing
         currentDialogue = nil
@@ -302,6 +314,6 @@ final class GameSessionState {
     }
 
     private func safeSpawn(for checkpoint: CheckpointID) -> CGPoint {
-        GameMapLayout.safeSpawn(for: checkpoint)
+        safeSpawnProvider(checkpoint)
     }
 }

@@ -78,6 +78,10 @@ struct MapCoordinateConverter {
             height: abs(bottomRight.y - topLeft.y)
         ).standardized
     }
+
+    func mapPoints(from worldPoints: [CGPoint]) -> [CGPoint] {
+        worldPoints.map { mapPosition(from: $0) }
+    }
 }
 
 private extension BinaryFloatingPoint {

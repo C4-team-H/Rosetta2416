@@ -21,6 +21,19 @@ enum RoomID: String, Codable, CaseIterable, Sendable {
     case kitchen
     case storage
     case cockpit
+
+    var displayName: String {
+        switch self {
+        case .sleepingRoom: "Sleeping Room"
+        case .laboratory: "Lab Room"
+        case .engine: "Engine Room"
+        case .kitchen: "Kitchen"
+        case .storage: "Storage Room"
+        case .cockpit: "Cockpit"
+        }
+    }
+
+    var triggerNodeName: String { "room-trigger-\(rawValue)" }
 }
 
 enum ObjectiveStatus: String, Codable, Sendable {

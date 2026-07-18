@@ -1,38 +1,35 @@
 import SpriteKit
 
 extension GameScene {
-    func createRegularGrid() {
-        gridContainer?.removeFromParent()
-        let container = SKNode()
-        gridContainer = container
-        addChild(container)
-
-        let tileSize: CGFloat = 60
-        let columns = Int(ceil(GameMapLayout.worldSize.width / tileSize))
-        let rows = Int(ceil(GameMapLayout.worldSize.height / tileSize))
-        for row in 0..<rows {
-            for column in 0..<columns {
-                let tile = SKShapeNode(rectOf: CGSize(width: tileSize, height: tileSize))
-                tile.position = CGPoint(x: CGFloat(column) * tileSize + tileSize / 2, y: CGFloat(row) * tileSize + tileSize / 2)
-                tile.fillColor = (row + column).isMultiple(of: 2)
-                    ? SKColor(red: 0.18, green: 0.22, blue: 0.3, alpha: 1)
-                    : SKColor(red: 0.15, green: 0.18, blue: 0.25, alpha: 1)
-                tile.strokeColor = SKColor(red: 0.25, green: 0.3, blue: 0.4, alpha: 1)
-                tile.lineWidth = 1
-                tile.zPosition = -1
-                container.addChild(tile)
-            }
+    func createShipMap() {
+        shipMapNode?.removeFromParent()
+        let map = worldLoader.makeShipMapNode(
+            map: gameMap,
+            debugEnabled: debugSettings.isMapDebugEnabled
+        ) { [weak self] doorID, state in
+            self?.walkabilitySystem.updateDoorState(state, for: doorID)
         }
+        map.zPosition = 0
+        addChild(map)
+        shipMapNode = map
+        walkabilitySystem.updateDoorStates(map.doorStates)
     }
 
     func createPlayer() {
-        player = SKShapeNode(circleOfRadius: playerRadius)
-        player.fillColor = SKColor(red: 0.9, green: 0.3, blue: 0.3, alpha: 1)
-        player.strokeColor = .white
-        player.lineWidth = 2
-        player.position = sessionState.localPlayer.worldPosition
-        player.zPosition = 4
-        addChild(player)
+        player?.removeInteractionSensor()
+        player?.removeFromParent()
+        let playerNode = worldLoader.makePlayerNode(
+            configuration: gameMap.configuration,
+            debugEnabled: debugSettings.isMapDebugEnabled
+        )
+        player = playerNode
+        player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
+        player.zPosition = 0
+        lastValidPlayerPosition = player.position
+        lastMovementResult = .stationary(at: player.position)
+        let parent = shipMapNode?.playerLayer ?? self
+        parent.addChild(player)
+        player.attachInteractionSensor(to: parent)
     }
 
     func createJoystick() {
@@ -54,16 +51,18 @@ extension GameScene {
     func createInteractiveStations() {
         stationNodes.values.forEach { $0.removeFromParent() }
         stationNodes.removeAll()
-        for definition in GameMapLayout.stationDefinitions {
+        let parent = shipMapNode?.furnitureLayer ?? self
+        for definition in gameMap.stations {
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
-            addChild(station)
+            attachInteractionSensor(to: station, id: definition.id)
+            parent.addChild(station)
             stationNodes[definition.id] = station
         }
     }
 
     func createFoodObject() {
         foodObject?.removeFromParent()
-        foodObject = makeStationNode(id: "kitchen-food", at: GameMapLayout.foodStationPosition)
+        foodObject = makeStationNode(id: "kitchen-food", at: gameMap.foodStationPosition)
         foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1)
         addChild(foodObject)
     }
@@ -123,25 +122,40 @@ extension GameScene {
 
     func refreshStoryVisuals() {
         let objectiveByID = Dictionary(uniqueKeysWithValues: sessionState.objectives.map { ($0.id, $0) })
+        let visibility = stationVisibilitySystem
         for (id, node) in stationNodes {
-            guard let objective = objectiveByID[id] else { continue }
-            switch objective.status {
-            case .completed:
-                node.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1)
-                node.alpha = 0.85
-            case .available, .active:
-                node.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1)
-                node.alpha = 1
-            case .blocked:
-                node.fillColor = .red
-                node.alpha = 0.9
-            case .locked:
-                node.fillColor = .darkGray
-                node.alpha = 0.45
+            if let objective = objectiveByID[id] {
+                switch objective.status {
+                case .completed:
+                    node.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1)
+                    node.alpha = 0.85
+                case .available, .active:
+                    node.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1)
+                    node.alpha = 1
+                case .blocked:
+                    node.fillColor = .red
+                    node.alpha = 0.9
+                case .locked:
+                    node.fillColor = .darkGray
+                    node.alpha = 0.45
+                }
             }
+            node.isHidden = !visibility.shouldShowStation(interactionID: id)
         }
-        updateDoorGates()
+        foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
+        shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
+        if let doorStates = shipMapNode?.doorStates {
+            walkabilitySystem.updateDoorStates(doorStates)
+        }
         lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
+    }
+
+    func updateStationVisibility() {
+        let visibility = stationVisibilitySystem
+        for (id, node) in stationNodes {
+            node.isHidden = !visibility.shouldShowStation(interactionID: id)
+        }
+        foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
     }
 
     func animateCompletedStation(id: String) {
@@ -172,79 +186,54 @@ extension GameScene {
     }
 
     private func makeStationNode(id: String, at position: CGPoint) -> SKShapeNode {
-        let station = SKShapeNode(rectOf: CGSize(width: 50, height: 40), cornerRadius: 8)
+        let station = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 50, height: 40)),
+            cornerRadius: GameMapLayout.scaled(8)
+        )
         station.name = id
         station.position = position
         station.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1)
         station.strokeColor = .white
-        station.lineWidth = 2
+        station.lineWidth = GameMapLayout.scaled(2)
         station.zPosition = 2
 
-        let screen = SKShapeNode(rectOf: CGSize(width: 36, height: 28), cornerRadius: 4)
+        let screen = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 36, height: 28)),
+            cornerRadius: GameMapLayout.scaled(4)
+        )
         screen.fillColor = .white
         screen.strokeColor = .clear
         screen.zPosition = 3
         station.addChild(screen)
 
-        let glyph = SKShapeNode(rectOf: CGSize(width: 22, height: 4), cornerRadius: 1)
+        let glyph = SKShapeNode(
+            rectOf: GameMapLayout.scaled(CGSize(width: 22, height: 4)),
+            cornerRadius: GameMapLayout.scaled(1)
+        )
         glyph.fillColor = .black
         glyph.strokeColor = .clear
         glyph.zRotation = .pi / 4
         glyph.zPosition = 4
         screen.addChild(glyph)
 
-        let glow = SKShapeNode(circleOfRadius: 45)
+        let glow = SKShapeNode(circleOfRadius: GameMapLayout.scaled(45))
         glow.name = "glow"
         glow.strokeColor = .cyan.withAlphaComponent(0.38)
-        glow.lineWidth = 2
+        glow.lineWidth = GameMapLayout.scaled(2)
         glow.zPosition = 1
         glow.run(.repeatForever(.sequence([.scale(to: 1.2, duration: 1.2), .scale(to: 0.85, duration: 1.2)])))
         station.addChild(glow)
         return station
     }
 
-    private func addWall(from start: CGPoint, to end: CGPoint) {
-        let thickness: CGFloat = 16
-        let dx = end.x - start.x
-        let dy = end.y - start.y
-        let length = hypot(dx, dy)
-        guard length > 0 else { return }
-        let size = abs(dx) > abs(dy)
-            ? CGSize(width: length, height: thickness)
-            : CGSize(width: thickness, height: length)
-        let position = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
-        let wall = SKShapeNode(rectOf: size, cornerRadius: 4)
-        wall.position = position
-        wall.fillColor = SKColor(red: 0.28, green: 0.30, blue: 0.38, alpha: 1)
-        wall.strokeColor = SKColor(red: 0.40, green: 0.45, blue: 0.55, alpha: 1)
-        wall.lineWidth = 1.5
-        wall.zPosition = 2
-        addChild(wall)
-        obstacles.append(Obstacle(node: wall, size: size, absPos: position))
-    }
-
-    private func updateDoorGates() {
-        for definition in GameMapLayout.doorDefinitions {
-            let allowed = sessionState.storySystem.canAccess(definition.roomID)
-            if allowed {
-                if let node = doorNodes.removeValue(forKey: definition.id) {
-                    obstacles.removeAll { $0.node === node }
-                    node.run(.sequence([.fadeOut(withDuration: 0.25), .removeFromParent()]))
-                }
-                continue
-            }
-
-            guard doorNodes[definition.id] == nil else { continue }
-            let door = SKShapeNode(rectOf: definition.size, cornerRadius: 5)
-            door.name = definition.id
-            door.position = definition.worldPosition
-            door.fillColor = .red.withAlphaComponent(0.72)
-            door.strokeColor = .white
-            door.lineWidth = 2
-            door.zPosition = 3
-            addChild(door)
-            doorNodes[definition.id] = door
-            obstacles.append(Obstacle(node: door, size: definition.size, absPos: definition.worldPosition))
-        }
+    private func attachInteractionSensor(to node: SKNode, id: String) {
+        node.userData = NSMutableDictionary(dictionary: ["interactableID": id])
+        let body = SKPhysicsBody(circleOfRadius: GameMapLayout.scaled(76))
+        body.isDynamic = false
+        body.affectedByGravity = false
+        body.categoryBitMask = PhysicsCategory.interaction
+        body.collisionBitMask = PhysicsCategory.none
+        body.contactTestBitMask = PhysicsCategory.playerSensor
+        node.physicsBody = body
     }
 }

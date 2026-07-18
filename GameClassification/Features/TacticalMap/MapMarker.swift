@@ -28,11 +28,29 @@ struct MapMarker: Identifiable, Equatable {
 
 @MainActor
 enum TacticalMapMarkerFactory {
-    static func make(story: StoryProgressionSystem, includeDoors: Bool = true) -> [MapMarker] {
+    static func make(
+        story: StoryProgressionSystem,
+        includeDoors: Bool = true
+    ) -> [MapMarker] {
+        make(
+            story: story,
+            configuration: .drawingSpaceDefault,
+            visibilitySystem: nil,
+            includeDoors: includeDoors
+        )
+    }
+
+    static func make(
+        story: StoryProgressionSystem,
+        configuration: MapGeometryConfiguration,
+        visibilitySystem: StationVisibilitySystem? = nil,
+        includeDoors: Bool = true
+    ) -> [MapMarker] {
         var markers: [MapMarker] = []
 
-        for station in GameMapLayout.stationDefinitions {
-            guard let objective = story.objectives.first(where: { $0.id == station.id }) else { continue }
+        for station in configuration.stations where station.kind == .mission && station.isEnabled {
+            guard let objectiveID = station.interactionID,
+                  let objective = story.objectives.first(where: { $0.id == objectiveID }) else { continue }
             let markerStatus: MapMarkerStatus
             switch objective.status {
             case .completed: markerStatus = .completed
@@ -40,12 +58,14 @@ enum TacticalMapMarkerFactory {
             case .blocked: markerStatus = .blocked
             case .locked: continue
             }
+            let isVisible = visibilitySystem?.shouldShowStation(interactionID: objectiveID) ?? true
             markers.append(MapMarker(
-                id: "station-\(station.id)",
+                id: station.id,
                 kind: .station,
                 status: markerStatus,
-                worldPosition: station.worldPosition,
-                title: objective.definition.title
+                worldPosition: station.position.cgPoint,
+                title: objective.definition.title,
+                isVisible: isVisible
             ))
         }
 
@@ -56,32 +76,35 @@ enum TacticalMapMarkerFactory {
             (.cockpit, .cockpit)
         ]
         for (roomID, kind) in roomKinds {
-            guard let room = GameMapLayout.rooms.first(where: { $0.id == roomID }) else { continue }
+            guard let room = configuration.rooms.first(where: { $0.roomID == roomID }) else { continue }
             markers.append(MapMarker(
                 id: "room-\(roomID.rawValue)",
                 kind: kind,
                 status: story.canAccess(roomID) ? .unlocked : .locked,
-                worldPosition: CGPoint(x: room.worldFrame.midX, y: room.worldFrame.midY),
+                worldPosition: CGPoint(x: room.roomTriggerBounds.midX, y: room.roomTriggerBounds.midY),
                 title: room.name
             ))
         }
 
+        let kitchenVisible = visibilitySystem?.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID) ?? true
         markers.append(MapMarker(
             id: "kitchen",
             kind: .kitchen,
             status: .unlocked,
-            worldPosition: GameMapLayout.foodStationPosition,
-            title: "Kitchen Energy Station"
+            worldPosition: configuration.stations.first(where: { $0.kind == .food && $0.isEnabled })?.position.cgPoint ?? .zero,
+            title: "Kitchen Energy Station",
+            isVisible: kitchenVisible
         ))
 
         if includeDoors {
-            markers += GameMapLayout.doorDefinitions.map { door in
-                MapMarker(
-                    id: "door-\(door.id)",
+            markers += configuration.doorways.compactMap { door -> MapMarker? in
+                guard door.isEnabled, let doorID = door.doorID, let roomID = door.roomID else { return nil }
+                return MapMarker(
+                    id: doorID.nodeName,
                     kind: .door,
-                    status: story.canAccess(door.roomID) ? .unlocked : .locked,
-                    worldPosition: door.worldPosition,
-                    title: door.id.replacingOccurrences(of: "-", with: " ").capitalized
+                    status: story.canAccess(roomID) ? .unlocked : .locked,
+                    worldPosition: CGPoint(x: door.doorwayBounds.midX, y: door.doorwayBounds.midY),
+                    title: doorID.displayName
                 )
             }
         }

@@ -6,13 +6,42 @@ import UIKit
 final class GameplayCoordinator {
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel
+    let geometryStore: MapGeometryStore
+    let debugSettings: GameDebugSettings
+    let mapCoordinateConverter: MapEditorCoordinateConverter
     let authority: StoryAuthority
     let missionSystem: MissionSystem
+    #if DEBUG
+    let mapGeometryRepository: MapGeometryRepository?
+    let mapDebugViewModel: MapDebugViewModel
+    #endif
 
     weak var presentingViewController: UIViewController?
     private weak var activeGameScene: GameScene?
 
     init() {
+        let geometryStore = MapGeometryStore()
+        let debugSettings = GameDebugSettings()
+        let coordinateConverter = MapEditorCoordinateConverter()
+        #if DEBUG
+        let mapRepository = try? LocalMapGeometryRepository()
+
+        if debugSettings.isMapDebugEnabled {
+            do {
+                if let draft = try mapRepository?.load() {
+                    geometryStore.replaceConfiguration(
+                        draft,
+                        source: .debugDraft,
+                        recordHistory: false
+                    )
+                    geometryStore.markSaved(source: .debugDraft)
+                }
+            } catch {
+                geometryStore.statusMessage = "Debug draft ignored: \(error.localizedDescription)"
+            }
+        }
+        #endif
+
         let repository: StoryProgressRepository
         do {
             repository = try LocalStoryProgressRepository()
@@ -25,16 +54,39 @@ final class GameplayCoordinator {
             localPlayer: PlayerState(
                 id: "local-player",
                 name: "You",
-                worldPosition: GameMapLayout.playerSpawnPosition,
+                worldPosition: geometryStore.configuration.spawnPoint(for: .sleepingRoom)
+                    ?? GameMapLayout.playerSpawnPosition,
                 isConnected: true
             ),
             storySystem: storySystem,
-            repository: repository
+            repository: repository,
+            safeSpawnProvider: { checkpoint in
+                geometryStore.configuration.safeSpawn(for: checkpoint)
+            }
         )
+        self.geometryStore = geometryStore
+        self.debugSettings = debugSettings
+        mapCoordinateConverter = coordinateConverter
+        #if DEBUG
+        mapGeometryRepository = mapRepository
+        #endif
         sessionState = session
-        tacticalMapViewModel = TacticalMapViewModel(sessionState: session)
+        tacticalMapViewModel = TacticalMapViewModel(
+            sessionState: session,
+            geometryStore: geometryStore
+        )
+        tacticalMapViewModel.gameDebugSettings = debugSettings
         missionSystem = MissionSystem(story: storySystem)
         authority = LocalStoryAuthority(sessionState: session, recognizer: CoreMLDoodleRecognizer())
+        #if DEBUG
+        mapDebugViewModel = MapDebugViewModel(
+            store: geometryStore,
+            settings: debugSettings,
+            converter: coordinateConverter,
+            repository: mapRepository,
+            sessionState: session
+        )
+        #endif
     }
 
     func loadProgress() async {
@@ -46,8 +98,23 @@ final class GameplayCoordinator {
     }
 
     func makeGameScene(size: CGSize) -> GameScene {
-        let scene = GameScene(size: size, sessionState: sessionState, tacticalMapViewModel: tacticalMapViewModel)
+        let scene = GameScene(
+            size: size,
+            sessionState: sessionState,
+            tacticalMapViewModel: tacticalMapViewModel,
+            geometryStore: geometryStore,
+            debugSettings: debugSettings,
+            mapCoordinateConverter: mapCoordinateConverter
+        )
         scene.eventDelegate = self
+        #if DEBUG
+        mapDebugViewModel.onResetPlayerToSpawn = { [weak scene] in
+            scene?.resetPlayerToDebugSpawn()
+        }
+        mapDebugViewModel.onRebuildCollision = { [weak scene] in
+            scene?.forceMapGeometryRefresh()
+        }
+        #endif
         activeGameScene = scene
         return scene
     }
@@ -187,6 +254,11 @@ final class GameplayCoordinator {
 extension GameplayCoordinator: GameSceneEventDelegate {
     func gameScene(_ scene: GameScene, didEnter room: RoomID) {
         scene.applyStoryEffects(sessionState.handle(.roomEntered(room)))
+    }
+
+    func gameScene(_ scene: GameScene, didExit room: RoomID) {
+        // Room occupancy is already cleared by GameScene. Story progression is
+        // intentionally entry-driven, so an exit has no story side effect.
     }
 
     func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String) {
