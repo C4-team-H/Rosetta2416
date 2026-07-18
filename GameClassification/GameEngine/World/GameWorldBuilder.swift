@@ -70,28 +70,40 @@ extension GameScene {
 
     func refreshStoryVisuals() {
         let objectiveByID = Dictionary(uniqueKeysWithValues: sessionState.objectives.map { ($0.id, $0) })
+        let visibility = stationVisibilitySystem
         for (id, node) in stationNodes {
-            guard let objective = objectiveByID[id] else { continue }
-            switch objective.status {
-            case .completed:
-                node.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1)
-                node.alpha = 0.85
-            case .available, .active:
-                node.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1)
-                node.alpha = 1
-            case .blocked:
-                node.fillColor = .red
-                node.alpha = 0.9
-            case .locked:
-                node.fillColor = .darkGray
-                node.alpha = 0.45
+            if let objective = objectiveByID[id] {
+                switch objective.status {
+                case .completed:
+                    node.fillColor = SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1)
+                    node.alpha = 0.85
+                case .available, .active:
+                    node.fillColor = SKColor(red: 0.82, green: 0.55, blue: 0.28, alpha: 1)
+                    node.alpha = 1
+                case .blocked:
+                    node.fillColor = .red
+                    node.alpha = 0.9
+                case .locked:
+                    node.fillColor = .darkGray
+                    node.alpha = 0.45
+                }
             }
+            node.isHidden = !visibility.shouldShowStation(interactionID: id)
         }
+        foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
             walkabilitySystem.updateDoorStates(doorStates)
         }
         lightingSystem.apply(sessionState.sharedStory.powerState, to: self)
+    }
+
+    func updateStationVisibility() {
+        let visibility = stationVisibilitySystem
+        for (id, node) in stationNodes {
+            node.isHidden = !visibility.shouldShowStation(interactionID: id)
+        }
+        foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
     }
 
     func animateCompletedStation(id: String) {

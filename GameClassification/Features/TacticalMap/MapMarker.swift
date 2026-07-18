@@ -35,6 +35,7 @@ enum TacticalMapMarkerFactory {
         make(
             story: story,
             configuration: .drawingSpaceDefault,
+            visibilitySystem: nil,
             includeDoors: includeDoors
         )
     }
@@ -42,6 +43,7 @@ enum TacticalMapMarkerFactory {
     static func make(
         story: StoryProgressionSystem,
         configuration: MapGeometryConfiguration,
+        visibilitySystem: StationVisibilitySystem? = nil,
         includeDoors: Bool = true
     ) -> [MapMarker] {
         var markers: [MapMarker] = []
@@ -56,12 +58,14 @@ enum TacticalMapMarkerFactory {
             case .blocked: markerStatus = .blocked
             case .locked: continue
             }
+            let isVisible = visibilitySystem?.shouldShowStation(interactionID: objectiveID) ?? true
             markers.append(MapMarker(
                 id: station.id,
                 kind: .station,
                 status: markerStatus,
                 worldPosition: station.position.cgPoint,
-                title: objective.definition.title
+                title: objective.definition.title,
+                isVisible: isVisible
             ))
         }
 
@@ -77,17 +81,19 @@ enum TacticalMapMarkerFactory {
                 id: "room-\(roomID.rawValue)",
                 kind: kind,
                 status: story.canAccess(roomID) ? .unlocked : .locked,
-                worldPosition: CGPoint(x: room.triggerFrame.cgRect.midX, y: room.triggerFrame.cgRect.midY),
+                worldPosition: CGPoint(x: room.roomTriggerBounds.midX, y: room.roomTriggerBounds.midY),
                 title: room.name
             ))
         }
 
+        let kitchenVisible = visibilitySystem?.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID) ?? true
         markers.append(MapMarker(
             id: "kitchen",
             kind: .kitchen,
             status: .unlocked,
             worldPosition: configuration.stations.first(where: { $0.kind == .food && $0.isEnabled })?.position.cgPoint ?? .zero,
-            title: "Kitchen Energy Station"
+            title: "Kitchen Energy Station",
+            isVisible: kitchenVisible
         ))
 
         if includeDoors {
@@ -97,7 +103,7 @@ enum TacticalMapMarkerFactory {
                     id: doorID.nodeName,
                     kind: .door,
                     status: story.canAccess(roomID) ? .unlocked : .locked,
-                    worldPosition: CGPoint(x: door.frame.cgRect.midX, y: door.frame.cgRect.midY),
+                    worldPosition: CGPoint(x: door.doorwayBounds.midX, y: door.doorwayBounds.midY),
                     title: doorID.displayName
                 )
             }

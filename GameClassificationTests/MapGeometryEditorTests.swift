@@ -613,6 +613,26 @@ struct MapGeometryEditorTests {
         #expect(viewModel.visibleMarkers.first(where: { $0.id == "kitchen" })?.worldPosition == movedFood.position.cgPoint)
     }
 
+    @Test("Tactical map conversion preserves authored freeform geometry")
+    func tacticalMapPreservesFreeformGeometry() throws {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let converter = MapCoordinateConverter(
+            worldSize: configuration.worldSize.cgSize,
+            mapFrame: CGRect(x: 20, y: 30, width: 550.4, height: 412.8)
+        )
+        let cockpit = try #require(configuration.rooms.first { $0.roomID == .cockpit })
+        let rotatedWall = try #require(configuration.walls.first { abs($0.rotationRadians) > 0.001 })
+
+        let cockpitPoints = converter.mapPoints(from: cockpit.walkablePoints)
+        let wallPoints = converter.mapPoints(from: rotatedWall.rotatedCorners)
+
+        #expect(cockpitPoints.count == cockpit.vertices?.count)
+        #expect(wallPoints.count == 4)
+        #expect(cockpitPoints[0] == converter.mapPosition(from: cockpit.walkablePoints[0]))
+        #expect(wallPoints != converter.mapPoints(from: rectanglePoints(rotatedWall.frame.cgRect)))
+        #expect(cockpitPoints[0].y > cockpitPoints[2].y)
+    }
+
     @Test("SpriteKit and editor screen conversion round-trips across camera transforms")
     func coordinateConverterRoundTrip() throws {
         let view = SKView(frame: CGRect(x: 0, y: 0, width: 1_024, height: 768))

@@ -4,6 +4,7 @@ extension GameScene {
     func checkProximityToInteractiveObject() {
         guard let player else { return }
         let nearest = stationNodes
+            .filter { !$0.value.isHidden }
             .map { (id: $0.key, node: $0.value, distance: hypot(player.position.x - $0.value.position.x, player.position.y - $0.value.position.y)) }
             .filter { $0.distance <= GameMapLayout.scaled(76) }
             .min { $0.distance < $1.distance }

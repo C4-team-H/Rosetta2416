@@ -8,6 +8,8 @@ final class TacticalMapViewModel {
     let sessionState: GameSessionState
     let geometryStore: MapGeometryStore
 
+    var gameDebugSettings: GameDebugSettings?
+
     private(set) var isMapPresented = false
     var gameplayMode: MapGameplayMode = .continueGameplay
     var showsTeammateOnMap = true
@@ -48,9 +50,14 @@ final class TacticalMapViewModel {
     }
 
     var visibleMarkers: [MapMarker] {
-        TacticalMapMarkerFactory.make(
+        let visibility = StationVisibilitySystem(
+            storySystem: sessionState.storySystem,
+            isDebugEnabled: DebugAvailability.isMapEditorAvailable && (gameDebugSettings?.isMapDebugEnabled ?? false)
+        )
+        return TacticalMapMarkerFactory.make(
             story: sessionState.storySystem,
-            configuration: geometryStore.configuration
+            configuration: geometryStore.configuration,
+            visibilitySystem: visibility
         ).filter(\.isVisible)
     }
 

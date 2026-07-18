@@ -40,11 +40,18 @@ final class GameScene: SKScene {
     var lastDeniedStationID: String?
     var lastDeniedDoorID: DoorID?
 
+    var stationVisibilitySystem: StationVisibilitySystem {
+        StationVisibilitySystem(
+            storySystem: sessionState.storySystem,
+            isDebugEnabled: DebugAvailability.isMapEditorAvailable && debugSettings.isMapDebugEnabled
+        )
+    }
+
     var isJoystickActive = false
     var joystickVector = CGPoint.zero
     var joystickActiveTouch: UITouch?
     let joystickRadius: CGFloat = 60
-    let playerSpeed: CGFloat = GameMapLayout.scaled(80)
+    let playerSpeed: CGFloat = GameMapLayout.scaled(100)
 
     var pencilTouch: UITouch?
     var pencilTarget: CGPoint?
@@ -238,6 +245,8 @@ final class GameScene: SKScene {
             checkProximityToLockedDoor()
         }
 
+        updateStationVisibility()
+
         if debugSettings.isMapDebugEnabled {
             candleLight?.isHidden = true
         } else {
@@ -411,6 +420,7 @@ final class GameScene: SKScene {
             resetContactTracking()
             clearPencilTarget()
             resetJoystick()
+            refreshStoryVisuals()
         } else if let entry = debugEntryPlayerPosition, let player {
             player.position = validatedPlayerPosition(entry)
             lastValidPlayerPosition = player.position
@@ -423,6 +433,7 @@ final class GameScene: SKScene {
             )
             debugEntryPlayerPosition = nil
             resetContactTracking()
+            refreshStoryVisuals()
         }
     }
 

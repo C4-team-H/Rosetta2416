@@ -75,6 +75,7 @@ final class GameplayCoordinator {
             sessionState: session,
             geometryStore: geometryStore
         )
+        tacticalMapViewModel.gameDebugSettings = debugSettings
         missionSystem = MissionSystem(story: storySystem)
         authority = LocalStoryAuthority(sessionState: session, recognizer: CoreMLDoodleRecognizer())
         #if DEBUG
