@@ -26,7 +26,9 @@ enum MapGeometryExporter {
                     playerVisualRadius: \(number(value.playerVisualRadius)),
                     playerFootprint: MapPlayerFootprintDefinition(
                         centerOffset: \(point(value.playerFootprint.centerOffset)),
-                        radius: \(number(value.playerFootprint.radius))
+                        width: \(number(value.playerFootprint.width)),
+                        height: \(number(value.playerFootprint.height)),
+                        obstacleRadius: \(number(value.playerFootprint.obstacleRadius))
                     ),
                     wallThickness: \(number(value.wallThickness)),
                     walkabilityEpsilon: \(number(value.walkabilityEpsilon)),

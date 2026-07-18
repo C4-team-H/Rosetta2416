@@ -40,4 +40,5 @@ struct PlayerAnimationControllerTests {
         #expect(sprite.action(forKey: "player.walk") == nil)
         #expect(sprite.texture === idleTexture)
     }
+
 }

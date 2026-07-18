@@ -43,8 +43,12 @@ struct MapGeometryValidator {
             issues.append(.init(severity: .error, message: "World size must be finite and positive"))
         }
         if !configuration.playerFootprint.centerOffset.isFinite
-            || !configuration.playerFootprint.radius.isFinite
-            || configuration.playerFootprint.radius <= 0 {
+            || !configuration.playerFootprint.width.isFinite
+            || !configuration.playerFootprint.height.isFinite
+            || !configuration.playerFootprint.obstacleRadius.isFinite
+            || configuration.playerFootprint.width <= 0
+            || configuration.playerFootprint.height <= 0
+            || configuration.playerFootprint.obstacleRadius <= 0 {
             issues.append(.init(severity: .error, message: "Player footprint is invalid"))
         }
 
@@ -138,7 +142,10 @@ struct MapGeometryValidator {
             }
         }
 
-        let clearance = configuration.playerFootprint.radius * 2 + configuration.walkabilityEpsilon * 2
+        let clearance = max(
+            configuration.playerFootprint.width,
+            configuration.playerFootprint.height
+        ) + configuration.walkabilityEpsilon * 2
         for door in configuration.doorways where door.isEnabled {
             let doorID = MapElementID(category: .doorway, rawValue: door.id)
             let frame = door.frame.cgRect

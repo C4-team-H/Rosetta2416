@@ -44,7 +44,7 @@ final class GameScene: SKScene {
     var joystickVector = CGPoint.zero
     var joystickActiveTouch: UITouch?
     let joystickRadius: CGFloat = 60
-    let playerSpeed: CGFloat = GameMapLayout.scaled(240)
+    let playerSpeed: CGFloat = GameMapLayout.scaled(80)
 
     var pencilTouch: UITouch?
     var pencilTarget: CGPoint?
@@ -68,6 +68,7 @@ final class GameScene: SKScene {
     private var wasMapInputSuspended = false
     private var previousUpdateTime: TimeInterval?
     var frameDeltaTime: TimeInterval = 0
+    var physicsFrameStartPosition: CGPoint?
     private var didNotifyGameOver = false
     private var wasMapDebugEnabled = false
     private var debugEntryPlayerPosition: CGPoint?
@@ -163,11 +164,14 @@ final class GameScene: SKScene {
         previousUpdateTime = currentTime
         frameDeltaTime = min(max(rawDelta, 0), 0.25)
         defer {
+            let velocity = player?.physicsBody?.velocity ?? .zero
             player?.updateAnimation(
-                movementVector: joystickVector,
-                isJoystickActive: isJoystickActive
+                movementVector: CGPoint(x: velocity.dx, y: velocity.dy),
+                isMoving: hypot(velocity.dx, velocity.dy) > GameMapLayout.scaled(0.01)
             )
         }
+        physicsFrameStartPosition = player?.position
+        player?.synchronizeInteractionSensor()
 
         applyPendingMapGeometry()
         updateMapDebugTransition()
@@ -250,17 +254,7 @@ final class GameScene: SKScene {
             processPendingPhysicsContacts()
         }
 
-        let resolvedPosition = player.position
-        if walkabilitySystem.isWalkable(
-            position: resolvedPosition,
-            footprint: player.collisionFootprint
-        ).isWalkable {
-            lastValidPlayerPosition = resolvedPosition
-        } else {
-            player.position = lastValidPlayerPosition
-            player.physicsBody?.velocity = .zero
-            player.physicsBody?.angularVelocity = 0
-        }
+        recordPhysicsMovement()
 
         if !debugSettings.isEditingGameplaySuspended {
             let target = CameraFollowMath.clampedTarget(

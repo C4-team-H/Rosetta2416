@@ -16,16 +16,20 @@ extension GameScene {
     }
 
     func createPlayer() {
+        player?.removeInteractionSensor()
         player?.removeFromParent()
-        player = worldLoader.makePlayerNode(
+        let playerNode = worldLoader.makePlayerNode(
             configuration: gameMap.configuration,
             debugEnabled: debugSettings.isMapDebugEnabled
         )
+        player = playerNode
         player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
         player.zPosition = 0
         lastValidPlayerPosition = player.position
         lastMovementResult = .stationary(at: player.position)
-        (shipMapNode?.playerLayer ?? self).addChild(player)
+        let parent = shipMapNode?.playerLayer ?? self
+        parent.addChild(player)
+        player.attachInteractionSensor(to: parent)
     }
 
     func createJoystick() {
@@ -165,7 +169,7 @@ extension GameScene {
         body.affectedByGravity = false
         body.categoryBitMask = PhysicsCategory.interaction
         body.collisionBitMask = PhysicsCategory.none
-        body.contactTestBitMask = PhysicsCategory.player
+        body.contactTestBitMask = PhysicsCategory.playerSensor
         node.physicsBody = body
     }
 }

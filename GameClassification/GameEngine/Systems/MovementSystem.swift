@@ -64,9 +64,9 @@ extension GameScene {
             direction: joystickVector,
             speed: playerSpeed,
             deltaTime: frameDeltaTime,
-            footprint: player.collisionFootprint
+            footprint: player.navigationFootprint
         )
-        applyMovementResult(result)
+        applyMovementIntent(result)
         return result
     }
 
@@ -88,7 +88,8 @@ extension GameScene {
         guard distance > arrivalThreshold else {
             clearPencilTarget()
             let result = MovementResult.stationary(at: player.position, reachedTarget: true)
-            applyMovementResult(result)
+            stopPlayerMovement()
+            lastMovementResult = result
             return result
         }
 
@@ -97,11 +98,11 @@ extension GameScene {
             direction: CGPoint(x: dx / distance, y: dy / distance),
             speed: playerSpeed * pencilSpeedMultiplier,
             deltaTime: frameDeltaTime,
-            footprint: player.collisionFootprint,
+            footprint: player.navigationFootprint,
             target: target,
             arrivalThreshold: arrivalThreshold
         )
-        applyMovementResult(result)
+        applyMovementIntent(result)
 
         if result.reachedTarget {
             clearPencilTarget()
@@ -117,24 +118,57 @@ extension GameScene {
     }
 
     func stopPlayerMovement() {
-        player?.physicsBody?.velocity = .zero
-        player?.physicsBody?.angularVelocity = 0
-        if let player {
-            lastMovementResult = .stationary(at: player.position)
-        }
+        player?.stopMovement()
     }
 
-    func applyMovementResult(_ result: MovementResult) {
-        player.physicsBody?.velocity = .zero
-        player.physicsBody?.angularVelocity = 0
-        player.position = result.finalPosition
-        lastMovementResult = result
-        if walkabilitySystem.isWalkable(
-            position: result.finalPosition,
-            footprint: player.collisionFootprint
-        ).isWalkable {
-            lastValidPlayerPosition = result.finalPosition
+    func applyMovementIntent(_ result: MovementResult) {
+        let safeDelta = CGFloat(min(max(frameDeltaTime, 0), 0.25))
+        guard safeDelta > 0, result.isMoving else {
+            player.stopMovement()
+            return
         }
-        synchronizeCandleLightWithPlayer()
+        player.setMovementVelocity(CGVector(
+            dx: result.appliedDisplacement.dx / safeDelta,
+            dy: result.appliedDisplacement.dy / safeDelta
+        ))
+    }
+
+    func recordPhysicsMovement() {
+        guard let player else { return }
+        let start = physicsFrameStartPosition ?? player.position
+        var displacement = CGVector(
+            dx: player.position.x - start.x,
+            dy: player.position.y - start.y
+        )
+        let walkability = walkabilitySystem.isWalkable(
+            position: player.position,
+            footprint: player.navigationFootprint
+        )
+        if !walkability.isWalkable {
+            let correctedMovement = collisionSystem.resolveMovement(
+                from: start,
+                delta: displacement,
+                footprint: player.navigationFootprint
+            )
+            player.position = correctedMovement.finalPosition
+            player.stopMovement()
+            displacement = correctedMovement.appliedDisplacement
+        }
+        var reachedTarget = false
+        if let target = pencilTarget,
+           hypot(target.x - player.position.x, target.y - player.position.y) <= arrivalThreshold {
+            reachedTarget = true
+            clearPencilTarget()
+            player.stopMovement()
+        }
+        lastMovementResult = MovementResult(
+            finalPosition: player.position,
+            appliedDisplacement: displacement,
+            blockedAxes: [],
+            blockingReason: nil,
+            reachedTarget: reachedTarget
+        )
+        lastValidPlayerPosition = player.position
+        player.synchronizeInteractionSensor()
     }
 }

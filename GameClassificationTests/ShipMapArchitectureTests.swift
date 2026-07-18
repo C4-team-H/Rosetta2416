@@ -150,18 +150,133 @@ struct ShipMapArchitectureTests {
         let body = scene.player.physicsBody
         #expect(body?.categoryBitMask == PhysicsCategory.player)
         #expect(body?.collisionBitMask == PhysicsCategory.wall | PhysicsCategory.closedDoor)
-        #expect(body?.contactTestBitMask == PhysicsCategory.roomTrigger | PhysicsCategory.interaction | PhysicsCategory.closedDoor)
+        #expect(body?.contactTestBitMask == PhysicsCategory.none)
         #expect(body?.affectedByGravity == false)
         #expect(body?.allowsRotation == false)
+        #expect(body?.friction == 0)
+        #expect(body?.restitution == 0)
+        #expect(body?.linearDamping == 0)
         #expect(body?.usesPreciseCollisionDetection == true)
-        #expect(abs(
-            (scene.player.path?.boundingBox.width ?? 0) - GameMapLayout.playerRadius * 2
-        ) < 0.001)
-        #expect(abs(scene.playerSpeed - GameMapLayout.scaled(240)) < 0.001)
+        let characterBounds = scene.player.characterFootprintBounds
+        let baseCharacterBounds = PlayerNode.makeCharacterBounds(
+            visualRadius: GameMapLayout.ship.configuration.playerVisualRadius,
+            textureSize: scene.player.characterSprite.texture?.size()
+        )
+        #expect(abs(characterBounds.width - baseCharacterBounds.width) < 0.001)
+        #expect(abs(characterBounds.height - baseCharacterBounds.height) < 0.001)
+        #expect(abs(characterBounds.width - scene.player.characterSprite.size.width) < 0.001)
+        #expect(abs(characterBounds.height - scene.player.characterSprite.size.height) < 0.001)
+        #expect(scene.player.characterSprite.xScale == 1)
+        #expect(scene.player.characterSprite.yScale == 1)
+        let physicsBounds = scene.player.path?.boundingBox ?? .zero
+        let configuredFootprintBounds = PlayerNode.makeFootprintBounds(
+            footprint: scene.player.collisionFootprint
+        )
+        #expect(abs(physicsBounds.minX - scene.player.footprintBounds.minX) < 0.001)
+        #expect(abs(physicsBounds.minY - scene.player.footprintBounds.minY) < 0.001)
+        #expect(abs(physicsBounds.width - scene.player.footprintBounds.width) < 0.001)
+        #expect(abs(physicsBounds.height - scene.player.footprintBounds.height) < 0.001)
+        #expect(scene.player.footprintBounds == configuredFootprintBounds)
+        #expect(scene.player.navigationFootprint.centerOffset == scene.player.collisionFootprint.centerOffset)
+        #expect(scene.player.navigationFootprint.size == scene.player.collisionFootprint.size)
+        #expect(scene.player.navigationFootprint.radius == scene.player.collisionFootprint.radius)
+        #expect(scene.player.navigationFootprint.obstacleRadius == scene.player.collisionFootprint.obstacleRadius)
+        #expect(scene.player.navigationFootprint.obstacleRadius == scene.player.collisionFootprint.radius)
+        let sensorBody = scene.player.interactionSensor.physicsBody
+        #expect(sensorBody?.categoryBitMask == PhysicsCategory.playerSensor)
+        #expect(sensorBody?.collisionBitMask == PhysicsCategory.none)
+        #expect(abs(scene.playerSpeed - GameMapLayout.scaled(80)) < 0.001)
         #expect(abs(scene.arrivalThreshold - GameMapLayout.scaled(4)) < 0.001)
         #expect(scene.player.collisionFootprint == GameMapLayout.playerFootprint)
-        #expect(abs(scene.player.collisionFootprint.radius - GameMapLayout.scaled(12)) < 0.001)
-        #expect(abs(scene.player.collisionFootprint.centerOffset.y + GameMapLayout.scaled(3)) < 0.001)
+    }
+
+    @Test("Footprint and character visual sizes are configured independently")
+    func playerFootprintAndVisualSizeAreIndependent() {
+        var smallFootprintConfiguration = MapGeometryConfiguration.drawingSpaceDefault
+        smallFootprintConfiguration.playerFootprint.width = 80
+        smallFootprintConfiguration.playerFootprint.height = 40
+        smallFootprintConfiguration.playerFootprint.obstacleRadius = 52
+        var largeFootprintConfiguration = smallFootprintConfiguration
+        largeFootprintConfiguration.playerFootprint.width = 220
+        largeFootprintConfiguration.playerFootprint.height = 120
+        largeFootprintConfiguration.playerFootprint.obstacleRadius = 132
+
+        let smallFootprintPlayer = PlayerNode(
+            configuration: GameMapLayout.makeRuntimeMap(from: smallFootprintConfiguration).configuration,
+            debugEnabled: false
+        )
+        let largeFootprintPlayer = PlayerNode(
+            configuration: GameMapLayout.makeRuntimeMap(from: largeFootprintConfiguration).configuration,
+            debugEnabled: false
+        )
+
+        #expect(smallFootprintPlayer.characterSprite.size == largeFootprintPlayer.characterSprite.size)
+        #expect(smallFootprintPlayer.characterFootprintBounds == largeFootprintPlayer.characterFootprintBounds)
+        #expect(smallFootprintPlayer.footprintBounds != largeFootprintPlayer.footprintBounds)
+        #expect(smallFootprintPlayer.footprintBounds.width == 80)
+        #expect(smallFootprintPlayer.footprintBounds.height == 40)
+        #expect(largeFootprintPlayer.footprintBounds.width == 220)
+        #expect(largeFootprintPlayer.footprintBounds.height == 120)
+        #expect(smallFootprintPlayer.navigationFootprint.obstacleRadius == 52)
+        #expect(largeFootprintPlayer.navigationFootprint.obstacleRadius == 132)
+
+        var smallVisualConfiguration = smallFootprintConfiguration
+        smallVisualConfiguration.playerVisualRadius = 60
+        var largeVisualConfiguration = smallFootprintConfiguration
+        largeVisualConfiguration.playerVisualRadius = 180
+
+        let smallVisualPlayer = PlayerNode(
+            configuration: GameMapLayout.makeRuntimeMap(from: smallVisualConfiguration).configuration,
+            debugEnabled: false
+        )
+        let largeVisualPlayer = PlayerNode(
+            configuration: GameMapLayout.makeRuntimeMap(from: largeVisualConfiguration).configuration,
+            debugEnabled: false
+        )
+
+        #expect(smallVisualPlayer.characterSprite.size != largeVisualPlayer.characterSprite.size)
+        #expect(smallVisualPlayer.footprintBounds == largeVisualPlayer.footprintBounds)
+        #expect(smallVisualPlayer.navigationFootprint.obstacleRadius == largeVisualPlayer.navigationFootprint.obstacleRadius)
+    }
+
+    @Test("Velocity movement preserves the current character size")
+    func playerVelocityPreservesVisualSize() {
+        let player = PlayerNode(
+            configuration: GameMapLayout.ship.configuration,
+            debugEnabled: false
+        )
+        let currentSize = player.characterSprite.size
+
+        player.setMovementVelocity(direction: CGPoint(x: 1, y: 1), speed: 120)
+
+        #expect(player.characterSprite.size == currentSize)
+        #expect(abs(hypot(
+            player.physicsBody?.velocity.dx ?? 0,
+            player.physicsBody?.velocity.dy ?? 0
+        ) - 120) < 0.001)
+    }
+
+    @Test("Foot navigation footprint starts inside every authored room")
+    func navigationFootprintAtSpawns() {
+        let player = PlayerNode(
+            configuration: GameMapLayout.ship.configuration,
+            debugEnabled: false
+        )
+        let walkability = WalkabilitySystem(
+            map: GameMapLayout.ship,
+            doorStates: Dictionary(uniqueKeysWithValues: DoorID.allCases.map { ($0, .open) })
+        )
+
+        for room in RoomID.allCases {
+            let result = walkability.isWalkable(
+                position: GameMapLayout.spawnPoint(for: room),
+                footprint: player.navigationFootprint
+            )
+            #expect(
+                result.isWalkable,
+                "Expected \(room.displayName) spawn to be walkable, got \(result)"
+            )
+        }
     }
 
     @Test("Camera target stays inside map in portrait and landscape")

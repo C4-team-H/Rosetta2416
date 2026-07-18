@@ -119,10 +119,75 @@ extension MapGeometryShape: Codable {
 
 struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
     var centerOffset: CodablePoint
-    var radius: Double
+    var width: Double
+    var height: Double
+    var obstacleRadius: Double
+
+    var radius: Double {
+        get { max(width, height) / 2 }
+        set {
+            width = newValue * 2
+            height = newValue * 2
+            obstacleRadius = max(obstacleRadius, newValue)
+        }
+    }
+
+    init(centerOffset: CodablePoint, width: Double, height: Double, obstacleRadius: Double) {
+        self.centerOffset = centerOffset
+        self.width = width
+        self.height = height
+        self.obstacleRadius = obstacleRadius
+    }
+
+    init(centerOffset: CodablePoint, radius: Double) {
+        self.init(
+            centerOffset: centerOffset,
+            width: radius * 2,
+            height: radius * 2,
+            obstacleRadius: radius
+        )
+    }
 
     var runtimeValue: CollisionFootprint {
-        CollisionFootprint(centerOffset: centerOffset.cgPoint, radius: radius)
+        CollisionFootprint(
+            centerOffset: centerOffset.cgPoint,
+            size: CGSize(width: width, height: height),
+            obstacleRadius: obstacleRadius
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case centerOffset
+        case width
+        case height
+        case obstacleRadius
+        case radius
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        centerOffset = try container.decode(CodablePoint.self, forKey: .centerOffset)
+        if let width = try container.decodeIfPresent(Double.self, forKey: .width),
+           let height = try container.decodeIfPresent(Double.self, forKey: .height) {
+            self.width = width
+            self.height = height
+            obstacleRadius = try container.decodeIfPresent(Double.self, forKey: .obstacleRadius)
+                ?? max(width, height) / 2
+        } else {
+            let radius = try container.decode(Double.self, forKey: .radius)
+            width = radius * 2
+            height = radius * 2
+            obstacleRadius = try container.decodeIfPresent(Double.self, forKey: .obstacleRadius)
+                ?? radius
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(centerOffset, forKey: .centerOffset)
+        try container.encode(width, forKey: .width)
+        try container.encode(height, forKey: .height)
+        try container.encode(obstacleRadius, forKey: .obstacleRadius)
     }
 }
 
@@ -509,10 +574,12 @@ extension MapGeometryConfiguration {
         MapGeometryConfiguration(
             schemaVersion: 1,
             worldSize: CodableSize(width: 5504, height: 4128),
-            playerVisualRadius: 57.3333,
+            playerVisualRadius: 114.6666,
             playerFootprint: MapPlayerFootprintDefinition(
-                centerOffset: CodablePoint(x: 0, y: -11.4667),
-                radius: 45.8667
+                centerOffset: CodablePoint(x: 0, y: -22.9334),
+                width: 91.7334,
+                height: 45.8667,
+                obstacleRadius: 45.8667
             ),
             wallThickness: 61.1556,
             walkabilityEpsilon: 1.9111,
@@ -637,7 +704,7 @@ extension MapGeometryConfiguration {
             MapSpawnPointDefinition(id: "spawn-kitchen", name: "Kitchen Spawn", roomID: .kitchen, position: CodablePoint(x: 3847.56, y: 2765.56), isRequired: true),
             MapSpawnPointDefinition(id: "spawn-laboratory", name: "Lab Spawn", roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
             MapSpawnPointDefinition(id: "spawn-sleeping", name: "Sleeping Spawn", roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
-            MapSpawnPointDefinition(id: "spawn-storage", name: "Storage Spawn", roomID: .storage, position: CodablePoint(x: 4196.67, y: 1550.67), isRequired: true)
+            MapSpawnPointDefinition(id: "spawn-storage", name: "Storage Spawn", roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true)
             ],
             checkpoints: [
             MapCheckpointDefinition(id: "checkpoint-cockpit", name: "cockpit", checkpointID: .cockpit, roomID: .cockpit, position: CodablePoint(x: 2752, y: 2899.11), isRequired: true),
@@ -647,7 +714,7 @@ extension MapGeometryConfiguration {
             MapCheckpointDefinition(id: "checkpoint-enginePhaseOne", name: "enginePhaseOne", checkpointID: .enginePhaseOne, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
             MapCheckpointDefinition(id: "checkpoint-laboratory", name: "laboratory", checkpointID: .laboratory, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
             MapCheckpointDefinition(id: "checkpoint-sleepingRoom", name: "sleepingRoom", checkpointID: .sleepingRoom, roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-storage", name: "storage", checkpointID: .storage, roomID: .storage, position: CodablePoint(x: 4196.67, y: 1550.67), isRequired: true)
+            MapCheckpointDefinition(id: "checkpoint-storage", name: "storage", checkpointID: .storage, roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true)
             ]
         )
     }

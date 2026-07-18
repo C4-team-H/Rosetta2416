@@ -39,16 +39,44 @@ enum DoorState: String, Codable, Equatable, Sendable {
 
 struct CollisionFootprint: Equatable {
     let centerOffset: CGPoint
-    let radius: CGFloat
+    let size: CGSize
+    let obstacleRadius: CGFloat
+
+    var width: CGFloat { size.width }
+    var height: CGFloat { size.height }
+    var halfWidth: CGFloat { size.width / 2 }
+    var halfHeight: CGFloat { size.height / 2 }
+    var radius: CGFloat { max(halfWidth, halfHeight) }
+
+    init(centerOffset: CGPoint, size: CGSize, obstacleRadius: CGFloat? = nil) {
+        self.centerOffset = centerOffset
+        self.size = size
+        self.obstacleRadius = obstacleRadius ?? max(size.width, size.height) / 2
+    }
+
+    init(centerOffset: CGPoint, radius: CGFloat, obstacleRadius: CGFloat? = nil) {
+        self.centerOffset = centerOffset
+        self.size = CGSize(width: radius * 2, height: radius * 2)
+        self.obstacleRadius = obstacleRadius ?? radius
+    }
 
     var validationOffsets: [CGPoint] {
         [
             centerOffset,
-            CGPoint(x: centerOffset.x - radius, y: centerOffset.y),
-            CGPoint(x: centerOffset.x + radius, y: centerOffset.y),
-            CGPoint(x: centerOffset.x, y: centerOffset.y + radius),
-            CGPoint(x: centerOffset.x, y: centerOffset.y - radius)
+            CGPoint(x: centerOffset.x - halfWidth, y: centerOffset.y),
+            CGPoint(x: centerOffset.x + halfWidth, y: centerOffset.y),
+            CGPoint(x: centerOffset.x, y: centerOffset.y + halfHeight),
+            CGPoint(x: centerOffset.x, y: centerOffset.y - halfHeight)
         ]
+    }
+
+    var localBounds: CGRect {
+        CGRect(
+            x: centerOffset.x - halfWidth,
+            y: centerOffset.y - halfHeight,
+            width: size.width,
+            height: size.height
+        )
     }
 
     func center(at playerPosition: CGPoint) -> CGPoint {
@@ -56,6 +84,10 @@ struct CollisionFootprint: Equatable {
             x: playerPosition.x + centerOffset.x,
             y: playerPosition.y + centerOffset.y
         )
+    }
+
+    func bounds(at playerPosition: CGPoint) -> CGRect {
+        localBounds.offsetBy(dx: playerPosition.x, dy: playerPosition.y)
     }
 
     func samplePoints(at playerPosition: CGPoint) -> [CGPoint] {

@@ -179,6 +179,22 @@ final class MapGeometryStore {
         update(selectedGeometry.withRotation(rotation))
     }
 
+    func updatePlayerFootprint(
+        _ footprint: MapPlayerFootprintDefinition,
+        validate: Bool = true
+    ) {
+        guard isStructurallyValid(footprint) else {
+            statusMessage = "Invalid player footprint"
+            return
+        }
+        recordCurrentIfNeeded()
+        configuration.playerFootprint = footprint
+        publish(changeSet: .fullReplacement)
+        if validate, transactionStart == nil {
+            validation = validator.validate(configuration, includeReachability: false)
+        }
+    }
+
     func selectPrevious() { moveSelection(by: -1) }
     func selectNext() { moveSelection(by: 1) }
 
@@ -292,6 +308,16 @@ final class MapGeometryStore {
                 && frame.width > 0 && frame.height > 0
         }
         return element.worldPosition.x.isFinite && element.worldPosition.y.isFinite
+    }
+
+    private func isStructurallyValid(_ footprint: MapPlayerFootprintDefinition) -> Bool {
+        footprint.centerOffset.isFinite
+            && footprint.width.isFinite
+            && footprint.height.isFinite
+            && footprint.obstacleRadius.isFinite
+            && footprint.width > 0
+            && footprint.height > 0
+            && footprint.obstacleRadius > 0
     }
 }
 

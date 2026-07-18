@@ -7,6 +7,9 @@ enum PhysicsCategory {
     static let roomTrigger: UInt32 = 1 << 2
     static let interaction: UInt32 = 1 << 3
     static let closedDoor: UInt32 = 1 << 4
+    static let playerSensor: UInt32 = 1 << 5
+
+    static let playerContactSources = player | playerSensor
 }
 
 enum PhysicsContactResolver {
@@ -15,11 +18,11 @@ enum PhysicsContactResolver {
         bodyB: SKPhysicsBody,
         pairedWith category: UInt32
     ) -> SKPhysicsBody? {
-        if bodyA.categoryBitMask == PhysicsCategory.player,
+        if bodyA.categoryBitMask & PhysicsCategory.playerContactSources != 0,
            bodyB.categoryBitMask == category {
             return bodyB
         }
-        if bodyB.categoryBitMask == PhysicsCategory.player,
+        if bodyB.categoryBitMask & PhysicsCategory.playerContactSources != 0,
            bodyA.categoryBitMask == category {
             return bodyA
         }

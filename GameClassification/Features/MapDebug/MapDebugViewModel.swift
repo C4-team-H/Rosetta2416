@@ -19,6 +19,7 @@ final class MapDebugViewModel {
     var activeResizeHandle: MapResizeHandle?
     var activeVertexIndex: Int?
     var selectedVertexIndex: Int?
+    var activePlayerCollisionHandle: MapPlayerCollisionHandle?
     var pendingDelete: MapElementID?
     var isShowingSettings = false
     var isShowingLayers = true
@@ -34,6 +35,7 @@ final class MapDebugViewModel {
 
     private var dragStartWorld: CGPoint?
     private var dragOriginalElement: MapGeometryElement?
+    private var dragOriginalPlayerFootprint: MapPlayerFootprintDefinition?
     private var createStartWorld: CGPoint?
     private var lastHitScreenPoint: CGPoint?
     private var lastHitCandidateIDs: [MapElementID] = []
@@ -55,6 +57,7 @@ final class MapDebugViewModel {
 
     var grid: MapEditorGridConfiguration { settings.gridConfiguration }
     var selectedElement: MapGeometryElement? { store.selectedGeometry }
+    var playerFootprint: MapPlayerFootprintDefinition { store.configuration.playerFootprint }
 
     var statusTitle: String {
         if settings.editorMode == .testCollision { return "COLLISION TEST MODE" }
@@ -174,6 +177,16 @@ final class MapDebugViewModel {
         guard let world = converter.screenToWorld(screenPoint) else { return }
         cursorWorldPosition = world
 
+        if let handle = playerCollisionHandle(at: screenPoint) {
+            activePlayerCollisionHandle = handle
+            dragStartWorld = world
+            dragOriginalPlayerFootprint = store.configuration.playerFootprint
+            dragOriginalElement = nil
+            store.clearSelection()
+            store.beginTransaction()
+            return
+        }
+
         if settings.editorMode == .create {
             guard !isPointCategory(selectedCreationCategory) else { return }
             createStartWorld = grid.snapped(world)
@@ -229,6 +242,16 @@ final class MapDebugViewModel {
             return
         }
 
+        if let handle = activePlayerCollisionHandle,
+           let original = dragOriginalPlayerFootprint {
+            updatePlayerCollisionDrag(
+                handle: handle,
+                original: original,
+                worldPoint: grid.snapped(world)
+            )
+            return
+        }
+
         guard let start = dragStartWorld, let original = dragOriginalElement else { return }
         let delta = CGVector(dx: world.x - start.x, dy: world.y - start.y)
         if settings.editorMode == .move {
@@ -266,11 +289,16 @@ final class MapDebugViewModel {
             return
         }
 
+        if dragOriginalPlayerFootprint != nil {
+            store.endTransaction(validate: true)
+        }
         if dragOriginalElement != nil { store.endTransaction(validate: true) }
         dragStartWorld = nil
         dragOriginalElement = nil
+        dragOriginalPlayerFootprint = nil
         activeResizeHandle = nil
         activeVertexIndex = nil
+        activePlayerCollisionHandle = nil
     }
 
     func deletePendingElement() {
@@ -380,6 +408,75 @@ final class MapDebugViewModel {
         )
     }
 
+    func updatePlayerFootprint(
+        centerOffsetX: Double? = nil,
+        centerOffsetY: Double? = nil,
+        width: Double? = nil,
+        height: Double? = nil,
+        obstacleRadius: Double? = nil,
+        validate: Bool = true
+    ) {
+        var footprint = store.configuration.playerFootprint
+        if let centerOffsetX {
+            footprint.centerOffset.x = centerOffsetX
+        }
+        if let centerOffsetY {
+            footprint.centerOffset.y = centerOffsetY
+        }
+        if let width {
+            footprint.width = max(1, width)
+        }
+        if let height {
+            footprint.height = max(1, height)
+        }
+        if let obstacleRadius {
+            footprint.obstacleRadius = max(1, obstacleRadius)
+        }
+        store.updatePlayerFootprint(footprint, validate: validate)
+    }
+
+    func playerFootprintWorldBounds() -> CGRect {
+        store.configuration.playerFootprint.runtimeValue.localBounds.offsetBy(
+            dx: sessionState.localPlayer.worldPosition.x,
+            dy: sessionState.localPlayer.worldPosition.y
+        )
+    }
+
+    func playerCollisionCenterWorldPoint() -> CGPoint {
+        store.configuration.playerFootprint.runtimeValue.center(
+            at: sessionState.localPlayer.worldPosition
+        )
+    }
+
+    func playerCollisionCenterScreenPoint() -> CGPoint? {
+        converter.worldToScreen(playerCollisionCenterWorldPoint())
+    }
+
+    func playerFootprintHandlePoints() -> [MapResizeHandle: CGPoint] {
+        let frame = playerFootprintWorldBounds()
+        let worldPoints: [MapResizeHandle: CGPoint] = [
+            .topLeft: CGPoint(x: frame.minX, y: frame.maxY),
+            .top: CGPoint(x: frame.midX, y: frame.maxY),
+            .topRight: CGPoint(x: frame.maxX, y: frame.maxY),
+            .left: CGPoint(x: frame.minX, y: frame.midY),
+            .right: CGPoint(x: frame.maxX, y: frame.midY),
+            .bottomLeft: CGPoint(x: frame.minX, y: frame.minY),
+            .bottom: CGPoint(x: frame.midX, y: frame.minY),
+            .bottomRight: CGPoint(x: frame.maxX, y: frame.minY)
+        ]
+        return worldPoints.reduce(into: [:]) { result, pair in
+            result[pair.key] = converter.worldToScreen(pair.value)
+        }
+    }
+
+    func playerObstacleRadiusHandlePoint() -> CGPoint? {
+        let center = playerCollisionCenterWorldPoint()
+        return converter.worldToScreen(CGPoint(
+            x: center.x + CGFloat(store.configuration.playerFootprint.obstacleRadius),
+            y: center.y
+        ))
+    }
+
     func hitTest(screenPoint: CGPoint) -> MapGeometryElement? {
         hitCandidates(screenPoint: screenPoint).first
     }
@@ -449,6 +546,30 @@ final class MapDebugViewModel {
         return handlePoints(for: selected).min { lhs, rhs in
             distance(lhs.value, screenPoint) < distance(rhs.value, screenPoint)
         }.flatMap { distance($0.value, screenPoint) <= 28 ? $0.key : nil }
+    }
+
+    func playerCollisionHandle(at screenPoint: CGPoint) -> MapPlayerCollisionHandle? {
+        guard settings.showCollisionBodies,
+              settings.editorMode == .move || settings.editorMode == .resize else {
+            return nil
+        }
+        if settings.editorMode == .resize,
+           let obstacleHandle = playerObstacleRadiusHandlePoint(),
+           distance(obstacleHandle, screenPoint) <= 28 {
+            return .obstacleRadius
+        }
+        if settings.editorMode == .resize,
+           let closestFootprintHandle = playerFootprintHandlePoints().min(by: {
+            distance($0.value, screenPoint) < distance($1.value, screenPoint)
+           }),
+           distance(closestFootprintHandle.value, screenPoint) <= 28 {
+            return .footprint(closestFootprintHandle.key)
+        }
+        if let center = playerCollisionCenterScreenPoint(),
+           distance(center, screenPoint) <= 28 {
+            return .center
+        }
+        return nil
     }
 
     func vertexScreenPoints(for element: MapGeometryElement) -> [CGPoint] {
@@ -632,6 +753,82 @@ final class MapDebugViewModel {
     private func distance(_ lhs: CGPoint, _ rhs: CGPoint) -> CGFloat {
         hypot(lhs.x - rhs.x, lhs.y - rhs.y)
     }
+
+    private func updatePlayerCollisionDrag(
+        handle: MapPlayerCollisionHandle,
+        original: MapPlayerFootprintDefinition,
+        worldPoint: CGPoint
+    ) {
+        let player = sessionState.localPlayer.worldPosition
+        var changed = original
+        switch handle {
+        case .center:
+            guard let start = dragStartWorld else { return }
+            let delta = CGVector(dx: worldPoint.x - start.x, dy: worldPoint.y - start.y)
+            changed.centerOffset = CodablePoint(
+                x: original.centerOffset.x + Double(delta.dx),
+                y: original.centerOffset.y + Double(delta.dy)
+            )
+
+        case .obstacleRadius:
+            let center = original.runtimeValue.center(at: player)
+            changed.obstacleRadius = max(1, hypot(worldPoint.x - center.x, worldPoint.y - center.y))
+
+        case let .footprint(resizeHandle):
+            var frame = original.runtimeValue.localBounds.offsetBy(dx: player.x, dy: player.y)
+            let fixedMinX = frame.minX
+            let fixedMaxX = frame.maxX
+            let fixedMinY = frame.minY
+            let fixedMaxY = frame.maxY
+            switch resizeHandle {
+            case .topLeft:
+                let minX = min(worldPoint.x, fixedMaxX - 1)
+                frame.origin.x = minX
+                frame.size.width = fixedMaxX - minX
+                frame.size.height = max(1, worldPoint.y - fixedMinY)
+            case .top:
+                frame.size.height = max(1, worldPoint.y - fixedMinY)
+            case .topRight:
+                frame.size.width = max(1, worldPoint.x - fixedMinX)
+                frame.size.height = max(1, worldPoint.y - fixedMinY)
+            case .left:
+                let minX = min(worldPoint.x, fixedMaxX - 1)
+                frame.origin.x = minX
+                frame.size.width = fixedMaxX - minX
+            case .right:
+                frame.size.width = max(1, worldPoint.x - fixedMinX)
+            case .bottomLeft:
+                let minX = min(worldPoint.x, fixedMaxX - 1)
+                let minY = min(worldPoint.y, fixedMaxY - 1)
+                frame.origin.x = minX
+                frame.origin.y = minY
+                frame.size.width = fixedMaxX - minX
+                frame.size.height = fixedMaxY - minY
+            case .bottom:
+                let minY = min(worldPoint.y, fixedMaxY - 1)
+                frame.origin.y = minY
+                frame.size.height = fixedMaxY - minY
+            case .bottomRight:
+                let minY = min(worldPoint.y, fixedMaxY - 1)
+                frame.origin.y = minY
+                frame.size.width = max(1, worldPoint.x - fixedMinX)
+                frame.size.height = fixedMaxY - minY
+            }
+            changed.centerOffset = CodablePoint(
+                x: frame.midX - player.x,
+                y: frame.midY - player.y
+            )
+            changed.width = Double(frame.width)
+            changed.height = Double(frame.height)
+        }
+        store.updatePlayerFootprint(changed, validate: false)
+    }
+}
+
+enum MapPlayerCollisionHandle: Equatable {
+    case center
+    case footprint(MapResizeHandle)
+    case obstacleRadius
 }
 
 private extension MapGeometryElement {

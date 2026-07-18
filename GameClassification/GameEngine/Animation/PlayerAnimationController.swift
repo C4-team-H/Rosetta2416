@@ -92,8 +92,7 @@ final class PlayerAnimationController {
 
     private func applyFacingDirection() {
         guard let sprite else { return }
-        let scaleMagnitude = max(abs(sprite.xScale), 0.0001)
-        sprite.xScale = facingDirection == .right ? scaleMagnitude : -scaleMagnitude
+        sprite.xScale = facingDirection == .right ? 1 : -1
     }
 
     private static func makeTexture(named name: String) -> SKTexture {

@@ -64,7 +64,7 @@ struct CollisionSystem {
         guard distance > 0 else { return .stationary(at: start) }
 
         let maximumSubstep = max(
-            footprint.radius / 2,
+            min(footprint.halfWidth, footprint.halfHeight) / 2,
             walkabilitySystem.map.configuration.walkabilityEpsilon
         )
         let stepCount = max(1, Int(ceil(distance / maximumSubstep)))

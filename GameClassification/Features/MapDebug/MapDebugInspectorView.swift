@@ -35,6 +35,8 @@ struct MapDebugInspectorView: View {
                 .foregroundStyle(.red)
             }
 
+            MapDebugPlayerCollisionEditor(viewModel: viewModel)
+
             if let element = viewModel.selectedElement {
                 MapDebugSelectedElementEditor(viewModel: viewModel, element: element)
                     .id(element.id)
@@ -84,6 +86,80 @@ struct MapDebugInspectorView: View {
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.6))
         }
+    }
+}
+
+private struct MapDebugPlayerCollisionEditor: View {
+    let viewModel: MapDebugViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("PLAYER COLLISION", systemImage: "figure.walk")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.cyan)
+                Spacer()
+                Text("exportable")
+                    .font(.caption2.monospaced().bold())
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+
+            MapDebugCoordinateEditor(
+                title: "Foot Offset X",
+                value: valueBinding(
+                    get: { viewModel.playerFootprint.centerOffset.x },
+                    set: { viewModel.updatePlayerFootprint(centerOffsetX: $0) }
+                ),
+                onCommit: {}
+            )
+            MapDebugCoordinateEditor(
+                title: "Foot Offset Y",
+                value: valueBinding(
+                    get: { viewModel.playerFootprint.centerOffset.y },
+                    set: { viewModel.updatePlayerFootprint(centerOffsetY: $0) }
+                ),
+                onCommit: {}
+            )
+            MapDebugCoordinateEditor(
+                title: "Foot Width",
+                value: valueBinding(
+                    get: { viewModel.playerFootprint.width },
+                    set: { viewModel.updatePlayerFootprint(width: $0) }
+                ),
+                onCommit: {}
+            )
+            MapDebugCoordinateEditor(
+                title: "Foot Height",
+                value: valueBinding(
+                    get: { viewModel.playerFootprint.height },
+                    set: { viewModel.updatePlayerFootprint(height: $0) }
+                ),
+                onCommit: {}
+            )
+
+            MapDebugCoordinateEditor(
+                title: "Obstacle Radius",
+                value: valueBinding(
+                    get: { viewModel.playerFootprint.obstacleRadius },
+                    set: { viewModel.updatePlayerFootprint(obstacleRadius: $0) }
+                ),
+                onCommit: {}
+            )
+
+            Text("Move mode: drag center. Resize mode: drag green box handles or orange radius handle.")
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.58))
+        }
+        .padding(9)
+        .background(.white.opacity(0.06), in: .rect(cornerRadius: 9))
+        .overlay { RoundedRectangle(cornerRadius: 9).stroke(.cyan.opacity(0.22)) }
+    }
+
+    private func valueBinding(
+        get: @escaping () -> Double,
+        set: @escaping (Double) -> Void
+    ) -> Binding<Double> {
+        Binding(get: get, set: set)
     }
 }
 

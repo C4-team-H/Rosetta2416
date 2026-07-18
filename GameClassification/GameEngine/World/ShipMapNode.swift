@@ -83,7 +83,7 @@ final class ShipDoorNode: SKShapeNode {
         case .closed, .locked:
             physicsBody?.categoryBitMask = PhysicsCategory.closedDoor
             physicsBody?.collisionBitMask = PhysicsCategory.player
-            physicsBody?.contactTestBitMask = PhysicsCategory.player
+            physicsBody?.contactTestBitMask = PhysicsCategory.playerSensor
             fillColor = state == .locked
                 ? .red.withAlphaComponent(0.78)
                 : .orange.withAlphaComponent(0.72)
@@ -251,7 +251,7 @@ final class ShipMapNode: SKNode {
             body.affectedByGravity = false
             body.categoryBitMask = PhysicsCategory.roomTrigger
             body.collisionBitMask = PhysicsCategory.none
-            body.contactTestBitMask = PhysicsCategory.player
+            body.contactTestBitMask = PhysicsCategory.playerSensor
             node.physicsBody = body
             roomTriggerLayer.addChild(node)
             geometryNodes[MapElementID(category: .room, rawValue: definition.sourceID)] = node
@@ -302,9 +302,17 @@ final class ShipMapNode: SKNode {
         case let .polygon(points):
             guard points.count >= 3 else { return nil }
             node.position = CGPoint(x: definition.shape.bounds.midX, y: definition.shape.bounds.midY)
-            let body = filledPhysicsBody(for: .polygon(points), around: node.position)
-            configureStaticBlockingBody(body)
-            node.physicsBody = body
+            if definition.kind == .hull || !polygonIsConvex(points) {
+                let body = filledPhysicsBody(for: .polygon(points), around: node.position)
+                configureStaticBlockingBody(body)
+                node.physicsBody = body
+            } else {
+                let body = SKPhysicsBody(
+                    polygonFrom: localClosedPath(for: .polygon(points), around: node.position)
+                )
+                configureStaticBlockingBody(body)
+                node.physicsBody = body
+            }
 
         case let .edgeLoop(points):
             guard points.count >= 3 else { return nil }
@@ -528,6 +536,25 @@ private func filledPhysicsBody(
         }
         return bodies.count == 1 ? bodies[0] : SKPhysicsBody(bodies: bodies)
     }
+}
+
+private func polygonIsConvex(_ points: [CGPoint]) -> Bool {
+    guard points.count >= 3 else { return false }
+    var expectedSign: CGFloat = 0
+    for index in points.indices {
+        let a = points[index]
+        let b = points[(index + 1) % points.count]
+        let c = points[(index + 2) % points.count]
+        let cross = crossProduct(a, b, c)
+        guard abs(cross) > 0.000_1 else { continue }
+        let sign: CGFloat = cross > 0 ? 1 : -1
+        if expectedSign == 0 {
+            expectedSign = sign
+        } else if sign != expectedSign {
+            return false
+        }
+    }
+    return expectedSign != 0
 }
 
 private func triangulatedPolygon(_ points: [CGPoint]) -> [[CGPoint]] {

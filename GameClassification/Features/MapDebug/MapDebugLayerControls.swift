@@ -27,6 +27,19 @@ struct MapDebugLayerControls: View {
             Toggle("Coordinates", isOn: bind(\.showCoordinates))
             Toggle("Grid", isOn: bind(\.showGrid))
             Toggle("Physics", isOn: bind(\.showCollisionBodies))
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Circle().fill(.green).frame(width: 7, height: 7)
+                    Text("Player footprint")
+                }
+                HStack(spacing: 6) {
+                    Circle().fill(.orange).frame(width: 7, height: 7)
+                    Text("Obstacle radius")
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.white.opacity(0.68))
+            .padding(.leading, 3)
             Label("Candle overlay disabled", systemImage: "lightbulb.slash")
                 .font(.caption2)
                 .foregroundStyle(.cyan)

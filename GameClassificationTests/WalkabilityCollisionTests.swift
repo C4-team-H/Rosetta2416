@@ -52,13 +52,64 @@ struct WalkabilityCollisionTests {
 
         let room = GameMapLayout.ship.rooms.first(where: { $0.roomID == .sleepingRoom })!
         let edgePosition = CGPoint(
-            x: room.walkableFrame.minX + GameMapLayout.playerFootprint.radius / 2,
+            x: room.walkableFrame.minX + GameMapLayout.playerFootprint.halfWidth / 2,
             y: room.walkableFrame.midY - GameMapLayout.playerFootprint.centerOffset.y
         )
         #expect(!system.isWalkable(
             position: edgePosition,
             footprint: GameMapLayout.playerFootprint
         ).isWalkable)
+    }
+
+    @Test("Obstacle clearance can be larger than the foot navigation radius")
+    func obstacleClearanceRadius() {
+        let footOnly = CollisionFootprint(centerOffset: .zero, radius: 10)
+        let visualClearance = CollisionFootprint(
+            centerOffset: .zero,
+            radius: 10,
+            obstacleRadius: 45
+        )
+        let configuration = GameMapConfiguration(
+            authoredArtworkSize: CGSize(width: 300, height: 300),
+            worldSize: CGSize(width: 300, height: 300),
+            artworkScale: 1,
+            artworkOffset: .zero,
+            playerVisualRadius: 24,
+            playerFootprint: footOnly,
+            wallThickness: 10,
+            walkabilityEpsilon: 0.1,
+            targetClampStep: 4,
+            targetClampMaximumRadius: 64
+        )
+        let obstacle = ShipColliderDefinition(
+            id: "test-obstacle",
+            kind: .furniture,
+            shape: .rectangle(CGRect(x: 150, y: 130, width: 40, height: 40)),
+            debugLabel: "Test Obstacle"
+        )
+        let map = GameMap(
+            configuration: configuration,
+            rooms: [RoomDefinition(
+                roomID: .sleepingRoom,
+                walkableFrame: CGRect(x: 20, y: 20, width: 260, height: 260),
+                triggerFrame: CGRect(x: 20, y: 20, width: 260, height: 260)
+            )],
+            corridors: [],
+            doorways: [],
+            wallSegments: [],
+            colliders: [obstacle],
+            stations: [],
+            foodStationPosition: .zero,
+            spawnPoints: []
+        )
+        let system = WalkabilitySystem(map: map)
+        let nearObstacle = CGPoint(x: 110, y: 150)
+
+        #expect(system.isWalkable(position: nearObstacle, footprint: footOnly).isWalkable)
+        #expect(system.isWalkable(
+            position: nearObstacle,
+            footprint: visualClearance
+        ) == .blocked(.obstacle))
     }
 
     @Test("Closed and locked doors block the footprint while open doors do not")
@@ -202,6 +253,53 @@ struct WalkabilityCollisionTests {
 
         #expect(result.finalPosition.x < 90)
         #expect(result.blockedAxes.contains(.horizontal))
+    }
+
+    @Test("Movement cannot cross a corridor boundary")
+    func corridorBoundaryBlocking() {
+        let footprint = CollisionFootprint(centerOffset: .zero, radius: 10)
+        let configuration = GameMapConfiguration(
+            authoredArtworkSize: CGSize(width: 300, height: 300),
+            worldSize: CGSize(width: 300, height: 300),
+            artworkScale: 1,
+            artworkOffset: .zero,
+            playerVisualRadius: 12,
+            playerFootprint: footprint,
+            wallThickness: 10,
+            walkabilityEpsilon: 0.1,
+            targetClampStep: 4,
+            targetClampMaximumRadius: 64
+        )
+        let corridorFrame = CGRect(x: 100, y: 20, width: 80, height: 260)
+        let map = GameMap(
+            configuration: configuration,
+            rooms: [],
+            corridors: [CorridorDefinition(id: "test-corridor", worldFrame: corridorFrame)],
+            doorways: [],
+            wallSegments: [],
+            colliders: [],
+            stations: [],
+            foodStationPosition: .zero,
+            spawnPoints: []
+        )
+        let walkability = WalkabilitySystem(map: map)
+        let movement = MovementSystem(
+            collisionSystem: CollisionSystem(walkabilitySystem: walkability)
+        )
+        let result = movement.move(
+            from: CGPoint(x: corridorFrame.midX, y: corridorFrame.midY),
+            direction: CGPoint(x: 1, y: 0),
+            speed: 800,
+            deltaTime: 0.25,
+            footprint: footprint
+        )
+
+        #expect(result.finalPosition.x <= corridorFrame.maxX - footprint.radius)
+        #expect(result.blockedAxes.contains(.horizontal))
+        #expect(walkability.isWalkable(
+            position: result.finalPosition,
+            footprint: footprint
+        ).isWalkable)
     }
 
     @Test("Invalid Pencil targets clamp nearby or reject when too far")

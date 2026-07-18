@@ -566,16 +566,91 @@ private struct MapDebugCanvas: View {
         let player = viewModel.sessionState.localPlayer.worldPosition
         let footprint = viewModel.store.configuration.playerFootprint.runtimeValue
         let center = footprint.center(at: player)
-        guard let screenCenter = viewModel.converter.worldToScreen(center),
-              let radiusPoint = viewModel.converter.worldToScreen(CGPoint(x: center.x + footprint.radius, y: center.y)) else { return }
-        let radius = abs(radiusPoint.x - screenCenter.x)
-        context.fill(Path(ellipseIn: CGRect(x: screenCenter.x - radius, y: screenCenter.y - radius, width: radius * 2, height: radius * 2)), with: .color(.green.opacity(0.12)))
-        context.stroke(Path(ellipseIn: CGRect(x: screenCenter.x - radius, y: screenCenter.y - radius, width: radius * 2, height: radius * 2)), with: .color(.green), lineWidth: 2)
-        for sample in footprint.samplePoints(at: player) {
-            if let point = viewModel.converter.worldToScreen(sample) {
-                context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(.green))
+        let obstacleRadius = footprint.obstacleRadius
+        let obstacleBounds = CGRect(
+            x: center.x - obstacleRadius,
+            y: center.y - obstacleRadius,
+            width: obstacleRadius * 2,
+            height: obstacleRadius * 2
+        )
+        if let obstacleScreenBounds = screenRect(from: obstacleBounds) {
+            let obstaclePath = Path(ellipseIn: obstacleScreenBounds)
+            context.fill(obstaclePath, with: .color(.orange.opacity(0.08)))
+            context.stroke(
+                obstaclePath,
+                with: .color(.orange),
+                style: StrokeStyle(lineWidth: 2, dash: [8, 5])
+            )
+        }
+
+        let localBounds = PlayerNode.makeFootprintBounds(footprint: footprint)
+        let worldBounds = localBounds.offsetBy(dx: player.x, dy: player.y)
+        guard let screenBounds = screenRect(from: worldBounds) else { return }
+        let footprintPath = Path { $0.addRect(screenBounds) }
+        context.fill(footprintPath, with: .color(.green.opacity(0.12)))
+        context.stroke(footprintPath, with: .color(.green), lineWidth: 2)
+
+        if viewModel.settings.showCoordinates {
+            context.draw(
+                Text("playerFootprint\nW \(Int(footprint.width)) H \(Int(footprint.height))")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.green),
+                at: CGPoint(x: screenBounds.midX, y: screenBounds.maxY + 16),
+                anchor: .center
+            )
+            if let centerScreen = viewModel.converter.worldToScreen(center) {
+                context.draw(
+                    Text("obstacleRadius \(Int(obstacleRadius))")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.orange),
+                    at: CGPoint(x: centerScreen.x, y: centerScreen.y - 22),
+                    anchor: .center
+                )
             }
         }
+
+        drawPlayerCollisionHandles(context: &context)
+    }
+
+    private func screenRect(from worldRect: CGRect) -> CGRect? {
+        guard let firstCorner = viewModel.converter.worldToScreen(CGPoint(x: worldRect.minX, y: worldRect.minY)),
+              let secondCorner = viewModel.converter.worldToScreen(CGPoint(x: worldRect.maxX, y: worldRect.maxY)) else { return nil }
+        return CGRect(
+            x: min(firstCorner.x, secondCorner.x),
+            y: min(firstCorner.y, secondCorner.y),
+            width: abs(secondCorner.x - firstCorner.x),
+            height: abs(secondCorner.y - firstCorner.y)
+        )
+    }
+
+    private func drawPlayerCollisionHandles(context: inout GraphicsContext) {
+        guard viewModel.settings.editorMode == .move || viewModel.settings.editorMode == .resize else { return }
+        if let center = viewModel.playerCollisionCenterScreenPoint() {
+            let isActive = viewModel.activePlayerCollisionHandle == .center
+            let rect = CGRect(x: center.x - 7, y: center.y - 7, width: 14, height: 14)
+            context.fill(Path(ellipseIn: rect), with: .color(isActive ? .cyan : .white))
+            context.stroke(Path(ellipseIn: rect), with: .color(.black), lineWidth: 1.5)
+        }
+
+        guard viewModel.settings.editorMode == .resize else { return }
+        for (handle, point) in viewModel.playerFootprintHandlePoints() {
+            let isActive = viewModel.activePlayerCollisionHandle == .footprint(handle)
+            let rect = CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)
+            context.fill(Path(rect), with: .color(isActive ? .cyan : .white))
+            context.stroke(Path(rect), with: .color(.green), lineWidth: 1.5)
+        }
+
+        guard let center = viewModel.playerCollisionCenterScreenPoint(),
+              let radiusHandle = viewModel.playerObstacleRadiusHandlePoint() else { return }
+        var radiusLine = Path()
+        radiusLine.move(to: center)
+        radiusLine.addLine(to: radiusHandle)
+        context.stroke(radiusLine, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+
+        let isActive = viewModel.activePlayerCollisionHandle == .obstacleRadius
+        let rect = CGRect(x: radiusHandle.x - 7, y: radiusHandle.y - 7, width: 14, height: 14)
+        context.fill(Path(ellipseIn: rect), with: .color(isActive ? .cyan : .orange))
+        context.stroke(Path(ellipseIn: rect), with: .color(.white), lineWidth: 1.5)
     }
 
     private func color(for element: MapGeometryElement) -> Color {

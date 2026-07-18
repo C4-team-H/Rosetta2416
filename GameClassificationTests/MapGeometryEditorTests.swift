@@ -19,6 +19,28 @@ struct MapGeometryEditorTests {
         let decoded = try JSONDecoder().decode(MapGeometryConfiguration.self, from: data)
         #expect(decoded == configuration)
 
+        let footprintJSON = """
+        {"centerOffset":{"x":0,"y":-22.93},"width":92,"height":46,"obstacleRadius":111}
+        """
+        let footprint = try JSONDecoder().decode(
+            MapPlayerFootprintDefinition.self,
+            from: Data(footprintJSON.utf8)
+        )
+        #expect(footprint.width == 92)
+        #expect(footprint.height == 46)
+        #expect(footprint.obstacleRadius == 111)
+
+        let legacyFootprintJSON = """
+        {"centerOffset":{"x":0,"y":-20},"radius":45}
+        """
+        let legacyFootprint = try JSONDecoder().decode(
+            MapPlayerFootprintDefinition.self,
+            from: Data(legacyFootprintJSON.utf8)
+        )
+        #expect(legacyFootprint.width == 90)
+        #expect(legacyFootprint.height == 90)
+        #expect(legacyFootprint.obstacleRadius == 45)
+
         let legacyStationJSON = """
         {"id":"legacy-station","name":"Legacy Station","kind":"mission","position":{"x":100,"y":200},"isEnabled":true,"isRequired":false}
         """
@@ -676,6 +698,7 @@ struct MapGeometryEditorTests {
         #expect(firstJSON == secondJSON)
         #expect(firstJSON.hasSuffix("\n"))
         #expect(swift.contains("static var drawingSpaceDefault"))
+        #expect(swift.contains("obstacleRadius:"))
         let sortedIDs = configuration.walls.map(\.id).sorted()
         #expect(swift.range(of: sortedIDs[0])!.lowerBound < swift.range(of: sortedIDs[1])!.lowerBound)
     }

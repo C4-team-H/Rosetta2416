@@ -46,7 +46,9 @@ final class WalkabilitySystem {
     ) -> WalkabilityResult {
         guard position.x.isFinite, position.y.isFinite,
               footprint.centerOffset.x.isFinite, footprint.centerOffset.y.isFinite,
-              footprint.radius.isFinite, footprint.radius > 0 else {
+              footprint.width.isFinite, footprint.width > 0,
+              footprint.height.isFinite, footprint.height > 0,
+              footprint.obstacleRadius.isFinite, footprint.obstacleRadius > 0 else {
             return .blocked(.invalid)
         }
 
@@ -66,7 +68,7 @@ final class WalkabilitySystem {
             return .blocked(.wall)
         }
 
-        if intersectsObstacle(center: center, radius: footprint.radius) {
+        if intersectsObstacle(center: center, radius: footprint.obstacleRadius) {
             return .blocked(.obstacle)
         }
 
