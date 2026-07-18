@@ -6,7 +6,7 @@ struct MapButton: View {
     var body: some View {
         Button("Open map", systemImage: "map.fill", action: action)
             .labelStyle(.iconOnly)
-            .font(.system(size: 21, weight: .semibold))
+            .font(GameFont.custom(size: 21, weight: 600))
             .foregroundStyle(.white)
             .frame(width: 52, height: 52)
             .background(.ultraThinMaterial, in: Circle())

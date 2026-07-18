@@ -72,14 +72,18 @@ final class GameSessionState {
     }
 
     func beginDrawing(objectiveID: String) {
-        guard phase == .playing else { return }
+        guard phase == .playing || (phase == .gameOver && objectiveID == "retry-angel") else { return }
         phase = .drawing(objectiveID)
         stats.drawingAttempts += 1
     }
 
     func endDrawing() {
-        guard case .drawing = phase else { return }
-        phase = .playing
+        guard case let .drawing(objectiveID) = phase else { return }
+        if objectiveID == "retry-angel" {
+            phase = .gameOver
+        } else {
+            phase = .playing
+        }
     }
 
     func endCutscene() {
@@ -94,6 +98,7 @@ final class GameSessionState {
             energySystem.restoreFood()
             stats.kitchenRestores += 1
             persistLatest()
+            AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
             return []
         case .checkpointRetryRequested:
             retryCheckpoint()
@@ -102,6 +107,15 @@ final class GameSessionState {
             break
         }
         let effects = storySystem.handle(event)
+        if case .drawingValidated = event {
+            let accepted = !effects.contains {
+                if case .interactionDenied = $0 { return true }
+                return false
+            }
+            if accepted {
+                stats.successfulDrawings += 1
+            }
+        }
         applyEffects(effects)
         return effects
     }
@@ -112,6 +126,7 @@ final class GameSessionState {
         if energySystem.update(deltaTime: deltaTime, isMoving: isMoving) {
             applyEffects(storySystem.handle(.energyDepleted))
         }
+        AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
     func restoreFoodEnergy() {
@@ -120,6 +135,12 @@ final class GameSessionState {
 
     func recordSuccessfulDrawing() {
         stats.successfulDrawings += 1
+    }
+
+    func markAlbumOpened() {
+        guard !storySystem.state.hasOpenedAlbum else { return }
+        storySystem.markAlbumOpened()
+        persistLatest()
     }
 
     func updateLocalPlayer(position: CGPoint) {
@@ -194,6 +215,7 @@ final class GameSessionState {
         currentDialogue = nil
         transientMessage = "Checkpoint restored"
         persistLatest()
+        AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
     func startNewSession(clearSavedProgress: Bool = true) {
@@ -219,6 +241,7 @@ final class GameSessionState {
             if clearSavedProgress { try? await repository.clear() }
             try? await repository.save(progress)
         }
+        AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
     private var isDrawing: Bool {
@@ -232,11 +255,7 @@ final class GameSessionState {
 
         for effect in effects {
             switch effect {
-            case let .objectiveCompleted(id):
-                if let definition = storySystem.definition(id: id),
-                   case .drawing = definition.kind {
-                    stats.successfulDrawings += 1
-                }
+            case .objectiveCompleted:
                 shouldPersist = true
 
             case .chapterChanged, .mapNeedsRefresh, .doorAccessChanged, .stationVisualChanged:

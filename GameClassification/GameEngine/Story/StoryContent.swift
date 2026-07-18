@@ -1,45 +1,119 @@
 import Foundation
 
 enum StoryContent {
-    static let objectives: [StoryObjectiveDefinition] = [
-        objective("reach-laboratory", .sleepingRoom, .laboratory, "Reach the Laboratory", "Find the laboratory and enter it.", [], .none, .roomEntry(.laboratory)),
 
-        objective("lab-terminal-repair", .laboratory, .laboratory, "Repair Communication Terminal", "Draw a radio to restore the terminal.", ["reach-laboratory"], reward(ai: 10), drawing("radio", "RADIO")),
-        objective("lab-memory-repair", .laboratory, .laboratory, "Repair Memory Processor", "Draw a brain to reconnect AI memory.", ["reach-laboratory"], reward(ai: 10), drawing("brain", "BRAIN")),
-        objective("lab-scanner-repair", .laboratory, .laboratory, "Repair Navigation Scanner", "Draw binoculars to restore long-range scanning.", ["reach-laboratory"], reward(ai: 10), drawing("binoculars", "BINOCULARS")),
+    // MARK: - Category Pools
 
-        objective("engine-power-connector", .enginePhaseOne, .engine, "Reconnect Power Connector", "Draw a power outlet to rebuild the connector.", labIDs, reward(engine: 5), drawing("power outlet", "POWER OUTLET")),
-        objective("engine-ignition-coil", .enginePhaseOne, .engine, "Repair Ignition Coil", "Draw a lightbulb to restart the ignition relay.", ["engine-power-connector"], reward(engine: 5), drawing("lightbulb", "LIGHTBULB")),
+    static let hewanPool: [DrawingPrompt] = [
+        "ant", "bee", "butterfly", "camel", "cat", "crab", "crocodile", "feather",
+        "fish", "frog", "giraffe", "hedgehog", "kangaroo", "lobster", "mouse",
+        "octopus", "owl", "penguin", "pig", "rabbit", "rooster", "sea turtle",
+        "sheep", "snail", "snake", "spider", "swan", "tiger", "zebra"
+    ].map { prompt($0) }
 
-        objective("engine-cooling-valve", .enginePhaseTwo, .engine, "Restore Cooling Valve", "Draw a fan to restart coolant circulation.", ["engine-ignition-coil"], reward(ai: 3, engine: 10), drawing("fan", "FAN")),
-        objective("engine-control-relay", .enginePhaseTwo, .engine, "Repair Control Relay", "Draw a computer monitor to rebuild engine control.", ["engine-cooling-valve"], reward(ai: 3, engine: 10), drawing("computer monitor", "COMPUTER MONITOR")),
-        objective("engine-reactor-link", .enginePhaseTwo, .engine, "Reconnect Reactor Link", "Draw a satellite to synchronize the reactor link.", ["engine-control-relay"], reward(ai: 4, engine: 10), drawing("satellite", "SATELLITE")),
-        objective("engine-pressure-feed", .enginePhaseTwo, .engine, "Repair Pressure Feed", "Draw a fire hydrant to restore the pressure feed.", ["engine-reactor-link"], reward(ai: 5, engine: 10), drawing("fire hydrant", "FIRE HYDRANT")),
-        objective("engine-calibration-port", .enginePhaseTwo, .engine, "Calibrate Engine Port", "Draw a screwdriver to calibrate the port.", ["engine-pressure-feed"], reward(ai: 5, engine: 10), drawing("screwdriver", "SCREWDRIVER")),
+    static let tanamanPool: [DrawingPrompt] = [
+        "cactus", "flower with stem", "leaf", "palm tree", "potted plant", "tree"
+    ].map { prompt($0) }
 
-        objective("storage-door-controller", .storage, .storage, "Repair Storage Controller", "Draw a key to restore door control.", [], .none, drawing("key", "KEY")),
-        objective("storage-tool-terminal", .storage, .storage, "Repair Tool Terminal", "Draw a calculator to identify compatible tools.", ["storage-door-controller"], .none, drawing("calculator", "CALCULATOR")),
-        objective("storage-robotic-arm", .storage, .storage, "Repair Robotic Arm", "Draw a hand to restore the robotic manipulator.", ["storage-tool-terminal"], .none, drawing("hand", "HAND")),
-        objective("storage-calibration-unit", .storage, .storage, "Repair Calibration Unit", "Draw a screwdriver to release the advanced toolkit.", ["storage-robotic-arm"], .none, drawing("screwdriver", "SCREWDRIVER")),
+    static let manusiaPool: [DrawingPrompt] = [
+        "brain", "crown", "ear", "eye", "eyeglasses", "face", "foot", "hand",
+        "hat", "helmet", "human-skeleton", "mouth", "nose", "pant",
+        "person sitting", "person walking", "shoe", "skull", "socks",
+        "suitcase", "t-shirt", "tooth", "wrist-watch"
+    ].map { prompt($0) }
 
-        objective("engine-reactor-stabilizer", .engineFinal, .engine, "Stabilize the Reactor", "Draw a sun to stabilize the reactor.", storageIDs, reward(ai: 8, engine: 8), drawing("sun", "SUN")),
-        objective("engine-core-reconnect", .engineFinal, .engine, "Reconnect Engine Core", "Draw a power outlet to reconnect the core.", ["engine-reactor-stabilizer"], reward(ai: 8, engine: 8), drawing("power outlet", "POWER OUTLET")),
-        objective("engine-propulsion-calibration", .engineFinal, .engine, "Calibrate Propulsion", "Draw a rocket to calibrate propulsion.", ["engine-core-reconnect"], reward(ai: 8, engine: 8), drawing("rocket", "ROCKET")),
-        objective("engine-cooling-restart", .engineFinal, .engine, "Restart Cooling", "Draw a fan to restart cooling.", ["engine-propulsion-calibration"], reward(ai: 8, engine: 8), drawing("fan", "FAN")),
-        objective("engine-navigation-sync", .engineFinal, .engine, "Synchronize Navigation", "Draw a satellite to finish navigation synchronization.", ["engine-cooling-restart"], reward(ai: 8, engine: 8), drawing("satellite", "SATELLITE")),
+    static let landscapePool: [DrawingPrompt] = [
+        "castle", "cloud", "fire hydrant", "house", "rainbow", "skyscraper",
+        "streetlight", "tent", "traffic light", "windmill"
+    ].map { prompt($0) }
 
-        objective("cockpit-navigation-control", .cockpit, .cockpit, "Restore Navigation Control", "Draw a ship to activate navigation.", [], .none, drawing("ship", "SHIP")),
-        objective("cockpit-communications", .cockpit, .cockpit, "Reconnect Communications", "Draw a radio to restore communications.", ["cockpit-navigation-control"], .none, drawing("radio", "RADIO")),
-        objective("cockpit-flight-console", .cockpit, .cockpit, "Calibrate Flight Console", "Draw a computer keyboard to complete recovery.", ["cockpit-communications"], .none, drawing("keyboard-computer", "COMPUTER KEYBOARD"))
+    static let transportasiPool: [DrawingPrompt] = [
+        "bicycle", "helicopter", "kayak", "rollerblades", "sedan",
+        "ship", "skateboard", "rocket", "train"
+    ].map { prompt($0) }
+
+    static let otherPool: [DrawingPrompt] = [
+        "diamond", "envelope", "gift", "parachute", "teddy bear"
+    ].map { prompt($0) }
+
+    static let elektronikPool: [DrawingPrompt] = [
+        "alarm clock", "camera", "computer monitor", "head-phones",
+        "laptop", "microphone", "radio", "satellite"
+    ].map { prompt($0) }
+
+    static let senjataPool: [DrawingPrompt] = [
+        "cannon"
+    ].map { prompt($0) }
+
+    static let alatPool: [DrawingPrompt] = [
+        "axe", "backpack", "binoculars", "book", "bowl", "calculator", "comb",
+        "computer mouse", "flashlight", "fork", "frying-pan", "hammer",
+        "hourglass", "key", "knife", "ladder", "microscope", "mug",
+        "paper clip", "pen", "power outlet", "scissors", "screwdriver", "spoon", "stapler",
+        "syringe", "teapot", "toothbrush", "wheel", "wineglass"
+    ].map { prompt($0) }
+
+    static let furniturePool: [DrawingPrompt] = [
+        "bed", "bell", "cabinet", "candle", "chair", "chandelier", "closet", "door",
+        "fan", "guitar", "lightbulb", "table", "tennis racket",
+        "umbrella"
+    ].map { prompt($0) }
+
+    static let bendaLangitPool: [DrawingPrompt] = [
+        DrawingPrompt(expectedLabel: "moon", displayName: "MOON"),
+        DrawingPrompt(expectedLabel: "sun", displayName: "SUN"),
+        DrawingPrompt(expectedLabel: "ufo", displayName: "UFO")
     ]
 
-    static let labIDs = ["lab-terminal-repair", "lab-memory-repair", "lab-scanner-repair"]
-    static let enginePhaseOneIDs = ["engine-power-connector", "engine-ignition-coil"]
-    static let enginePhaseTwoDisruptionIDs = ["engine-cooling-valve", "engine-control-relay", "engine-reactor-link"]
-    static let enginePhaseTwoIDs = enginePhaseTwoDisruptionIDs + ["engine-pressure-feed", "engine-calibration-port"]
-    static let storageIDs = ["storage-door-controller", "storage-tool-terminal", "storage-robotic-arm", "storage-calibration-unit"]
-    static let engineFinalIDs = ["engine-reactor-stabilizer", "engine-core-reconnect", "engine-propulsion-calibration", "engine-cooling-restart", "engine-navigation-sync"]
-    static let cockpitIDs = ["cockpit-navigation-control", "cockpit-communications", "cockpit-flight-console"]
+    // MARK: - Objectives
+
+    static let objectives: [StoryObjectiveDefinition] = [
+        // Sleeping Room
+        objective("reach-laboratory", .sleepingRoom, .laboratory, "Reach the Laboratory", "Find the laboratory and enter it.", [], .none, .roomEntry(.laboratory)),
+
+        // Laboratory — 1 easel, 3 random from hewan + tanaman + manusia
+        objective("lab-easel", .laboratory, .laboratory, "Restore AI Systems", "Draw 3 objects to restore the ship's AI.",
+                  ["reach-laboratory"],
+                  .none,
+                  // .easel(EaselDefinition(pool: hewanPool + tanamanPool + manusiaPool, count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
+                  .easel(EaselDefinition(pool: [prompt("eyeglasses"), prompt("spider"), prompt("cactus")], count: 3, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 0)))),
+
+        // Engine Room Easel 1 — 6 random from landscape + transportasi + other
+        // Each drawing gives +10 engine progress.
+        // Milestones: engine 10 → basicPower, engine 40 → disruption, engine 60 → storage opens.
+        objective("engine-easel-1", .enginePhaseOne, .engine, "Primary Engine Repair", "Draw 6 objects to restore the engine to 60%.",
+                  ["lab-easel"],
+                  .none,
+                  .easel(EaselDefinition(pool: landscapePool + transportasiPool + otherPool, count: 6, perDrawingReward: StoryProgressReward(intelligence: 3, engine: 10)))),
+
+        // Storage — 1 easel, 3 random from alat-alat dan perkakas + furniture
+        objective("storage-easel", .storage, .storage, "Retrieve Advanced Tools", "Draw 3 objects to unlock the advanced toolkit.",
+                  [],
+                  .none,
+                  .easel(EaselDefinition(pool: alatPool + furniturePool, count: 3, perDrawingReward: StoryProgressReward(intelligence: 0, engine: 0)))),
+
+        // Engine Room Easel 2 — 4 random from elektronik + senjata
+        objective("engine-easel-2", .engineFinal, .engine, "Final Engine Repair", "Draw 4 objects to finish engine repairs.",
+                  ["storage-easel"],
+                  .none,
+                  .easel(EaselDefinition(pool: elektronikPool + senjataPool, count: 4, perDrawingReward: StoryProgressReward(intelligence: 10, engine: 10)))),
+
+        // Cockpit — 1 easel, 3 fixed: moon, sun, ufo
+        objective("cockpit-easel", .cockpit, .cockpit, "Launch Sequence", "Draw 3 celestial objects to complete the launch sequence.",
+                  [],
+                  .none,
+                  .easel(EaselDefinition(pool: bendaLangitPool, count: 3, perDrawingReward: StoryProgressReward(intelligence: 0, engine: 0))))
+    ]
+
+    // MARK: - Objective ID Lists
+
+    static let labIDs = ["lab-easel"]
+    static let engineEaselOneIDs = ["engine-easel-1"]
+    static let storageIDs = ["storage-easel"]
+    static let engineFinalIDs = ["engine-easel-2"]
+    static let cockpitIDs = ["cockpit-easel"]
+
+    // MARK: - Room Access Rules
 
     static let roomRules: [RoomAccessRule] = [
         RoomAccessRule(roomID: .sleepingRoom, requiredChapter: nil, minimumIntelligence: nil, minimumEngineProgress: nil, requiresAdvancedTools: false),
@@ -49,6 +123,8 @@ enum StoryContent {
         RoomAccessRule(roomID: .storage, requiredChapter: .engineBlocked, minimumIntelligence: nil, minimumEngineProgress: 60, requiresAdvancedTools: false),
         RoomAccessRule(roomID: .cockpit, requiredChapter: .cockpit, minimumIntelligence: 100, minimumEngineProgress: 100, requiresAdvancedTools: false)
     ]
+
+    // MARK: - Helpers
 
     static func definition(id: String) -> StoryObjectiveDefinition? {
         objectives.first { $0.id == id }
@@ -77,11 +153,7 @@ enum StoryContent {
         )
     }
 
-    private static func reward(ai: Double = 0, engine: Double = 0) -> StoryProgressReward {
-        StoryProgressReward(intelligence: ai, engine: engine)
-    }
-
-    private static func drawing(_ label: String, _ displayName: String) -> ObjectiveKind {
-        .drawing(DrawingPrompt(expectedLabel: label, displayName: displayName))
+    private static func prompt(_ label: String) -> DrawingPrompt {
+        DrawingPrompt(expectedLabel: label, displayName: label.uppercased())
     }
 }

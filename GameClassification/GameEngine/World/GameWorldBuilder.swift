@@ -64,8 +64,60 @@ extension GameScene {
         foodObject?.removeFromParent()
         foodObject = makeStationNode(id: "kitchen-food", at: gameMap.foodStationPosition)
         foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1)
-        attachInteractionSensor(to: foodObject, id: "kitchen-food")
-        (shipMapNode?.furnitureLayer ?? self).addChild(foodObject)
+        addChild(foodObject)
+    }
+
+    func createAlbumBook() {
+        albumBookNode?.removeFromParent()
+        // Bottom-left corner of Sleeping Room at CGRect(x:200, y:825, w:350, h:350)
+        let bookPos = CGPoint(x: 230, y: 850)
+        let book = SKShapeNode(rectOf: CGSize(width: 24, height: 30), cornerRadius: 3)
+        book.name = "album-book"
+        book.position = bookPos
+        book.fillColor = SKColor(red: 0.25, green: 0.45, blue: 0.75, alpha: 1)
+        book.strokeColor = SKColor(red: 0.8, green: 0.85, blue: 1.0, alpha: 0.9)
+        book.lineWidth = 1.5
+        book.zPosition = 2
+
+        // Book spine line
+        let spine = SKShapeNode(rectOf: CGSize(width: 3, height: 28))
+        spine.fillColor = SKColor(red: 0.15, green: 0.30, blue: 0.60, alpha: 1)
+        spine.strokeColor = .clear
+        spine.position = CGPoint(x: -9, y: 0)
+        spine.zPosition = 1
+        book.addChild(spine)
+
+        // Pages lines
+        for i in 0..<3 {
+            let line = SKShapeNode(rectOf: CGSize(width: 10, height: 1.5))
+            line.fillColor = .white.withAlphaComponent(0.5)
+            line.strokeColor = .clear
+            line.position = CGPoint(x: 4, y: CGFloat(i * 5) - 4)
+            book.addChild(line)
+        }
+
+        addChild(book)
+        albumBookNode = book
+    }
+
+    func createObstacles() {
+        obstacles.forEach { $0.node.removeFromParent() }
+        obstacles.removeAll()
+        doorNodes.removeAll()
+        children.filter { $0.name == "roomLabel" }.forEach { $0.removeFromParent() }
+
+        for wall in GameMapLayout.wallSegments { addWall(from: wall.start, to: wall.end) }
+        for room in GameMapLayout.rooms {
+            let label = SKLabelNode(fontNamed: GameFont.fontName)
+            label.text = room.name
+            label.fontSize = 20
+            label.fontColor = .white.withAlphaComponent(0.15)
+            label.position = CGPoint(x: room.worldFrame.midX, y: room.worldFrame.midY)
+            label.zPosition = 0
+            label.name = "roomLabel"
+            addChild(label)
+        }
+        updateDoorGates()
     }
 
     func refreshStoryVisuals() {

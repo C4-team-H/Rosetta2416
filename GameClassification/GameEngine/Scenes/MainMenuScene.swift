@@ -28,9 +28,9 @@ final class MainMenuScene: SKScene {
         self.backgroundColor = SKColor(red: 0.1, green: 0.12, blue: 0.18, alpha: 1.0) // Slate dark blue
         
         // 2. Membuat Label Judul Game
-        titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        titleLabel.text = "DRAWING SPACE"
-        titleLabel.fontSize = 36
+        titleLabel = SKLabelNode(fontNamed: GameFont.fontName)
+        titleLabel.text = "ROSETTA"
+        titleLabel.fontSize = 80
         titleLabel.fontColor = .white
         titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.68)
         titleLabel.horizontalAlignmentMode = .center
@@ -78,11 +78,13 @@ final class MainMenuScene: SKScene {
     }
 
     private func startGame() {
+        AudioManager.shared.playButtonSound()
         guard let view else { return }
         coordinator.continueGame(in: view, size: size)
     }
 
     private func startNewGame() {
+        AudioManager.shared.playButtonSound()
         guard let view else { return }
         coordinator.startNewGame(in: view, size: size)
     }
@@ -94,7 +96,7 @@ final class MainMenuScene: SKScene {
         button.strokeColor = .white
         button.lineWidth = 2
 
-        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        let label = SKLabelNode(fontNamed: GameFont.fontName)
         label.text = title
         label.fontSize = 18
         label.fontColor = .white
@@ -106,8 +108,8 @@ final class MainMenuScene: SKScene {
     }
 
     private func positionMenuNodes() {
-        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
-        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.48)
-        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.28)
+        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.62)
+        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.44)
+        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.34)
     }
 }

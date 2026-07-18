@@ -23,13 +23,13 @@ struct DrawingChallenge: Equatable, Sendable {
         )
     }
 
-    static let foodPool: [DrawingChallenge] = [
-        DrawingChallenge(id: "kitchen-banana", label: "banana", displayName: "BANANA"),
-        DrawingChallenge(id: "kitchen-apple", label: "apple", displayName: "APPLE"),
-        DrawingChallenge(id: "kitchen-donut", label: "donut", displayName: "DONUT"),
-        DrawingChallenge(id: "kitchen-pizza", label: "pizza", displayName: "PIZZA"),
-        DrawingChallenge(id: "kitchen-carrot", label: "carrot", displayName: "CARROT")
-    ]
+    static let foodPool: [DrawingChallenge] = {
+        let buah = ["apple", "banana", "grapes", "pear", "pineapple", "pumpkin", "strawberry", "tomato"]
+        let makanan = ["bread", "cake", "carrot", "cone ice cream", "donut", "hamburger", "hot-dog", "mushroom", "pizza", "pretzel"]
+        return (buah + makanan).map { label in
+            DrawingChallenge(id: "kitchen-\(label)", label: label, displayName: label.uppercased())
+        }
+    }()
 }
 
 struct DrawingSubmissionOutcome: Sendable {

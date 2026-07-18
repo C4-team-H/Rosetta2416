@@ -7,10 +7,9 @@ struct MapOverlayHeader: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("STATION MAP")
-                    .font(.title2)
-                    .bold()
+                    .font(GameFont.title2Bold)
                 Text("Live crew and mission positions")
-                    .font(.caption)
+                    .font(GameFont.caption1)
                     .foregroundStyle(.secondary)
             }
 
@@ -18,7 +17,7 @@ struct MapOverlayHeader: View {
 
             Button("Close map", systemImage: "xmark", action: onClose)
                 .labelStyle(.iconOnly)
-                .font(.headline)
+                .font(GameFont.headline)
                 .frame(width: 44, height: 44)
                 .background(.white.opacity(0.1), in: Circle())
                 .overlay {

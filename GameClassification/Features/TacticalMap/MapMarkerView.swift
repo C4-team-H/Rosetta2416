@@ -17,7 +17,7 @@ struct MapMarkerView: View {
             }
 
             Image(systemName: markerSymbol)
-                .font(.system(size: 10, weight: .bold))
+                .font(GameFont.custom(size: 10, weight: 700))
                 .foregroundStyle(.black)
                 .frame(width: 21, height: 21)
                 .background(markerColor, in: .rect(cornerRadius: 6))
@@ -45,6 +45,7 @@ struct MapMarkerView: View {
             case .door: return "door.left.hand.open"
             case .room: return "rectangle.split.3x1.fill"
             case .checkpoint: return "flag.fill"
+            case .albumBook: return "book.fill"
             case .objective, .station: return "scope"
             }
         }

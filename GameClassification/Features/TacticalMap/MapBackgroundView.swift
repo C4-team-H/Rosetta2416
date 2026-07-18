@@ -18,9 +18,8 @@ struct MapBackgroundView: View {
             ForEach(configuration.rooms) { room in
                 let roomFrame = converter.mapRect(from: room.roomTriggerBounds)
 
-                Text(room.name.uppercased())
-                    .font(.caption)
-                    .bold()
+                Text(room.name)
+                    .font(GameFont.caption1Bold)
                     .foregroundStyle(.white.opacity(0.62))
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
