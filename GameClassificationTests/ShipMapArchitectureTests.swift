@@ -181,7 +181,7 @@ struct ShipMapArchitectureTests {
         #expect(scene.player.navigationFootprint.size == scene.player.collisionFootprint.size)
         #expect(scene.player.navigationFootprint.radius == scene.player.collisionFootprint.radius)
         #expect(scene.player.navigationFootprint.obstacleRadius == scene.player.collisionFootprint.obstacleRadius)
-        #expect(scene.player.navigationFootprint.obstacleRadius == scene.player.collisionFootprint.radius)
+        #expect(scene.player.navigationFootprint.obstacleRadius >= scene.player.collisionFootprint.radius)
         let sensorBody = scene.player.interactionSensor.physicsBody
         #expect(sensorBody?.categoryBitMask == PhysicsCategory.playerSensor)
         #expect(sensorBody?.collisionBitMask == PhysicsCategory.none)

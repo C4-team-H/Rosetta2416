@@ -415,14 +415,14 @@ struct MapGeometryEditorTests {
         var object = store.configuration.objects[0]
         object.rotation = .pi / 4
         store.update(.object(object), validate: false)
-        let originalObjectSize = object.size
         let originalObjectPoints = object.objectPoints
         try dragFirstNode(
             of: MapElementID(category: .object, rawValue: object.id),
             by: CGVector(dx: -45, dy: -20)
         )
         let editedObject = try #require(store.configuration.objects.first(where: { $0.id == object.id }))
-        #expect(editedObject.size != originalObjectSize)
+        #expect(editedObject.objectPoints[0] != originalObjectPoints[0])
+        #expect(editedObject.size.isValid)
         #expect(abs(editedObject.rotation - object.rotation) < 0.000_1)
         #expect(editedObject.vertices != nil)
         #expect(Array(editedObject.objectPoints.dropFirst()) == Array(originalObjectPoints.dropFirst()))

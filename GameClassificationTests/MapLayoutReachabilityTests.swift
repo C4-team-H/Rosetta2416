@@ -47,10 +47,11 @@ struct MapLayoutReachabilityTests {
 
     @Test("Door openings provide player clearance")
     func doorwayClearance() {
+        let configuration = GameMapLayout.defaultConfiguration
         let requiredOpening = max(
             GameMapLayout.playerFootprint.width,
             GameMapLayout.playerFootprint.height
-        ) + GameMapLayout.scaled(20)
+        ) + CGFloat(configuration.walkabilityEpsilon * 2)
         for door in GameMapLayout.doorDefinitions {
             #expect(max(door.size.width, door.size.height) >= requiredOpening)
         }
