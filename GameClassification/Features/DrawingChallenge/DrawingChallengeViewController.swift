@@ -5,8 +5,10 @@
 //  Created by Muhammad Muthi' Nuritzan on 13/07/26.
 //
 
-import UIKit
 import PencilKit
+import Combine
+import SwiftUI
+import UIKit
 
 class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
@@ -22,99 +24,15 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     var challengeIndex: Int = 1   // Ronde ke-berapa (1-based) untuk ditampilkan ke user
     var totalChallenges: Int = 5  // Total ronde tantangan
     private lazy var challengeViewModel = DrawingChallengeViewModel(challenge: challenge)
+    private let layoutState = DrawingChallengeLayoutState()
+    private var hostingController: UIHostingController<DrawingMissionCanvasLayout>?
 
     // MARK: - UI Components
-    private let containerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(red: 0.15, green: 0.18, blue: 0.25, alpha: 1.0) // Slate dark blue card
-        view.layer.cornerRadius = 20
-        view.layer.shadowColor = UIColor.black.cgColor
-        view.layer.shadowOpacity = 0.5
-        view.layer.shadowOffset = CGSize(width: 0, height: 10)
-        view.layer.shadowRadius = 15
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = ""
-        label.font = GameFont.title2Bold.uiFont
-        label.textColor = .white
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.lineBreakMode = .byWordWrapping
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let subtitleLabel: UILabel = {
-        let label = UILabel()
-        label.text = ""
-        label.font = GameFont.footnote.uiFont
-        label.textColor = UIColor.white.withAlphaComponent(0.7)
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
     private let canvasView: PKCanvasView = {
         let canvas = PKCanvasView()
-        canvas.backgroundColor = .white
-        canvas.layer.cornerRadius = 12
-        canvas.layer.masksToBounds = true
-        canvas.layer.borderWidth = 1.0
-        canvas.layer.borderColor = UIColor.lightGray.cgColor
-        canvas.translatesAutoresizingMaskIntoConstraints = false
+        canvas.backgroundColor = UIColor.white
+        canvas.isOpaque = true
         return canvas
-    }()
-
-    private let buttonStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.distribution = .fillEqually
-        stack.spacing = 15
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
-
-    private let cancelButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(font: GameFont.subheadline.uiFont)
-        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = UIColor.white.withAlphaComponent(0.10)
-        button.layer.cornerRadius = 22
-        button.layer.borderWidth = 1
-        button.layer.borderColor = UIColor.white.withAlphaComponent(0.16).cgColor
-        button.layer.masksToBounds = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
-    private let clearButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle(" Delete", for: .normal)
-        button.setImage(UIImage(systemName: "trash.fill"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = UIColor(red: 0.25, green: 0.45, blue: 0.74, alpha: 1.0) // Slate blue
-        button.layer.cornerRadius = 10
-        button.titleLabel?.font = GameFont.custom(size: 16, weight: 700).uiFont
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
-    private let submitButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle(" Submit", for: .normal)
-        button.setImage(UIImage(systemName: "paperplane.fill"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = UIColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1.0) // Success green
-        button.layer.cornerRadius = 10
-        button.titleLabel?.font = GameFont.custom(size: 16, weight: 700).uiFont
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
     }()
 
     // MARK: - View Lifecycle
@@ -126,14 +44,9 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         }
         
         view.backgroundColor = UIColor.black.withAlphaComponent(0.65) // Dark overlay background
-        
-        // Update label dinamis sesuai tantangan yang dipilih GameScene.
-        titleLabel.text = "CHALLENGE: DRAW THE \(challenge.displayName)"
-        subtitleLabel.text = "Round \(challengeIndex) of \(totalChallenges). Draw the \(challenge.displayName) on the white canvas below using your finger or Apple Pencil."
-        
+
         setupViews()
         setupCanvas()
-        setupActions()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -146,52 +59,30 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
 
     // MARK: - Layout Setup
     private func setupViews() {
-        view.addSubview(containerView)
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(subtitleLabel)
-        containerView.addSubview(canvasView)
-        containerView.addSubview(buttonStackView)
-        containerView.addSubview(cancelButton)
-        
-        buttonStackView.addArrangedSubview(clearButton)
-        buttonStackView.addArrangedSubview(submitButton)
-        
-        // Auto Layout Constraints
+        let rootView = DrawingMissionCanvasLayout(
+            challenge: challenge,
+            challengeIndex: challengeIndex,
+            totalChallenges: totalChallenges,
+            canvasView: canvasView,
+            layoutState: layoutState,
+            onCancel: { [weak self] in self?.cancelTapped() },
+            onClear: { [weak self] in self?.clearTapped() },
+            onSubmit: { [weak self] in self?.submitTapped() }
+        )
+        let controller = UIHostingController(rootView: rootView)
+        controller.view.backgroundColor = .clear
+        controller.view.translatesAutoresizingMaskIntoConstraints = false
+
+        addChild(controller)
+        view.addSubview(controller.view)
         NSLayoutConstraint.activate([
-            // Card Container (Responsive: lebar tetap pada iPad, melar tapi berjarak pada iPhone)
-            containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            containerView.widthAnchor.constraint(equalToConstant: min(500, view.bounds.width - 40)),
-            containerView.heightAnchor.constraint(equalToConstant: min(600, view.bounds.height - 60)),
-            
-            // Cancel Button (X icon at top right)
-            cancelButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
-            cancelButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
-            cancelButton.widthAnchor.constraint(equalToConstant: 44),
-            cancelButton.heightAnchor.constraint(equalToConstant: 44),
-            
-            // Title
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 68),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -68),
-            
-            // Subtitle
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            subtitleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            subtitleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            
-            // Canvas View (Square drawing area inside card)
-            canvasView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 20),
-            canvasView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            canvasView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            canvasView.bottomAnchor.constraint(equalTo: buttonStackView.topAnchor, constant: -20),
-            
-            // Button Stack View
-            buttonStackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            buttonStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            buttonStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -24),
-            buttonStackView.heightAnchor.constraint(equalToConstant: 44)
+            controller.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            controller.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            controller.view.topAnchor.constraint(equalTo: view.topAnchor),
+            controller.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        controller.didMove(toParent: self)
+        hostingController = controller
     }
 
     private func setupCanvas() {
@@ -206,12 +97,6 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         // pressure, tilt, azimuth, and predicted/coalesced touches for Pencil
         // strokes automatically; no custom touch handling is needed.
         canvasView.drawingPolicy = .anyInput
-    }
-
-    private func setupActions() {
-        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
-        clearButton.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
-        submitButton.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
     }
 
     // MARK: - PKCanvasViewDelegate
@@ -252,7 +137,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
             return
         }
 
-        submitButton.isEnabled = false
+        layoutState.isSubmitEnabled = false
         challengeViewModel.submissionHandler = onSubmit
 
         let drawing = canvasView.drawing
@@ -302,9 +187,409 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
         alert.addAction(UIAlertAction(title: "Try again", style: .default, handler: { [weak self] _ in
             AudioManager.shared.playButtonSound()
             self?.challengeViewModel.retry()
-            self?.submitButton.isEnabled = true
+            self?.layoutState.isSubmitEnabled = true
             self?.clearCanvas()
         }))
         present(alert, animated: true, completion: nil)
+    }
+}
+
+private final class DrawingChallengeLayoutState: ObservableObject {
+    @Published var isSubmitEnabled = true
+}
+
+private struct DrawingMissionCanvasLayout: View {
+    let challenge: DrawingChallenge
+    let challengeIndex: Int
+    let totalChallenges: Int
+    let canvasView: PKCanvasView
+    @ObservedObject var layoutState: DrawingChallengeLayoutState
+    let onCancel: () -> Void
+    let onClear: () -> Void
+    let onSubmit: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            let metrics = DrawingMissionCanvasMetrics(size: proxy.size)
+
+            ZStack {
+                DrawingMissionBackdrop()
+
+                Group {
+                    if metrics.usesWideLayout {
+                        HStack(alignment: .top, spacing: metrics.contentGap) {
+                            sidebar(metrics: metrics)
+                                .frame(width: metrics.sidebarWidth)
+
+                            canvasColumn(metrics: metrics)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: metrics.contentGap) {
+                            sidebar(metrics: metrics)
+                                .frame(maxWidth: .infinity)
+
+                            canvasColumn(metrics: metrics)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                }
+                .padding(metrics.panelPadding)
+                .frame(
+                    maxWidth: metrics.panelMaxWidth,
+                    maxHeight: metrics.panelMaxHeight
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: metrics.panelCornerRadius, style: .continuous)
+                        .fill(DrawingMissionPalette.panel)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: metrics.panelCornerRadius, style: .continuous)
+                                .stroke(DrawingMissionPalette.panelStroke, lineWidth: metrics.panelStrokeWidth)
+                        )
+                        .shadow(color: .black.opacity(0.65), radius: 24, x: 0, y: 18)
+                )
+                .padding(metrics.outerPadding)
+            }
+            .ignoresSafeArea()
+        }
+    }
+
+    private func sidebar(metrics: DrawingMissionCanvasMetrics) -> some View {
+        VStack(alignment: .leading, spacing: metrics.sidebarGap) {
+            Text(">_<")
+                .font(.system(size: metrics.logoFontSize, weight: .bold, design: .rounded))
+                .foregroundStyle(DrawingMissionPalette.paper)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .offset(y: -metrics.panelPadding - metrics.sidebarGap)
+            DrawingMissionInfoStrip(
+                text: "CATEGORY : \(challenge.category.sidebarTitle)",
+                fontSize: metrics.categoryFontSize
+            )
+
+            DrawingMissionTargetPanel(
+                title: "DRAW",
+                target: challenge.displayName,
+                metrics: metrics
+            )
+
+            DrawingMissionInstructionPanel(
+                challengeIndex: challengeIndex,
+                totalChallenges: totalChallenges,
+                target: challenge.displayName,
+                metrics: metrics
+            )
+            .frame(maxHeight: .infinity)
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private func canvasColumn(metrics: DrawingMissionCanvasMetrics) -> some View {
+        VStack(spacing: metrics.buttonGap) {
+            PencilCanvasHost(canvasView: canvasView)
+                .background(DrawingMissionPalette.paper)
+                .clipShape(RoundedRectangle(cornerRadius: metrics.canvasCornerRadius, style: .continuous))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            HStack(spacing: metrics.buttonGap) {
+                DrawingMissionButton(
+                    title: "CANCEL",
+                    background: DrawingMissionPalette.cancel,
+                    isEnabled: true,
+                    action: onCancel
+                )
+
+                DrawingMissionButton(
+                    title: "CLEAR",
+                    background: DrawingMissionPalette.clear,
+                    isEnabled: true,
+                    action: onClear
+                )
+
+                DrawingMissionButton(
+                    title: "SUBMIT",
+                    background: DrawingMissionPalette.submit,
+                    isEnabled: layoutState.isSubmitEnabled,
+                    action: onSubmit
+                )
+            }
+            .frame(height: metrics.buttonHeight)
+        }
+    }
+}
+
+private struct PencilCanvasHost: UIViewRepresentable {
+    let canvasView: PKCanvasView
+
+    func makeUIView(context: Context) -> PKCanvasView {
+        canvasView
+    }
+
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {}
+}
+
+private struct DrawingMissionInfoStrip: View {
+    let text: String
+    let fontSize: CGFloat
+
+    var body: some View {
+        Text(text)
+            .font(GameFont.custom(size: fontSize, weight: 800).font)
+            .foregroundStyle(DrawingMissionPalette.paper)
+            .lineLimit(1)
+            .minimumScaleFactor(0.55)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 16)
+            .frame(height: max(42, fontSize * 2.5))
+            .background(DrawingMissionPalette.sidebarBlock)
+            .shadow(color: .black.opacity(0.72), radius: 0, x: 6, y: 6)
+    }
+}
+
+private struct DrawingMissionTargetPanel: View {
+    let title: String
+    let target: String
+    let metrics: DrawingMissionCanvasMetrics
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(GameFont.custom(size: metrics.drawLabelFontSize, weight: 800).font)
+                .foregroundStyle(DrawingMissionPalette.paper)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text(target)
+                .font(GameFont.custom(size: metrics.targetFontSize, weight: 400).font)
+                .foregroundStyle(DrawingMissionPalette.paper)
+                .lineLimit(1)
+                .minimumScaleFactor(0.35)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 18)
+        .frame(maxWidth: .infinity)
+        .frame(height: metrics.targetPanelHeight)
+        .background(DrawingMissionPalette.sidebarBlock)
+        .shadow(color: .black.opacity(0.72), radius: 0, x: 6, y: 6)
+    }
+}
+
+private struct DrawingMissionInstructionPanel: View {
+    let challengeIndex: Int
+    let totalChallenges: Int
+    let target: String
+    let metrics: DrawingMissionCanvasMetrics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: metrics.instructionLineGap) {
+            Text("EXTRA")
+            Text("INSTRUCTIONS")
+
+            Spacer(minLength: metrics.instructionSpacer)
+
+            Text("ROUND \(challengeIndex) / \(max(totalChallenges, 1))")
+            Text("TARGET LOCK : \(target)")
+            Text("KEEP LINES BOLD")
+        }
+        .font(GameFont.custom(size: metrics.instructionFontSize, weight: 800).font)
+        .foregroundStyle(DrawingMissionPalette.paper)
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            LinearGradient(
+                colors: [
+                    DrawingMissionPalette.sidebarBlock.opacity(0.98),
+                    DrawingMissionPalette.sidebarBlockBottom.opacity(0.98)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .shadow(color: .black.opacity(0.72), radius: 0, x: 6, y: 6)
+    }
+}
+
+private struct DrawingMissionButtonStyle: ButtonStyle {
+    let background: Color
+    let isEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(background.opacity(isEnabled ? 1 : 0.55))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .shadow(
+                color: .black.opacity(configuration.isPressed ? 0.35 : 0.78),
+                radius: configuration.isPressed ? 2 : 0,
+                x: configuration.isPressed ? 2 : 8,
+                y: configuration.isPressed ? 2 : 8
+            )
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .brightness(configuration.isPressed ? -0.08 : 0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+private struct DrawingMissionButton: View {
+    let title: String
+    let background: Color
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(GameFont.custom(size: 25, weight: 800).font)
+                .foregroundStyle(DrawingMissionPalette.paper)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(DrawingMissionButtonStyle(background: background, isEnabled: isEnabled))
+        .disabled(!isEnabled)
+    }
+}
+
+private struct DrawingMissionBackdrop: View {
+    var body: some View {
+        ZStack {
+            DrawingMissionPalette.backdrop
+            DrawingMissionPalette.backdropTexture.opacity(0.26)
+                .blendMode(.screen)
+        }
+    }
+}
+
+private struct DrawingMissionCanvasMetrics {
+    let size: CGSize
+
+    var usesWideLayout: Bool {
+        size.width >= 820 && size.width > size.height * 1.05
+    }
+
+    var outerPadding: CGFloat {
+        clamp(size.width * 0.038, min: 20, max: 56)
+    }
+
+    var panelPadding: CGFloat {
+        clamp(size.width * 0.034, min: 18, max: 52)
+    }
+
+    var panelMaxWidth: CGFloat {
+        max(320, size.width - outerPadding * 2)
+    }
+
+    var panelMaxHeight: CGFloat {
+        max(440, size.height - outerPadding * 2)
+    }
+
+    var sidebarWidth: CGFloat {
+        clamp(size.width * 0.255, min: 230, max: 365)
+    }
+
+    var contentGap: CGFloat {
+        clamp(size.width * 0.02, min: 14, max: 32)
+    }
+
+    var sidebarGap: CGFloat {
+        clamp(size.height * 0.016, min: 10, max: 22)
+    }
+
+    var buttonGap: CGFloat {
+        clamp(size.width * 0.016, min: 12, max: 28)
+    }
+
+    var buttonHeight: CGFloat {
+        clamp(size.height * 0.092, min: 50, max: 88)
+    }
+
+    var targetPanelHeight: CGFloat {
+        clamp(size.height * 0.112, min: 74, max: 126)
+    }
+
+    var logoFontSize: CGFloat {
+        clamp(size.width * 0.18, min: 72, max: 200)
+    }
+
+    var categoryFontSize: CGFloat {
+        clamp(size.width * 0.018, min: 13, max: 24)
+    }
+
+    var drawLabelFontSize: CGFloat {
+        clamp(size.width * 0.02, min: 15, max: 28)
+    }
+
+    var targetFontSize: CGFloat {
+        clamp(size.width * 0.041, min: 29, max: 62)
+    }
+
+    var instructionFontSize: CGFloat {
+        clamp(size.width * 0.019, min: 15, max: 28)
+    }
+
+    var instructionLineGap: CGFloat {
+        clamp(size.height * 0.01, min: 5, max: 12)
+    }
+
+    var instructionSpacer: CGFloat {
+        clamp(size.height * 0.03, min: 12, max: 34)
+    }
+
+    var panelCornerRadius: CGFloat {
+        clamp(size.width * 0.016, min: 12, max: 24)
+    }
+
+    var panelStrokeWidth: CGFloat {
+        clamp(size.width * 0.006, min: 4, max: 10)
+    }
+
+    var canvasCornerRadius: CGFloat {
+        clamp(size.width * 0.004, min: 2, max: 5)
+    }
+
+    var hardShadowOffset: CGFloat {
+        clamp(size.width * 0.006, min: 5, max: 10)
+    }
+
+    private func clamp(_ value: CGFloat, min lowerBound: CGFloat, max upperBound: CGFloat) -> CGFloat {
+        Swift.min(Swift.max(value, lowerBound), upperBound)
+    }
+}
+
+private enum DrawingMissionPalette {
+    static let backdrop = Color(red: 0.16, green: 0.22, blue: 0.27)
+    static let backdropTexture = Color(red: 0.34, green: 0.43, blue: 0.49)
+    static let panel = Color(red: 0.02, green: 0.04, blue: 0.05)
+    static let panelStroke = Color(red: 0.08, green: 0.16, blue: 0.20)
+    static let sidebarBlock = Color(red: 0.17, green: 0.23, blue: 0.28)
+    static let sidebarBlockBottom = Color(red: 0.24, green: 0.31, blue: 0.35)
+    static let paper = Color.white
+    static let canvasStroke = Color(red: 0.78, green: 0.86, blue: 0.90)
+    static let cancel = Color(red: 0.72, green: 0.16, blue: 0.23)
+    static let clear = Color(red: 0.55, green: 0.60, blue: 0.61)
+    static let submit = Color(red: 0.10, green: 0.36, blue: 0.37)
+}
+
+private extension DrawingCategory {
+    var sidebarTitle: String {
+        switch self {
+        case .animal: "ANIMAL"
+        case .plant: "PLANT"
+        case .human: "HUMAN"
+        case .landscape: "LANDSCAPE"
+        case .transportation: "TRANSPORT"
+        case .otherObject: "OBJECT"
+        case .tool: "TOOL"
+        case .equipment: "EQUIPMENT"
+        case .furniture: "FURNITURE"
+        case .electronics: "ELECTRONICS"
+        case .weapon: "WEAPON"
+        case .celestial: "CELESTIAL"
+        case .food: "KITCHEN"
+        }
     }
 }

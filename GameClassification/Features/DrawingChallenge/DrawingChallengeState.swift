@@ -2,12 +2,20 @@ struct DrawingChallenge: Equatable, Sendable {
     let id: String
     let label: String
     let displayName: String
+    let category: DrawingCategory
     let confidenceThreshold: Double
 
-    init(id: String, label: String, displayName: String, confidenceThreshold: Double = 0.50) {
+    init(
+        id: String,
+        label: String,
+        displayName: String,
+        category: DrawingCategory = .food,
+        confidenceThreshold: Double = 0.50
+    ) {
         self.id = id
         self.label = label
         self.displayName = displayName
+        self.category = category
         self.confidenceThreshold = confidenceThreshold
     }
 
@@ -15,10 +23,12 @@ struct DrawingChallenge: Equatable, Sendable {
         guard case let .drawing(prompt) = objective.kind else {
             preconditionFailure("DrawingChallenge requires a drawing objective")
         }
+        let category = StoryConfiguration.definition(id: objective.id)?.category ?? .otherObject
         self.init(
             id: objective.id,
             label: prompt.expectedLabel,
             displayName: prompt.displayName,
+            category: category,
             confidenceThreshold: prompt.confidenceThreshold
         )
     }
