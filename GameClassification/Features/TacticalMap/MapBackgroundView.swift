@@ -3,28 +3,38 @@ import SwiftUI
 struct MapBackgroundView: View {
     let converter: MapCoordinateConverter
     let configuration: MapGeometryConfiguration
+    let isFullyRevealed: Bool
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             Canvas { context, _ in
                 drawGrid(in: &context)
-                drawHull(in: &context)
-                drawWalkableAreas(in: &context)
-                drawObjects(in: &context)
-                drawWalls(in: &context)
-                drawDoorways(in: &context)
+                if isFullyRevealed {
+                    drawHull(in: &context)
+                    drawWalkableAreas(in: &context)
+                    drawObjects(in: &context)
+                    drawWalls(in: &context)
+                    drawDoorways(in: &context)
+                }
             }
 
-            ForEach(configuration.rooms) { room in
-                let roomFrame = converter.mapRect(from: room.roomTriggerBounds)
+            if isFullyRevealed {
+                ForEach(configuration.rooms) { room in
+                    let roomFrame = converter.mapRect(from: room.roomTriggerBounds)
 
-                Text(room.name)
+                    Text(room.name)
+                        .font(GameFont.caption1Bold)
+                        .foregroundStyle(.white.opacity(0.62))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .frame(width: max(0, roomFrame.width - 10))
+                        .position(x: roomFrame.midX, y: roomFrame.midY)
+                }
+            } else {
+                Text("EMERGENCY MAP • SHIP SCAN UNAVAILABLE")
                     .font(GameFont.caption1Bold)
-                    .foregroundStyle(.white.opacity(0.62))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.55)
-                    .frame(width: max(0, roomFrame.width - 10))
-                    .position(x: roomFrame.midX, y: roomFrame.midY)
+                    .foregroundStyle(.orange.opacity(0.75))
+                    .padding(12)
             }
         }
     }

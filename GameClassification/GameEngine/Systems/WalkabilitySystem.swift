@@ -64,6 +64,19 @@ final class WalkabilitySystem {
             return .blocked(doorBlock)
         }
 
+        let bodyCenter = CGPoint(
+            x: position.x - footprint.centerOffset.x,
+            y: position.y - footprint.centerOffset.y - 100
+        )
+        if let bodyDoorBlock = blockingDoor(
+            center: bodyCenter,
+            radius: footprint.bodyObstacleRadius,
+            doorStates: doorStates,
+            forBodyOnly: true
+        ) {
+            return .blocked(bodyDoorBlock)
+        }
+
         if intersectsWall(center: center, radius: footprint.radius) {
             return .blocked(.wall)
         }
@@ -170,9 +183,13 @@ final class WalkabilitySystem {
     private func blockingDoor(
         center: CGPoint,
         radius: CGFloat,
-        doorStates: [DoorID: DoorState]
+        doorStates: [DoorID: DoorState],
+        forBodyOnly: Bool = false
     ) -> BlockedAreaType? {
         for doorway in map.doorways {
+            if forBodyOnly {
+                guard doorway.id == .engineBackDoor || doorway.id == .cockpit else { continue }
+            }
             let state = doorStates[doorway.id, default: .closed]
             guard state.blocksMovement,
                   circleIntersects(

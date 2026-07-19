@@ -10,6 +10,7 @@ import SpriteKit
 final class MainMenuScene: SKScene {
 
     private var titleLabel: SKLabelNode!
+    private var backgroundNode: SKSpriteNode!
     private var startButton: SKShapeNode!
     private var newGameButton: SKShapeNode!
     private let coordinator: GameplayCoordinator
@@ -24,17 +25,21 @@ final class MainMenuScene: SKScene {
     }
     
     override func didMove(to view: SKView) {
-        // 1. Mengatur warna background menu utama
-        self.backgroundColor = SKColor(red: 0.1, green: 0.12, blue: 0.18, alpha: 1.0) // Slate dark blue
+        backgroundColor = SKColor(red: 0.1, green: 0.12, blue: 0.18, alpha: 1.0)
+
+        backgroundNode = SKSpriteNode(imageNamed: "MainMenuBackground")
+        backgroundNode.name = "mainMenuBackground"
+        backgroundNode.zPosition = -10
+        backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        addChild(backgroundNode)
         
-        // 2. Membuat Label Judul Game
         titleLabel = SKLabelNode(fontNamed: GameFont.fontName)
         titleLabel.text = "ROSETTA"
-        titleLabel.fontSize = 80
+        titleLabel.fontSize = 160
         titleLabel.fontColor = .white
         titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.68)
         titleLabel.horizontalAlignmentMode = .center
-        titleLabel.verticalAlignmentMode = .center
+//        titleLabel.verticalAlignmentMode = .center
         self.addChild(titleLabel)
         
         startButton = makeButton(
@@ -108,8 +113,22 @@ final class MainMenuScene: SKScene {
     }
 
     private func positionMenuNodes() {
-        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.62)
-        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.44)
-        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.34)
+        positionBackgroundNode()
+        titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
+        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
+        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.14)
+    }
+
+    private func positionBackgroundNode() {
+        guard let backgroundNode else { return }
+
+        backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        guard let textureSize = backgroundNode.texture?.size(), textureSize.width > 0, textureSize.height > 0 else {
+            backgroundNode.size = size
+            return
+        }
+
+        let scale = max(size.width / textureSize.width, size.height / textureSize.height)
+        backgroundNode.size = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
     }
 }

@@ -10,7 +10,7 @@ final class LightingSystem {
         appliedState = powerState
 
         switch powerState {
-        case .emergency:
+        case .off:
             scene.candleLight?.alpha = 1
             scene.gridContainer?.alpha = 1
             scene.backgroundColor = SKColor(red: 0.12, green: 0.14, blue: 0.2, alpha: 1)
@@ -31,7 +31,6 @@ final class LightingSystem {
             activateEngineGlow(in: scene)
             activateEngineParticles(in: scene)
             activateMachinery(in: scene)
-            activateCockpitDisplays(in: scene)
         }
     }
 
@@ -48,15 +47,26 @@ final class LightingSystem {
         case .fullyRestored:
             playPlaceholderSound(1025)
             flash(in: scene, color: .cyan, duration: 0.8)
-        case .emergency:
+        case .off:
             break
         }
         apply(powerState, to: scene)
     }
 
     func playVictory(in scene: GameScene) {
+        activateCockpitDisplays(in: scene)
         playPlaceholderSound(1025)
         flash(in: scene, color: .green, duration: 1.1)
+    }
+
+    func playAdvancedToolsAcquired(in scene: GameScene) {
+        playPlaceholderSound(1103)
+        flash(in: scene, color: .yellow, duration: 0.55)
+        guard let node = scene.stationNodes["storage-calibration-unit"] else { return }
+        node.run(.sequence([
+            .group([.scale(to: 1.3, duration: 0.2), .fadeAlpha(to: 1, duration: 0.2)]),
+            .scale(to: 1, duration: 0.35)
+        ]), withKey: "advancedToolsAcquired")
     }
 
     private func flash(in scene: GameScene, color: SKColor, duration: TimeInterval) {

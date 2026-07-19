@@ -11,8 +11,8 @@ struct EnergySystemTests {
         _ = idle.update(deltaTime: 10, isMoving: false)
         _ = moving.update(deltaTime: 10, isMoving: true)
 
-        #expect(idle.state.energy == 99.2)
-        #expect(moving.state.energy == 98.8)
+        #expect(idle.state.energy == 98.5)
+        #expect(moving.state.energy == 97)
     }
 
     @Test("Food, disruption, clamping, and checkpoint minimum are local")
@@ -22,7 +22,7 @@ struct EnergySystemTests {
         #expect(energy.state.energy == 100)
 
         energy.applyElectricalDisruption()
-        #expect(energy.state.energy == 95)
+        #expect(energy.state.energy == 90)
 
         energy.restoreCheckpoint(PlayerSurvivalState(playerID: "local", energy: 4))
         #expect(energy.state.energy == 50)
@@ -37,4 +37,3 @@ struct EnergySystemTests {
         #expect(energy.state.energy == 0)
     }
 }
-

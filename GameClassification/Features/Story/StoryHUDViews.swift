@@ -14,16 +14,18 @@ struct StoryProgressHUDView: View {
             progressRow("AI INTEL", value: session.progress.intelligence, color: .blue)
             progressRow("ENGINE", value: session.progress.engineProgress, color: .orange)
 
-            if let objective = session.activeObjective {
+            if let mission = session.sharedStory.activeMission {
                 Divider().overlay(.white.opacity(0.25))
-                Label(objective.definition.title, systemImage: "scope")
+                Label(mission.title, systemImage: "scope")
                     .font(GameFont.caption1Bold)
                     .foregroundStyle(.white)
                     .lineLimit(2)
-                Text(objective.definition.description)
+                if let objective = session.activeObjective {
+                    Text(objective.definition.description)
                     .font(GameFont.caption2)
                     .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(2)
+                }
             }
         }
         .padding(12)
@@ -102,10 +104,12 @@ struct StoryTerminalOverlay: View {
                 if session.phase == .victory {
                     Grid(horizontalSpacing: 24, verticalSpacing: 8) {
                         GridRow { Text("Elapsed time"); Text(session.stats.elapsedTime.formattedDuration) }
-                        GridRow { Text("Objectives"); Text("\(session.sharedStory.completedObjectiveIDs.count)") }
+                        GridRow { Text("Missions"); Text("\(session.sharedStory.completedMissionIDs.count)/6") }
                         GridRow { Text("Drawing attempts"); Text("\(session.stats.drawingAttempts)") }
                         GridRow { Text("Kitchen restores"); Text("\(session.stats.kitchenRestores)") }
                         GridRow { Text("Final energy"); Text("\(Int(session.energy))%") }
+                        GridRow { Text("Final intelligence"); Text("\(Int(session.sharedStory.intelligence))%") }
+                        GridRow { Text("Final engine"); Text("\(Int(session.sharedStory.engineProgress))%") }
                     }
                     .font(GameFont.callout)
                     .foregroundStyle(.white.opacity(0.8))
@@ -137,12 +141,11 @@ private extension StoryChapter {
         switch self {
         case .sleepingRoom: "Sleeping Room"
         case .laboratory: "Laboratory"
-        case .enginePhaseOne: "Engine Phase One"
-        case .engineBlocked: "Engine Blocked"
+        case .engineInitial: "Engine Initial"
         case .storage: "Storage"
         case .engineFinal: "Engine Final"
         case .cockpit: "Cockpit"
-        case .completed: "Completed"
+        case .victory: "Victory"
         }
     }
 }

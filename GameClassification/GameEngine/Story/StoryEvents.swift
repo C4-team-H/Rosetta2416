@@ -4,6 +4,7 @@ enum StoryEvent: Equatable, Sendable {
     case roomEntered(RoomID)
     case stationInteractionRequested(String)
     case drawingValidated(objectiveID: String, result: RecognitionResult)
+    case drawingFailed
     case foodCompleted
     case energyDepleted
     case checkpointRetryRequested

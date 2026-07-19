@@ -41,6 +41,7 @@ struct CollisionFootprint: Equatable {
     let centerOffset: CGPoint
     let size: CGSize
     let obstacleRadius: CGFloat
+    let bodyObstacleRadius: CGFloat
 
     var width: CGFloat { size.width }
     var height: CGFloat { size.height }
@@ -48,16 +49,18 @@ struct CollisionFootprint: Equatable {
     var halfHeight: CGFloat { size.height / 2 }
     var radius: CGFloat { max(halfWidth, halfHeight) }
 
-    init(centerOffset: CGPoint, size: CGSize, obstacleRadius: CGFloat? = nil) {
+    init(centerOffset: CGPoint, size: CGSize, obstacleRadius: CGFloat? = nil, bodyObstacleRadius: CGFloat? = nil) {
         self.centerOffset = centerOffset
         self.size = size
         self.obstacleRadius = obstacleRadius ?? max(size.width, size.height) / 2
+        self.bodyObstacleRadius = bodyObstacleRadius ?? self.obstacleRadius
     }
 
-    init(centerOffset: CGPoint, radius: CGFloat, obstacleRadius: CGFloat? = nil) {
+    init(centerOffset: CGPoint, radius: CGFloat, obstacleRadius: CGFloat? = nil, bodyObstacleRadius: CGFloat? = nil) {
         self.centerOffset = centerOffset
         self.size = CGSize(width: radius * 2, height: radius * 2)
         self.obstacleRadius = obstacleRadius ?? radius
+        self.bodyObstacleRadius = bodyObstacleRadius ?? self.obstacleRadius
     }
 
     var validationOffsets: [CGPoint] {

@@ -58,7 +58,7 @@ enum TacticalMapMarkerFactory {
             case .blocked: markerStatus = .blocked
             case .locked: continue
             }
-            let isVisible = visibilitySystem?.shouldShowStation(interactionID: objectiveID) ?? true
+            let isVisible = visibilitySystem?.shouldShowOnMap(interactionID: objectiveID) ?? true
             markers.append(MapMarker(
                 id: station.id,
                 kind: .station,
@@ -77,12 +77,15 @@ enum TacticalMapMarkerFactory {
         ]
         for (roomID, kind) in roomKinds {
             guard let room = configuration.rooms.first(where: { $0.roomID == roomID }) else { continue }
+            let isTravelDestination = story.state.activeMission?.activeChallengeID == nil
+                && story.state.activeMission?.targetRoomID == roomID
             markers.append(MapMarker(
                 id: "room-\(roomID.rawValue)",
                 kind: kind,
                 status: story.canAccess(roomID) ? .unlocked : .locked,
                 worldPosition: CGPoint(x: room.roomTriggerBounds.midX, y: room.roomTriggerBounds.midY),
-                title: room.name
+                title: room.name,
+                isVisible: visibilitySystem == nil || isTravelDestination
             ))
         }
 
@@ -96,7 +99,7 @@ enum TacticalMapMarkerFactory {
             isVisible: kitchenVisible
         ))
 
-        if includeDoors {
+        if includeDoors && story.state.engineProgress >= 10 {
             markers += configuration.doorways.compactMap { door -> MapMarker? in
                 guard door.isEnabled, let doorID = door.doorID, let roomID = door.roomID else { return nil }
                 return MapMarker(
@@ -109,13 +112,13 @@ enum TacticalMapMarkerFactory {
             }
         }
 
-        // Album Book — only shown after the player has opened it at least once
-        if story.state.hasOpenedAlbum {
+        if visibilitySystem?.shouldShowOnMap(interactionID: StationVisibilitySystem.albumInteractionID)
+            ?? story.state.albumBook.isMarkerVisible {
             markers.append(MapMarker(
                 id: "album-book",
                 kind: .albumBook,
                 status: .unlocked,
-                worldPosition: CGPoint(x: 230, y: 850),
+                worldPosition: configuration.albumBookPosition,
                 title: "Reference Album"
             ))
         }

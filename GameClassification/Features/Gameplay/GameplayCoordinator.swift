@@ -1,5 +1,6 @@
 import PencilKit
 import SpriteKit
+import SwiftUI
 import UIKit
 
 @MainActor
@@ -18,6 +19,7 @@ final class GameplayCoordinator {
 
     weak var presentingViewController: UIViewController?
     private weak var activeGameScene: GameScene?
+    private var previousFoodChallengeLabel: String?
 
     init() {
         let geometryStore = MapGeometryStore()
@@ -131,53 +133,9 @@ final class GameplayCoordinator {
 
     func retryCheckpoint() {
         AudioManager.shared.playButtonSound()
-        if sessionState.phase == .gameOver {
-            guard let presenter = presentingViewController, presenter.presentedViewController == nil else { return }
-            sessionState.beginDrawing(objectiveID: "retry-angel")
-            
-            let challenge = DrawingChallenge(
-                id: "retry-angel",
-                label: "angel",
-                displayName: "ANGEL"
-            )
-            
-            let controller = DrawingChallengeViewController()
-            controller.challenge = challenge
-            controller.challengeIndex = 1
-            controller.totalChallenges = 1
-            controller.modalPresentationStyle = .overFullScreen
-            controller.modalTransitionStyle = .crossDissolve
-            
-            controller.onSubmit = { [weak self] drawing in
-                guard let self else {
-                    return DrawingSubmissionOutcome(accepted: false, message: "Game session ended.", recognition: nil)
-                }
-                let command = StoryCommand.submitDrawing(
-                    commandID: UUID(),
-                    objectiveID: challenge.id,
-                    drawingData: drawing.dataRepresentation(),
-                    playerID: sessionState.localPlayer.id
-                )
-                let result = await authority.execute(command)
-                return DrawingSubmissionOutcome(accepted: result.accepted, message: result.message, recognition: result.recognition)
-            }
-            
-            controller.onSuccess = { [weak self] in
-                guard let self else { return }
-                _ = self.sessionState.handle(.checkpointRetryRequested)
-                self.activeGameScene?.restorePlayerFromSession()
-            }
-            
-            controller.onCancel = { [weak self] in
-                self?.sessionState.endDrawing()
-            }
-            
-            presenter.present(controller, animated: true)
-        } else {
-            _ = sessionState.handle(.checkpointRetryRequested)
-            presentingViewController?.dismiss(animated: true)
-            activeGameScene?.restorePlayerFromSession()
-        }
+        _ = sessionState.handle(.checkpointRetryRequested)
+        presentingViewController?.dismiss(animated: true)
+        activeGameScene?.restorePlayerFromSession()
     }
 
     func playAgain() {
@@ -244,7 +202,7 @@ final class GameplayCoordinator {
     private func presentAlbumBook() {
         guard let presenter = presentingViewController, presenter.presentedViewController == nil else { return }
         sessionState.markAlbumOpened()
-        let controller = AlbumBookViewController()
+        let controller = UIHostingController(rootView: AlbumBookView())
         controller.modalPresentationStyle = .overFullScreen
         controller.modalTransitionStyle = .crossDissolve
         presenter.present(controller, animated: true)
@@ -269,7 +227,7 @@ extension GameplayCoordinator: GameSceneEventDelegate {
 
         switch definition.kind {
         case .drawing:
-            let chapterObjectives = StoryContent.objectives.filter { $0.chapter == definition.chapter }
+            let chapterObjectives = StoryConfiguration.challenges(for: definition.chapter)
             let index = (chapterObjectives.firstIndex(where: { $0.id == objectiveID }) ?? 0) + 1
             presentDrawingChallenge(
                 DrawingChallenge(objective: definition),
@@ -278,26 +236,20 @@ extension GameplayCoordinator: GameSceneEventDelegate {
                 chapterIndex: index
             )
 
-        case let .easel(easelDef):
-            guard let prompt = sessionState.storySystem.currentEaselPrompt(for: objectiveID) else { return }
-            let completedCount = sessionState.storySystem.easelCompletedCount(for: objectiveID)
-            let challenge = DrawingChallenge(
-                id: objectiveID,
-                label: prompt.expectedLabel,
-                displayName: prompt.displayName,
-                confidenceThreshold: prompt.confidenceThreshold
-            )
-            presentDrawingChallenge(challenge, in: scene, chapterCount: easelDef.count, chapterIndex: completedCount + 1)
-
         default:
             return
         }
     }
 
     func gameSceneDidRequestFoodChallenge(_ scene: GameScene) {
-        let drawnLabels = Set(sessionState.storySystem.state.kitchenCompletedLabels)
-        let available = DrawingChallenge.foodPool.filter { !drawnLabels.contains($0.label) }
-        guard let challenge = available.randomElement() else { return }
+        guard let selection = try? DrawingChallengeRandomizer(catalog: sessionState.storySystem.labelCatalog)
+            .randomFoodChallenge(excluding: previousFoodChallengeLabel) else { return }
+        previousFoodChallengeLabel = selection.label
+        let challenge = DrawingChallenge(
+            id: "kitchen-\(selection.label)",
+            label: selection.label,
+            displayName: selection.label.uppercased()
+        )
         presentDrawingChallenge(challenge, in: scene, chapterCount: 1, chapterIndex: 1)
     }
 

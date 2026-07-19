@@ -61,6 +61,10 @@ final class TacticalMapViewModel {
         ).filter(\.isVisible)
     }
 
+    var isFullMapRevealed: Bool {
+        sessionState.sharedStory.engineProgress >= 10
+    }
+
     var shouldRunLocalSimulation: Bool {
         !isMapPresented || gameplayMode == .continueGameplay
     }

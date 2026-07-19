@@ -122,6 +122,7 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
     var width: Double
     var height: Double
     var obstacleRadius: Double
+    var bodyObstacleRadius: Double?
 
     var radius: Double {
         get { max(width, height) / 2 }
@@ -132,11 +133,12 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         }
     }
 
-    init(centerOffset: CodablePoint, width: Double, height: Double, obstacleRadius: Double) {
+    init(centerOffset: CodablePoint, width: Double, height: Double, obstacleRadius: Double, bodyObstacleRadius: Double? = nil) {
         self.centerOffset = centerOffset
         self.width = width
         self.height = height
         self.obstacleRadius = obstacleRadius
+        self.bodyObstacleRadius = bodyObstacleRadius
     }
 
     init(centerOffset: CodablePoint, radius: Double) {
@@ -152,7 +154,8 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         CollisionFootprint(
             centerOffset: centerOffset.cgPoint,
             size: CGSize(width: width, height: height),
-            obstacleRadius: obstacleRadius
+            obstacleRadius: obstacleRadius,
+            bodyObstacleRadius: bodyObstacleRadius.map { CGFloat($0) }
         )
     }
 
@@ -161,6 +164,7 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         case width
         case height
         case obstacleRadius
+        case bodyObstacleRadius
         case radius
     }
 
@@ -173,12 +177,14 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
             self.height = height
             obstacleRadius = try container.decodeIfPresent(Double.self, forKey: .obstacleRadius)
                 ?? max(width, height) / 2
+            bodyObstacleRadius = try container.decodeIfPresent(Double.self, forKey: .bodyObstacleRadius)
         } else {
             let radius = try container.decode(Double.self, forKey: .radius)
             width = radius * 2
             height = radius * 2
             obstacleRadius = try container.decodeIfPresent(Double.self, forKey: .obstacleRadius)
                 ?? radius
+            bodyObstacleRadius = try container.decodeIfPresent(Double.self, forKey: .bodyObstacleRadius)
         }
     }
 
@@ -188,6 +194,7 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         try container.encode(width, forKey: .width)
         try container.encode(height, forKey: .height)
         try container.encode(obstacleRadius, forKey: .obstacleRadius)
+        try container.encodeIfPresent(bodyObstacleRadius, forKey: .bodyObstacleRadius)
     }
 }
 
@@ -550,6 +557,18 @@ struct MapGeometryConfiguration: Codable, Equatable, Sendable {
 }
 
 extension MapGeometryConfiguration {
+    /// The physical book and its map marker share this console-derived anchor.
+    var albumBookPosition: CGPoint {
+        guard let console = objects.first(where: { $0.id == "object-sleeping-main-console" }) else {
+            return spawnPoint(for: .sleepingRoom) ?? .zero
+        }
+        let bounds = console.objectBounds
+        return CGPoint(
+            x: bounds.minX + GameMapLayout.scaled(30),
+            y: bounds.minY + GameMapLayout.scaled(30)
+        )
+    }
+
     func spawnPoint(for roomID: RoomID) -> CGPoint? {
         spawnPoints.first(where: { $0.roomID == roomID && $0.position.isFinite })?.position.cgPoint
     }
@@ -579,7 +598,8 @@ extension MapGeometryConfiguration {
                 centerOffset: CodablePoint(x: 0, y: -62.93),
                 width: 91.73,
                 height: 45.87,
-                obstacleRadius: 45.87
+                obstacleRadius: 45.87,
+                bodyObstacleRadius: 111
             ),
             wallThickness: 61.16,
             walkabilityEpsilon: 1.91,
@@ -643,11 +663,11 @@ extension MapGeometryConfiguration {
             MapDoorwayDefinition(id: "door-kitchen", name: "Kitchen Door", doorID: .kitchen, roomID: .kitchen, frame: CodableRect(x: 3572, y: 2436.89, width: 80, height: 142.22), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-laboratory", name: "Lab Room Door", doorID: .laboratory, roomID: .laboratory, frame: CodableRect(x: 1886.71, y: 1180.67, width: 68.8, height: 145.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-sleeping", name: "Sleeping Room Door", doorID: .sleepingRoom, roomID: .sleepingRoom, frame: CodableRect(x: 1853.71, y: 2316.89, width: 61.8, height: 115.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
-            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3576.49, y: 1665.67, width: 65.8, height: 112.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil)
+            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3576.49, y: 1665.67, width: 65.8, height: 112.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-engine-back", name: "Engine Room Back Door", doorID: .engineBackDoor, roomID: .engine, frame: CodableRect(x: 2350, y: 1481, width: 130, height: 50), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil)
             ],
             blockedAreas: [
-            MapBlockedAreaDefinition(id: "blocked-outer-hull", name: "Front Door Engine Blocked Area", shape: .edgeChain([CodablePoint(x: 2047.61, y: 3556.07), CodablePoint(x: 2747.61, y: 3716.07), CodablePoint(x: 3457.61, y: 3556.07), CodablePoint(x: 4115.46, y: 2985.91), CodablePoint(x: 4480, y: 2130), CodablePoint(x: 4570, y: 2130), CodablePoint(x: 5150, y: 710), CodablePoint(x: 360, y: 700), CodablePoint(x: 937.61, y: 2126.07), CodablePoint(x: 1027.61, y: 2126.07), CodablePoint(x: 1371.69, y: 2980.36), CodablePoint(x: 2067.61, y: 3566.07)]), isEnabled: true, isRequired: true),
-            MapBlockedAreaDefinition(id: "blocked-back-door-engine", name: "Back Door Engine Blocked Area", shape: .rectangle(CodableRect(x: 2350, y: 1481, width: 140, height: 50)), isEnabled: true, isRequired: false)
+            MapBlockedAreaDefinition(id: "blocked-outer-hull", name: "Front Door Engine Blocked Area", shape: .edgeChain([CodablePoint(x: 2047.61, y: 3556.07), CodablePoint(x: 2747.61, y: 3716.07), CodablePoint(x: 3457.61, y: 3556.07), CodablePoint(x: 4115.46, y: 2985.91), CodablePoint(x: 4480, y: 2130), CodablePoint(x: 4570, y: 2130), CodablePoint(x: 5150, y: 710), CodablePoint(x: 360, y: 700), CodablePoint(x: 937.61, y: 2126.07), CodablePoint(x: 1027.61, y: 2126.07), CodablePoint(x: 1371.69, y: 2980.36), CodablePoint(x: 2067.61, y: 3566.07)]), isEnabled: true, isRequired: true)
             ],
             objects: [
             MapObjectDefinition(id: "object-lab-room-chair", name: "Lab Room Chair", type: .obstacle, position: CodablePoint(x: 1485, y: 1630), size: CodableSize(width: 110, height: 160), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1480, y: 1590), CodablePoint(x: 1450, y: 1560), CodablePoint(x: 1490, y: 1550), CodablePoint(x: 1530, y: 1570), CodablePoint(x: 1500, y: 1590), CodablePoint(x: 1500, y: 1620), CodablePoint(x: 1540, y: 1640), CodablePoint(x: 1540, y: 1680), CodablePoint(x: 1490, y: 1710), CodablePoint(x: 1430, y: 1690), CodablePoint(x: 1430, y: 1640), CodablePoint(x: 1480, y: 1620)]),
@@ -660,7 +680,7 @@ extension MapGeometryConfiguration {
             MapObjectDefinition(id: "object-kitchen-chair", name: "Kitchen Chair", type: .obstacle, position: CodablePoint(x: 3925, y: 2575), size: CodableSize(width: 110, height: 150), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3900, y: 2510), CodablePoint(x: 3920, y: 2500), CodablePoint(x: 3950, y: 2500), CodablePoint(x: 3970, y: 2510), CodablePoint(x: 3970, y: 2530), CodablePoint(x: 3950, y: 2540), CodablePoint(x: 3940, y: 2570), CodablePoint(x: 3980, y: 2590), CodablePoint(x: 3980, y: 2640), CodablePoint(x: 3940, y: 2650), CodablePoint(x: 3900, y: 2650), CodablePoint(x: 3870, y: 2640), CodablePoint(x: 3870, y: 2590), CodablePoint(x: 3920, y: 2570), CodablePoint(x: 3920, y: 2530), CodablePoint(x: 3910, y: 2530)]),
             MapObjectDefinition(id: "object-lab-room-front-wall", name: "Lab Room Front Wall", type: .obstacle, position: CodablePoint(x: 1415, y: 1960), size: CodableSize(width: 870, height: 260), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-side-wall-lab-room", name: "Side Wall Lab Room", type: .obstacle, position: CodablePoint(x: 705, y: 1420), size: CodableSize(width: 550, height: 1340), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 430, y: 750), CodablePoint(x: 580, y: 750), CodablePoint(x: 980, y: 1820), CodablePoint(x: 980, y: 2090)]),
-            MapObjectDefinition(id: "object-engine-pipe", name: "Engine Pipe", type: .obstacle, position: CodablePoint(x: 2915, y: 1955), size: CodableSize(width: 70, height: 230), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2890, y: 1840), CodablePoint(x: 2940, y: 1840), CodablePoint(x: 2950, y: 1860), CodablePoint(x: 2940, y: 1880), CodablePoint(x: 2930, y: 2030), CodablePoint(x: 2930, y: 2050), CodablePoint(x: 2910, y: 2070), CodablePoint(x: 2890, y: 2050), CodablePoint(x: 2880, y: 2010), CodablePoint(x: 2900, y: 1990), CodablePoint(x: 2900, y: 1880), CodablePoint(x: 2880, y: 1870)]),
+            MapObjectDefinition(id: "object-engine-pipe", name: "Engine Pipe", type: .obstacle, position: CodablePoint(x: 2910, y: 1975), size: CodableSize(width: 60, height: 190), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2940, y: 1880), CodablePoint(x: 2930, y: 2030), CodablePoint(x: 2930, y: 2050), CodablePoint(x: 2910, y: 2070), CodablePoint(x: 2890, y: 2050), CodablePoint(x: 2880, y: 2010), CodablePoint(x: 2900, y: 1990), CodablePoint(x: 2900, y: 1880)]),
             MapObjectDefinition(id: "object-front-right-wall-engine-room", name: "Front Right Wall Engine Room", type: .obstacle, position: CodablePoint(x: 3050, y: 2045), size: CodableSize(width: 420, height: 170), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-front-left-wall-engine-room", name: "Front Left Wall Engine Room", type: .obstacle, position: CodablePoint(x: 2470, y: 2035), size: CodableSize(width: 400, height: 170), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-left-bottom-wall-lab-room", name: "Left Bottom Wall Lab Room", type: .obstacle, position: CodablePoint(x: 1920, y: 965), size: CodableSize(width: 100, height: 430), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1880, y: 750), CodablePoint(x: 1970, y: 750), CodablePoint(x: 1910, y: 1180), CodablePoint(x: 1870, y: 1170)]),
@@ -725,14 +745,15 @@ extension MapGeometryConfiguration {
             MapSpawnPointDefinition(id: "spawn-storage", name: "Storage Spawn", roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true)
             ],
             checkpoints: [
-            MapCheckpointDefinition(id: "checkpoint-cockpit", name: "cockpit", checkpointID: .cockpit, roomID: .cockpit, position: CodablePoint(x: 2752, y: 2899.11), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-engineBlocked", name: "engineBlocked", checkpointID: .engineBlocked, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-engineDisruption", name: "engineDisruption", checkpointID: .engineDisruption, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-engineFinal", name: "engineFinal", checkpointID: .engineFinal, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-enginePhaseOne", name: "enginePhaseOne", checkpointID: .enginePhaseOne, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-laboratory", name: "laboratory", checkpointID: .laboratory, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-sleepingRoom", name: "sleepingRoom", checkpointID: .sleepingRoom, roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-storage", name: "storage", checkpointID: .storage, roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true)
+            MapCheckpointDefinition(id: "checkpoint-sleeping-start", name: "Sleeping Room Start", checkpointID: .sleepingRoomStart, roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-laboratory-entered", name: "Laboratory Entered", checkpointID: .laboratoryEntered, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-laboratory-completed", name: "Laboratory Completed", checkpointID: .laboratoryCompleted, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-10", name: "Engine 10", checkpointID: .engine10, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-40", name: "Engine 40", checkpointID: .engine40, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-60", name: "Engine 60", checkpointID: .engine60, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-advanced-tools", name: "Advanced Tools", checkpointID: .advancedToolsAcquired, roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-100", name: "Engine 100", checkpointID: .engine100, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-cockpit-entered", name: "Cockpit Entered", checkpointID: .cockpitEntered, roomID: .cockpit, position: CodablePoint(x: 2752, y: 2899.11), isRequired: true)
             ]
         )
     }

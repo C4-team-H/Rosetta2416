@@ -20,7 +20,7 @@ final class GameSessionState {
     private let dialogueManager: AIDialogueManager
     private let repository: StoryProgressRepository
     private let safeSpawnProvider: (CheckpointID) -> CGPoint
-    private var checkpointSnapshot: StorySaveSnapshot
+    private var checkpointSystem: CheckpointSystem
     private var sessionRevision = 0
 
     init(
@@ -38,15 +38,15 @@ final class GameSessionState {
         self.safeSpawnProvider = safeSpawnProvider ?? { GameMapLayout.safeSpawn(for: $0) }
         let energySystem = EnergySystem(playerID: localPlayer.id)
         self.energySystem = energySystem
-        checkpointSnapshot = StorySaveSnapshot(
+        checkpointSystem = CheckpointSystem(initialSnapshot: StorySaveSnapshot(
             sharedStory: storySystem.state,
             localSurvival: energySystem.state,
             safeSpawn: localPlayer.worldPosition,
             stats: GameSessionStats()
-        )
+        ))
     }
 
-    var sharedStory: SharedStoryState { storySystem.state }
+    var sharedStory: StoryState { storySystem.state }
     var survival: PlayerSurvivalState { energySystem.state }
     var objectives: [StoryObjective] { storySystem.objectives }
     var activeObjective: StoryObjective? { storySystem.activeObjective }
@@ -72,18 +72,14 @@ final class GameSessionState {
     }
 
     func beginDrawing(objectiveID: String) {
-        guard phase == .playing || (phase == .gameOver && objectiveID == "retry-angel") else { return }
+        guard phase == .playing else { return }
         phase = .drawing(objectiveID)
         stats.drawingAttempts += 1
     }
 
     func endDrawing() {
-        guard case let .drawing(objectiveID) = phase else { return }
-        if objectiveID == "retry-angel" {
-            phase = .gameOver
-        } else {
-            phase = .playing
-        }
+        guard case .drawing = phase else { return }
+        phase = .playing
     }
 
     func endCutscene() {
@@ -138,9 +134,9 @@ final class GameSessionState {
     }
 
     func markAlbumOpened() {
-        guard !storySystem.state.hasOpenedAlbum else { return }
-        storySystem.markAlbumOpened()
-        persistLatest()
+        let effects = storySystem.markAlbumOpened()
+        guard !effects.isEmpty else { return }
+        applyEffects(effects)
     }
 
     func updateLocalPlayer(position: CGPoint) {
@@ -196,21 +192,26 @@ final class GameSessionState {
             guard revisionAtLoadStart == sessionRevision else { return }
             storySystem.restore(persisted.latest.sharedStory)
             energySystem.restore(persisted.latest.localSurvival)
-            localPlayer.worldPosition = safeSpawn(for: persisted.latest.sharedStory.latestCheckpoint)
+            localPlayer.worldPosition = persisted.latest.safeSpawn.isFinite
+                ? persisted.latest.safeSpawn
+                : safeSpawn(for: persisted.latest.sharedStory.latestCheckpoint)
             currentRoom = nil
             stats = persisted.latest.stats
-            checkpointSnapshot = persisted.checkpoint
+            checkpointSystem.restoreRecord(persisted.checkpoint)
         } catch {
             transientMessage = "Saved progress could not be restored. A new session was started."
         }
     }
 
     func retryCheckpoint() {
-        storySystem.restore(checkpointSnapshot.sharedStory)
-        energySystem.restoreCheckpoint(checkpointSnapshot.localSurvival)
-        localPlayer.worldPosition = safeSpawn(for: checkpointSnapshot.sharedStory.latestCheckpoint)
+        let checkpoint = checkpointSystem.latestCheckpoint
+        storySystem.restore(checkpoint.sharedStory)
+        energySystem.restoreCheckpoint(checkpoint.localSurvival)
+        localPlayer.worldPosition = checkpointSystem.restorationSpawn(
+            fallback: safeSpawn(for: checkpoint.sharedStory.latestCheckpoint)
+        )
         currentRoom = nil
-        stats = checkpointSnapshot.stats
+        stats = checkpoint.stats
         phase = .playing
         currentDialogue = nil
         transientMessage = "Checkpoint restored"
@@ -222,7 +223,7 @@ final class GameSessionState {
         sessionRevision += 1
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
-        localPlayer.worldPosition = safeSpawn(for: .sleepingRoom)
+        localPlayer.worldPosition = safeSpawn(for: .sleepingRoomStart)
         currentRoom = nil
         stats = GameSessionStats()
         phase = .playing
@@ -235,8 +236,8 @@ final class GameSessionState {
             storySystem.markDialogueDelivered(id: line.id)
         }
 
-        checkpointSnapshot = makeSnapshot(safeSpawn: safeSpawn(for: .sleepingRoom))
-        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSnapshot)
+        checkpointSystem.record(makeSnapshot(safeSpawn: safeSpawn(for: .sleepingRoomStart)))
+        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSystem.latestCheckpoint)
         Task {
             if clearSavedProgress { try? await repository.clear() }
             try? await repository.save(progress)
@@ -269,7 +270,7 @@ final class GameSessionState {
 
             case let .checkpointReached(checkpoint):
                 checkpointNotice = checkpoint
-                checkpointSnapshot = makeSnapshot(safeSpawn: safeSpawn(for: checkpoint))
+                checkpointSystem.record(makeSnapshot(safeSpawn: safeSpawn(for: checkpoint)))
                 shouldPersist = true
 
             case let .cutscene(cutscene):
@@ -300,7 +301,7 @@ final class GameSessionState {
     }
 
     private func persistLatest() {
-        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSnapshot)
+        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSystem.latestCheckpoint)
         Task { try? await repository.save(progress) }
     }
 

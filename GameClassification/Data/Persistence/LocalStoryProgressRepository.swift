@@ -54,11 +54,17 @@ final class LocalStoryProgressRepository: StoryProgressRepository {
         guard let record = records.max(by: { $0.updatedAt < $1.updatedAt }) else { return nil }
         let latest = try decoder.decode(StorySaveSnapshot.self, from: record.latestData)
         let checkpoint = try decoder.decode(StorySaveSnapshot.self, from: record.checkpointData)
-        guard latest.schemaVersion == StorySaveSnapshot.currentSchemaVersion,
-              checkpoint.schemaVersion == StorySaveSnapshot.currentSchemaVersion else {
+        guard latest.schemaVersion <= StorySaveSnapshot.currentSchemaVersion,
+              checkpoint.schemaVersion <= StorySaveSnapshot.currentSchemaVersion else {
             throw StoryPersistenceError.unsupportedSchema
         }
-        return PersistedStoryProgress(latest: latest, checkpoint: checkpoint)
+        let progress = PersistedStoryProgress(latest: latest, checkpoint: checkpoint)
+        let migrated = CheckpointSystem.migrate(progress)
+        if latest.schemaVersion < StorySaveSnapshot.currentSchemaVersion
+            || checkpoint.schemaVersion < StorySaveSnapshot.currentSchemaVersion {
+            try await save(migrated)
+        }
+        return migrated
     }
 
     func clear() async throws {
@@ -82,8 +88,7 @@ final class InMemoryStoryProgressRepository: StoryProgressRepository {
         self.progress = progress
     }
 
-    func load() async throws -> PersistedStoryProgress? { progress }
+    func load() async throws -> PersistedStoryProgress? { progress.map(CheckpointSystem.migrate) }
 
     func clear() async throws { progress = nil }
 }
-

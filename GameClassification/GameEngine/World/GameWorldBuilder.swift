@@ -69,8 +69,7 @@ extension GameScene {
 
     func createAlbumBook() {
         albumBookNode?.removeFromParent()
-        // Bottom-left corner of Sleeping Room at CGRect(x:200, y:825, w:350, h:350)
-        let bookPos = CGPoint(x: 230, y: 850)
+        let bookPos = geometryStore.configuration.albumBookPosition
         let book = SKShapeNode(rectOf: CGSize(width: 24, height: 30), cornerRadius: 3)
         book.name = "album-book"
         book.position = bookPos
@@ -96,28 +95,8 @@ extension GameScene {
             book.addChild(line)
         }
 
-        addChild(book)
+        (shipMapNode?.furnitureLayer ?? self).addChild(book)
         albumBookNode = book
-    }
-
-    func createObstacles() {
-        obstacles.forEach { $0.node.removeFromParent() }
-        obstacles.removeAll()
-        doorNodes.removeAll()
-        children.filter { $0.name == "roomLabel" }.forEach { $0.removeFromParent() }
-
-        for wall in GameMapLayout.wallSegments { addWall(from: wall.start, to: wall.end) }
-        for room in GameMapLayout.rooms {
-            let label = SKLabelNode(fontNamed: GameFont.fontName)
-            label.text = room.name
-            label.fontSize = 20
-            label.fontColor = .white.withAlphaComponent(0.15)
-            label.position = CGPoint(x: room.worldFrame.midX, y: room.worldFrame.midY)
-            label.zPosition = 0
-            label.name = "roomLabel"
-            addChild(label)
-        }
-        updateDoorGates()
     }
 
     func refreshStoryVisuals() {
@@ -143,6 +122,7 @@ extension GameScene {
             node.isHidden = !visibility.shouldShowStation(interactionID: id)
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
+        albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
             walkabilitySystem.updateDoorStates(doorStates)
@@ -156,13 +136,22 @@ extension GameScene {
             node.isHidden = !visibility.shouldShowStation(interactionID: id)
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
+        albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
     }
 
     func animateCompletedStation(id: String) {
         guard let node = stationNodes[id] else { return }
-        node.run(.sequence([
+        guard let completionVisual = node.copy() as? SKShapeNode, let parent = node.parent else { return }
+        completionVisual.name = "completion-visual-\(id)"
+        completionVisual.isHidden = false
+        completionVisual.physicsBody = nil
+        completionVisual.userData = nil
+        completionVisual.zPosition = node.zPosition + 1
+        parent.addChild(completionVisual)
+        completionVisual.run(.sequence([
             .group([.scale(to: 1.35, duration: 0.18), .fadeAlpha(to: 1, duration: 0.18)]),
-            .scale(to: 1, duration: 0.32)
+            .group([.scale(to: 1, duration: 0.32), .fadeOut(withDuration: 0.32)]),
+            .removeFromParent()
         ]))
     }
 

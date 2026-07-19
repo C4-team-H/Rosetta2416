@@ -13,7 +13,7 @@ struct EnergyConfiguration: Codable, Equatable, Sendable {
         passiveDrainPerSecond: 0.15,
         movementDrainMultiplier: 2.0,
         foodRestoreAmount: 50,
-        disruptionCost: 5,
+        disruptionCost: 10,
         checkpointRestartMinimum: 50
     )
 }
@@ -67,4 +67,3 @@ struct EnergySystem: Sendable {
         )
     }
 }
-

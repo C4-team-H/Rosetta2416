@@ -1,152 +1,156 @@
 import PencilKit
 import Testing
+import UIKit
 @testable import GameClassification
 
 private struct FixedRecognizer: DoodleRecognizer {
     let label: String
+    let confidence: Double
+
+    init(label: String, confidence: Double = 0.95) {
+        self.label = label
+        self.confidence = confidence
+    }
 
     func recognize(_ drawing: PKDrawing) async throws -> RecognitionResult {
-        RecognitionResult(label: label, confidence: 0.95, alternatives: [])
+        RecognitionResult(label: label, confidence: confidence, alternatives: [])
     }
 }
 
 @Suite("Story integration")
 @MainActor
 struct StoryIntegrationTests {
-    @Test("Room entry through drawing authority updates objective, persistence, map, and HUD projection")
+    @Test("Physical Lab stations flow through authority, persistence, map, and HUD state")
     func objectivePipeline() async throws {
         let repository = InMemoryStoryProgressRepository()
         let session = makeSession(repository: repository)
         session.beginGameplay()
         _ = session.handle(.roomEntered(.laboratory))
-        
-        let objectiveID = "lab-easel"
-        
-        for _ in 0..<2 {
-            guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
-                Issue.record("No prompt")
-                return
-            }
+
+        for definition in StoryConfiguration.laboratoryChallenges {
+            let prompt = try #require(session.storySystem.currentPrompt(for: definition.id))
             let authority = LocalStoryAuthority(
                 sessionState: session,
                 recognizer: FixedRecognizer(label: prompt.expectedLabel)
             )
+            let commandID = UUID()
+            let command = StoryCommand.submitDrawing(
+                commandID: commandID,
+                objectiveID: definition.id,
+                drawingData: drawingData(),
+                playerID: "local"
+            )
+            let result = await authority.execute(command)
+            let duplicate = await authority.execute(command)
+
+            #expect(result.accepted)
+            #expect(!duplicate.accepted)
+        }
+        await Task.yield()
+        await Task.yield()
+
+        #expect(session.sharedStory.intelligence == 40)
+        #expect(session.sharedStory.currentChapter == .engineInitial)
+        #expect(session.sharedStory.activeMission?.title == "Repair the Engine.")
+        #expect(session.stats.successfulDrawings == 3)
+        #expect(session.activeObjective?.id == "engine-ignition-coil")
+        #expect(try await repository.load()?.latest.sharedStory.completedChallengeIDs
+            == Set(StoryConfiguration.laboratoryChallenges.map(\.id)))
+    }
+
+    @Test("Kitchen restores exactly 50, clamps at 100, and never mutates story")
+    func foodIsolationAndRepeatability() async {
+        let session = makeSession()
+        session.beginGameplay()
+        session.updateEnergy(deltaTime: 200, isMoving: false)
+        let before = session.sharedStory
+
+        for label in ["apple", "apple"] {
+            let authority = LocalStoryAuthority(sessionState: session, recognizer: FixedRecognizer(label: label))
             let result = await authority.execute(.submitDrawing(
                 commandID: UUID(),
-                objectiveID: objectiveID,
-                drawingData: PKDrawing().dataRepresentation(),
+                objectiveID: "kitchen-\(label)",
+                drawingData: drawingData(),
                 playerID: "local"
             ))
             #expect(result.accepted)
         }
-        
-        guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
-            Issue.record("No prompt")
-            return
-        }
-        let authority = LocalStoryAuthority(
-            sessionState: session,
-            recognizer: FixedRecognizer(label: prompt.expectedLabel)
-        )
-        let commandID = UUID()
-        let command = StoryCommand.submitDrawing(
-            commandID: commandID,
-            objectiveID: objectiveID,
-            drawingData: PKDrawing().dataRepresentation(),
-            playerID: "local"
-        )
 
-        let result = await authority.execute(command)
-        let duplicate = await authority.execute(command)
-        await Task.yield()
-        await Task.yield()
-
-        #expect(result.accepted)
-        #expect(!duplicate.accepted)
-        #expect(session.sharedStory.intelligence == 40)
-        #expect(session.progress.intelligence == 40)
-        #expect(session.stats.successfulDrawings == 3)
-        #expect(session.objectives.first(where: { $0.id == objectiveID })?.status == .completed)
-        #expect(TacticalMapMarkerFactory.make(story: session.storySystem).contains {
-            $0.id == "station-\(objectiveID)" && $0.status == .completed
-        })
-        #expect(try await repository.load()?.latest.sharedStory.completedObjectiveIDs.contains(objectiveID) == true)
+        #expect(session.energy == 100)
+        #expect(session.sharedStory.intelligence == before.intelligence)
+        #expect(session.sharedStory.engineProgress == before.engineProgress)
+        #expect(session.sharedStory.completedChallengeIDs == before.completedChallengeIDs)
+        #expect(session.sharedStory.activeMission == before.activeMission)
+        #expect(session.stats.kitchenRestores == 2)
     }
 
-    @Test("Food restores only local Energy and never story bars or objectives")
-    func foodIsolation() async {
+    @Test("Empty canvas and recognizer-free cancellation path do not trigger the Album hint")
+    func emptyCanvasDoesNotTriggerHint() async {
         let session = makeSession()
         session.beginGameplay()
-        session.updateEnergy(deltaTime: 100, isMoving: false)
-        let before = session.sharedStory
-        let authority = LocalStoryAuthority(
-            sessionState: session,
-            recognizer: FixedRecognizer(label: "apple")
-        )
+        _ = session.handle(.roomEntered(.laboratory))
+        let authority = LocalStoryAuthority(sessionState: session, recognizer: FixedRecognizer(label: "cat"))
 
         let result = await authority.execute(.submitDrawing(
             commandID: UUID(),
-            objectiveID: "kitchen-apple",
+            objectiveID: "lab-memory-repair",
             drawingData: PKDrawing().dataRepresentation(),
             playerID: "local"
         ))
 
-        #expect(result.accepted)
-        #expect(session.energy == 100)
-        #expect(session.sharedStory.intelligence == before.intelligence)
-        #expect(session.sharedStory.engineProgress == before.engineProgress)
-        #expect(session.sharedStory.completedObjectiveIDs == before.completedObjectiveIDs)
-        #expect(session.stats.kitchenRestores == 1)
+        #expect(!result.accepted)
+        #expect(result.effects.isEmpty)
+        #expect(!session.sharedStory.albumBook.hasFailedDrawingBefore)
+        #expect(!session.sharedStory.albumBook.isMarkerVisible)
     }
 
-    @Test("Game Over retry rolls story back to checkpoint and restores minimum Energy")
+    @Test("Engine 40 disruption subtracts ten Energy exactly once")
+    func disruptionPenaltyIdempotency() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        complete(.laboratory, in: session)
+
+        for definition in StoryConfiguration.engineInitialChallenges.prefix(4) {
+            validate(definition.id, in: session)
+        }
+        let afterDisruption = session.energy
+        #expect(afterDisruption == 90)
+
+        let completed = StoryConfiguration.engineInitialChallenges[3]
+        validate(completed.id, in: session)
+        #expect(session.energy == afterDisruption)
+        #expect(session.sharedStory.processedMilestoneIDs.contains("engine40"))
+    }
+
+    @Test("Game Over retries the latest checkpoint directly with minimum Energy")
     func checkpointRetry() {
         let session = makeSession()
         session.beginGameplay()
         _ = session.handle(.roomEntered(.laboratory))
-        
-        let objectiveID = "lab-easel"
-        for _ in 0..<3 {
-            guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
-                Issue.record("No prompt")
-                return
-            }
-            _ = session.handle(.drawingValidated(
-                objectiveID: objectiveID,
-                result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
-            ))
-        }
-        #expect(session.sharedStory.completedObjectiveIDs.contains(objectiveID))
+        let checkpointLabels = session.sharedStory.selectedChallengeLabels
+        validate("lab-memory-repair", in: session)
+        #expect(session.sharedStory.completedChallengeIDs.contains("lab-memory-repair"))
 
         session.updateEnergy(deltaTime: 10_000, isMoving: true)
         #expect(session.phase == .gameOver)
-
         session.retryCheckpoint()
+
         #expect(session.phase == .playing)
-        #expect(!session.sharedStory.completedObjectiveIDs.contains(objectiveID))
+        #expect(!session.sharedStory.completedChallengeIDs.contains("lab-memory-repair"))
         #expect(session.sharedStory.currentChapter == .laboratory)
         #expect(session.energy >= 50)
-        #expect(session.localPlayer.worldPosition == GameMapLayout.safeSpawn(for: .laboratory))
+        #expect(session.localPlayer.worldPosition == GameMapLayout.safeSpawn(for: .laboratoryEntered))
+        #expect(session.sharedStory.selectedChallengeLabels == checkpointLabels)
     }
 
-    @Test("New Game resets story, survival, statistics, position, and persisted progress")
+    @Test("New Game resets the canonical session and persistence")
     func newGameReset() async throws {
         let repository = InMemoryStoryProgressRepository()
         let session = makeSession(repository: repository)
         session.beginGameplay()
         _ = session.handle(.roomEntered(.laboratory))
-        
-        let objectiveID = "lab-easel"
-        guard let prompt = session.storySystem.currentEaselPrompt(for: objectiveID) else {
-            Issue.record("No prompt")
-            return
-        }
-        _ = session.handle(.drawingValidated(
-            objectiveID: objectiveID,
-            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
-        ))
-        session.beginDrawing(objectiveID: objectiveID)
-        session.endDrawing()
+        validate("lab-memory-repair", in: session)
         session.updateEnergy(deltaTime: 100, isMoving: true)
 
         session.startNewSession()
@@ -155,18 +159,34 @@ struct StoryIntegrationTests {
 
         #expect(session.phase == .playing)
         #expect(session.sharedStory.currentChapter == .sleepingRoom)
-        #expect(session.sharedStory.completedObjectiveIDs.isEmpty)
+        #expect(session.sharedStory.completedChallengeIDs.isEmpty)
         #expect(session.sharedStory.intelligence == 10)
         #expect(session.sharedStory.engineProgress == 0)
-        #expect(session.sharedStory.powerState == .emergency)
+        #expect(session.sharedStory.powerState == .off)
         #expect(session.energy == 100)
         #expect(session.stats == GameSessionStats())
-        #expect(session.localPlayer.worldPosition == GameMapLayout.playerSpawnPosition)
+        #expect(session.localPlayer.worldPosition == GameMapLayout.safeSpawn(for: .sleepingRoomStart))
+        let persisted = try await repository.load()?.latest.sharedStory
+        #expect(persisted?.currentChapter == .sleepingRoom)
+        #expect(persisted?.completedChallengeIDs.isEmpty == true)
+        #expect(persisted?.deliveredDialogueIDs == ["intro-1"])
+    }
 
-        let saved = try await repository.load()
-        #expect(saved?.latest.sharedStory.currentChapter == .sleepingRoom)
-        #expect(saved?.latest.sharedStory.completedObjectiveIDs.isEmpty == true)
-        #expect(saved?.latest.localSurvival.energy == 100)
+    private func complete(_ chapter: StoryChapter, in session: GameSessionState) {
+        for definition in StoryConfiguration.challenges(for: chapter) {
+            validate(definition.id, in: session)
+        }
+    }
+
+    private func validate(_ id: String, in session: GameSessionState) {
+        guard let prompt = session.storySystem.currentPrompt(for: id) else {
+            Issue.record("Missing prompt for \(id)")
+            return
+        }
+        _ = session.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+        ))
     }
 
     private func makeSession(repository: StoryProgressRepository? = nil) -> GameSessionState {
@@ -179,5 +199,21 @@ struct StoryIntegrationTests {
             ),
             repository: repository
         )
+    }
+
+    private func drawingData() -> Data {
+        let points = [
+            PKStrokePoint(
+                location: CGPoint(x: 1, y: 1), timeOffset: 0, size: CGSize(width: 5, height: 5),
+                opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2
+            ),
+            PKStrokePoint(
+                location: CGPoint(x: 12, y: 12), timeOffset: 0.1, size: CGSize(width: 5, height: 5),
+                opacity: 1, force: 1, azimuth: 0, altitude: .pi / 2
+            )
+        ]
+        let path = PKStrokePath(controlPoints: points, creationDate: .now)
+        let stroke = PKStroke(ink: PKInk(.pen, color: .black), path: path)
+        return PKDrawing(strokes: [stroke]).dataRepresentation()
     }
 }

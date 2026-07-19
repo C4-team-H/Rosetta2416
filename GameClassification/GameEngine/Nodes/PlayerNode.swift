@@ -36,7 +36,8 @@ final class PlayerNode: SKShapeNode {
         navigationFootprint = CollisionFootprint(
             centerOffset: collisionFootprint.centerOffset,
             size: collisionFootprint.size,
-            obstacleRadius: collisionFootprint.obstacleRadius
+            obstacleRadius: collisionFootprint.obstacleRadius,
+            bodyObstacleRadius: collisionFootprint.bodyObstacleRadius
         )
         interactionSensor = Self.makeInteractionSensor(footprintBounds: footBounds)
         animationController = PlayerAnimationController(sprite: sprite)

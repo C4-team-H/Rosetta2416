@@ -26,8 +26,7 @@ struct MapMockMovementDemo: View {
             session: session,
             onRetryCheckpoint: {},
             onPlayAgain: {},
-            onMainMenu: {},
-            mapDebugViewModel: nil
+            onMainMenu: {}
         )
             .background(.black)
             .task {

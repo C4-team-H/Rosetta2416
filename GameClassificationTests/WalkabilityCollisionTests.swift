@@ -29,7 +29,7 @@ struct WalkabilityCollisionTests {
             #expect(system.isWalkable(
                 position: doorway.worldPosition,
                 footprint: GameMapLayout.playerFootprint
-            ) == .walkable(.doorway))
+            ).isWalkable)
         }
     }
 
@@ -356,6 +356,74 @@ struct WalkabilityCollisionTests {
 
         #expect(joystick.finalPosition == pencil.finalPosition)
         #expect(joystick.appliedDisplacement == pencil.appliedDisplacement)
+    }
+
+    @Test("Body obstacle radius prevents crossing cockpit and engine back doors when locked or closed")
+    func bodyObstacleRadiusForSpecificDoors() {
+        let configuration = GameMapConfiguration(
+            authoredArtworkSize: CGSize(width: 3000, height: 3000),
+            worldSize: CGSize(width: 3000, height: 3000),
+            artworkScale: 1,
+            artworkOffset: .zero,
+            playerVisualRadius: 100,
+            playerFootprint: CollisionFootprint(
+                centerOffset: CGPoint(x: 0, y: -60),
+                radius: 20,
+                obstacleRadius: 50
+            ),
+            wallThickness: 10,
+            walkabilityEpsilon: 0.1,
+            targetClampStep: 4,
+            targetClampMaximumRadius: 64
+        )
+        let cockpitDoor = DoorwayDefinition(
+            id: .cockpit,
+            roomID: .cockpit,
+            worldFrame: CGRect(x: 1000, y: 1000, width: 200, height: 50)
+        )
+        let engineBackDoor = DoorwayDefinition(
+            id: .engineBackDoor,
+            roomID: .engine,
+            worldFrame: CGRect(x: 1500, y: 1000, width: 200, height: 50)
+        )
+        let otherDoor = DoorwayDefinition(
+            id: .sleepingRoom,
+            roomID: .sleepingRoom,
+            worldFrame: CGRect(x: 2000, y: 1000, width: 200, height: 50)
+        )
+        
+        let map = GameMap(
+            configuration: configuration,
+            rooms: [
+                RoomDefinition(roomID: .cockpit, walkableFrame: CGRect(x: 900, y: 800, width: 400, height: 500), triggerFrame: CGRect(x: 900, y: 800, width: 400, height: 500)),
+                RoomDefinition(roomID: .engine, walkableFrame: CGRect(x: 1400, y: 800, width: 400, height: 500), triggerFrame: CGRect(x: 1400, y: 800, width: 400, height: 500)),
+                RoomDefinition(roomID: .sleepingRoom, walkableFrame: CGRect(x: 1900, y: 800, width: 400, height: 500), triggerFrame: CGRect(x: 1900, y: 800, width: 400, height: 500))
+            ],
+            corridors: [],
+            doorways: [cockpitDoor, engineBackDoor, otherDoor],
+            wallSegments: [],
+            colliders: [],
+            stations: [],
+            foodStationPosition: .zero,
+            spawnPoints: []
+        )
+        
+        let doorStates: [DoorID: DoorState] = [
+            .cockpit: .locked,
+            .engineBackDoor: .locked,
+            .sleepingRoom: .locked
+        ]
+        let system = WalkabilitySystem(map: map, doorStates: doorStates)
+        let footprint = configuration.playerFootprint
+        
+        let positionAtCockpit = CGPoint(x: 1100, y: 900)
+        #expect(system.isWalkable(position: positionAtCockpit, footprint: footprint) == .blocked(.lockedDoor))
+        
+        let positionAtEngineBack = CGPoint(x: 1600, y: 900)
+        #expect(system.isWalkable(position: positionAtEngineBack, footprint: footprint) == .blocked(.lockedDoor))
+        
+        let positionAtOther = CGPoint(x: 2100, y: 900)
+        #expect(system.isWalkable(position: positionAtOther, footprint: footprint).isWalkable)
     }
 
     private func makeTestMap(walls: [MapWallSegment]) -> GameMap {

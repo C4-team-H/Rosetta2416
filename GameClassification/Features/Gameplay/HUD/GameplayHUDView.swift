@@ -6,9 +6,6 @@ struct GameplayHUDView: View {
     let onRetryCheckpoint: () -> Void
     let onPlayAgain: () -> Void
     let onMainMenu: () -> Void
-    #if DEBUG
-    var mapDebugViewModel: MapDebugViewModel? = nil
-    #endif
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var feedbackTrigger = 0
@@ -83,14 +80,7 @@ struct GameplayHUDView: View {
                 )
                 .zIndex(3)
             }
-
-            #if DEBUG
-            if let mapDebugViewModel, viewModel.isGameplayActive {
-                MapDebugOverlayView(viewModel: mapDebugViewModel)
-                    .zIndex(20)
-            }
-            #endif
-        }
+    }
         .animation(overlayAnimation, value: viewModel.isMapPresented)
         .sensoryFeedback(.impact(weight: .light), trigger: feedbackTrigger)
     }
@@ -118,14 +108,15 @@ struct GameplayHUDView: View {
 private extension CheckpointID {
     var displayName: String {
         switch self {
-        case .sleepingRoom: "Sleeping Room"
-        case .laboratory: "Laboratory"
-        case .enginePhaseOne: "Engine"
-        case .engineDisruption: "Power Disruption"
-        case .engineBlocked: "Engine Blocked"
-        case .storage: "Storage"
-        case .engineFinal: "Final Engine"
-        case .cockpit: "Cockpit"
+        case .sleepingRoomStart: "Sleeping Room"
+        case .laboratoryEntered: "Laboratory Entered"
+        case .laboratoryCompleted: "Laboratory Restored"
+        case .engine10: "Engine 10%"
+        case .engine40: "Power Disruption"
+        case .engine60: "Engine 60%"
+        case .advancedToolsAcquired: "Advanced Tools"
+        case .engine100: "Engine Restored"
+        case .cockpitEntered: "Cockpit Entered"
         }
     }
 }
