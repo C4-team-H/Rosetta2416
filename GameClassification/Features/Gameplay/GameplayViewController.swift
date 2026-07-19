@@ -36,16 +36,6 @@ class GameViewController: UIViewController {
 
     private func installGameplayOverlay() {
         let viewModel = coordinator.tacticalMapViewModel
-        #if DEBUG
-        let rootView = GameplayHUDView(
-            viewModel: viewModel,
-            session: coordinator.sessionState,
-            onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
-            onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
-            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() },
-            mapDebugViewModel: coordinator.mapDebugViewModel
-        )
-        #else
         let rootView = GameplayHUDView(
             viewModel: viewModel,
             session: coordinator.sessionState,
@@ -53,7 +43,6 @@ class GameViewController: UIViewController {
             onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
             onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
         )
-        #endif
         let controller = UIHostingController(rootView: rootView)
         controller.view.backgroundColor = .clear
         controller.view.translatesAutoresizingMaskIntoConstraints = false
