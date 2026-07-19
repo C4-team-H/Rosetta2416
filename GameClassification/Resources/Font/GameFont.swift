@@ -60,7 +60,7 @@ enum GameFont {
 
     // MARK: - Font Configuration
 
-    static let fontName = "MuseoModerno"
+    static let fontName = "GeistPixel-Regular"
 
     private static let defaultWidth: CGFloat = 100
 

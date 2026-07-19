@@ -33,14 +33,14 @@ final class MainMenuScene: SKScene {
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
         
-        titleLabel = SKLabelNode(fontNamed: GameFont.fontName)
-        titleLabel.text = "ROSETTA"
-        titleLabel.fontSize = 160
-        titleLabel.fontColor = .white
-        titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.68)
-        titleLabel.horizontalAlignmentMode = .center
-//        titleLabel.verticalAlignmentMode = .center
-        self.addChild(titleLabel)
+//        titleLabel = SKLabelNode(fontNamed: GameFont.fontName)
+//        titleLabel.text = "ROSETTA"
+//        titleLabel.fontSize = 160
+//        titleLabel.fontColor = .white
+//        titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.68)
+//        titleLabel.horizontalAlignmentMode = .center
+////        titleLabel.verticalAlignmentMode = .center
+//        self.addChild(titleLabel)
         
         startButton = makeButton(
             name: "startButton",

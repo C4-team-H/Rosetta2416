@@ -19,6 +19,14 @@ struct AlbumBookView: View {
             }
             .searchable(text: $viewModel.searchText, prompt: "Search 157 references")
             .navigationTitle("Album Book")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Album Book")
+                        .font(GameFont.headlineBold)
+                        .foregroundStyle(.white)
+                }
+            }
         } detail: {
             ZStack {
                 Color(red: 0.035, green: 0.055, blue: 0.09).ignoresSafeArea()
@@ -37,7 +45,14 @@ struct AlbumBookView: View {
                 .padding(32)
             }
             .navigationTitle("Drawing Reference")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Drawing Reference")
+                        .font(GameFont.largeTitleBold)
+                        .foregroundStyle(.white)
+                        .padding(.top, 64)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("DONE") { dismiss() }
                         .font(GameFont.caption1Bold)
