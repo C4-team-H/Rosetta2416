@@ -12,18 +12,24 @@ enum DoorID: String, Codable, CaseIterable, Sendable {
     case sleepingRoom
     case kitchen
     case engine
+    case engineBackDoor
     case laboratory
     case storage
 
     var nodeName: String { "door-\(rawValue)" }
-    var displayName: String { "\(roomID.displayName) Door" }
+    var displayName: String {
+        switch self {
+        case .engineBackDoor: "Engine Room Back Door"
+        default: "\(roomID.displayName) Door"
+        }
+    }
 
     var roomID: RoomID {
         switch self {
         case .cockpit: .cockpit
         case .sleepingRoom: .sleepingRoom
         case .kitchen: .kitchen
-        case .engine: .engine
+        case .engine, .engineBackDoor: .engine
         case .laboratory: .laboratory
         case .storage: .storage
         }

@@ -28,7 +28,7 @@ enum MapGeometryExporter {
                         centerOffset: \(point(value.playerFootprint.centerOffset)),
                         width: \(number(value.playerFootprint.width)),
                         height: \(number(value.playerFootprint.height)),
-                        obstacleRadius: \(number(value.playerFootprint.obstacleRadius))
+                        obstacleRadius: \(number(value.playerFootprint.obstacleRadius))\(bodyObstacleRadiusArg(value.playerFootprint))
                     ),
                     wallThickness: \(number(value.wallThickness)),
                     walkabilityEpsilon: \(number(value.walkabilityEpsilon)),
@@ -193,6 +193,11 @@ enum MapGeometryExporter {
         while output.last == "0" { output.removeLast() }
         if output.last == "." { output.removeLast() }
         return output
+    }
+
+    private static func bodyObstacleRadiusArg(_ value: MapPlayerFootprintDefinition) -> String {
+        guard let r = value.bodyObstacleRadius else { return "" }
+        return ",\n                        bodyObstacleRadius: \(number(r))"
     }
 }
 

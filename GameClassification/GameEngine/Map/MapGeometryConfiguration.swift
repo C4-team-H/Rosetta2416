@@ -122,6 +122,7 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
     var width: Double
     var height: Double
     var obstacleRadius: Double
+    var bodyObstacleRadius: Double?
 
     var radius: Double {
         get { max(width, height) / 2 }
@@ -132,11 +133,12 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         }
     }
 
-    init(centerOffset: CodablePoint, width: Double, height: Double, obstacleRadius: Double) {
+    init(centerOffset: CodablePoint, width: Double, height: Double, obstacleRadius: Double, bodyObstacleRadius: Double? = nil) {
         self.centerOffset = centerOffset
         self.width = width
         self.height = height
         self.obstacleRadius = obstacleRadius
+        self.bodyObstacleRadius = bodyObstacleRadius
     }
 
     init(centerOffset: CodablePoint, radius: Double) {
@@ -152,7 +154,8 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         CollisionFootprint(
             centerOffset: centerOffset.cgPoint,
             size: CGSize(width: width, height: height),
-            obstacleRadius: obstacleRadius
+            obstacleRadius: obstacleRadius,
+            bodyObstacleRadius: bodyObstacleRadius.map { CGFloat($0) }
         )
     }
 
@@ -161,6 +164,7 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         case width
         case height
         case obstacleRadius
+        case bodyObstacleRadius
         case radius
     }
 
@@ -173,12 +177,14 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
             self.height = height
             obstacleRadius = try container.decodeIfPresent(Double.self, forKey: .obstacleRadius)
                 ?? max(width, height) / 2
+            bodyObstacleRadius = try container.decodeIfPresent(Double.self, forKey: .bodyObstacleRadius)
         } else {
             let radius = try container.decode(Double.self, forKey: .radius)
             width = radius * 2
             height = radius * 2
             obstacleRadius = try container.decodeIfPresent(Double.self, forKey: .obstacleRadius)
                 ?? radius
+            bodyObstacleRadius = try container.decodeIfPresent(Double.self, forKey: .bodyObstacleRadius)
         }
     }
 
@@ -188,6 +194,7 @@ struct MapPlayerFootprintDefinition: Codable, Equatable, Sendable {
         try container.encode(width, forKey: .width)
         try container.encode(height, forKey: .height)
         try container.encode(obstacleRadius, forKey: .obstacleRadius)
+        try container.encodeIfPresent(bodyObstacleRadius, forKey: .bodyObstacleRadius)
     }
 }
 
@@ -591,7 +598,8 @@ extension MapGeometryConfiguration {
                 centerOffset: CodablePoint(x: 0, y: -62.93),
                 width: 91.73,
                 height: 45.87,
-                obstacleRadius: 45.87
+                obstacleRadius: 45.87,
+                bodyObstacleRadius: 111
             ),
             wallThickness: 61.16,
             walkabilityEpsilon: 1.91,
@@ -655,11 +663,11 @@ extension MapGeometryConfiguration {
             MapDoorwayDefinition(id: "door-kitchen", name: "Kitchen Door", doorID: .kitchen, roomID: .kitchen, frame: CodableRect(x: 3572, y: 2436.89, width: 80, height: 142.22), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-laboratory", name: "Lab Room Door", doorID: .laboratory, roomID: .laboratory, frame: CodableRect(x: 1886.71, y: 1180.67, width: 68.8, height: 145.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-sleeping", name: "Sleeping Room Door", doorID: .sleepingRoom, roomID: .sleepingRoom, frame: CodableRect(x: 1853.71, y: 2316.89, width: 61.8, height: 115.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
-            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3576.49, y: 1665.67, width: 65.8, height: 112.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil)
+            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3576.49, y: 1665.67, width: 65.8, height: 112.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-engine-back", name: "Engine Room Back Door", doorID: .engineBackDoor, roomID: .engine, frame: CodableRect(x: 2350, y: 1481, width: 130, height: 50), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil)
             ],
             blockedAreas: [
-            MapBlockedAreaDefinition(id: "blocked-outer-hull", name: "Front Door Engine Blocked Area", shape: .edgeChain([CodablePoint(x: 2047.61, y: 3556.07), CodablePoint(x: 2747.61, y: 3716.07), CodablePoint(x: 3457.61, y: 3556.07), CodablePoint(x: 4115.46, y: 2985.91), CodablePoint(x: 4480, y: 2130), CodablePoint(x: 4570, y: 2130), CodablePoint(x: 5150, y: 710), CodablePoint(x: 360, y: 700), CodablePoint(x: 937.61, y: 2126.07), CodablePoint(x: 1027.61, y: 2126.07), CodablePoint(x: 1371.69, y: 2980.36), CodablePoint(x: 2067.61, y: 3566.07)]), isEnabled: true, isRequired: true),
-            MapBlockedAreaDefinition(id: "blocked-back-door-engine", name: "Back Door Engine Blocked Area", shape: .rectangle(CodableRect(x: 2350, y: 1481, width: 140, height: 50)), isEnabled: true, isRequired: false)
+            MapBlockedAreaDefinition(id: "blocked-outer-hull", name: "Front Door Engine Blocked Area", shape: .edgeChain([CodablePoint(x: 2047.61, y: 3556.07), CodablePoint(x: 2747.61, y: 3716.07), CodablePoint(x: 3457.61, y: 3556.07), CodablePoint(x: 4115.46, y: 2985.91), CodablePoint(x: 4480, y: 2130), CodablePoint(x: 4570, y: 2130), CodablePoint(x: 5150, y: 710), CodablePoint(x: 360, y: 700), CodablePoint(x: 937.61, y: 2126.07), CodablePoint(x: 1027.61, y: 2126.07), CodablePoint(x: 1371.69, y: 2980.36), CodablePoint(x: 2067.61, y: 3566.07)]), isEnabled: true, isRequired: true)
             ],
             objects: [
             MapObjectDefinition(id: "object-lab-room-chair", name: "Lab Room Chair", type: .obstacle, position: CodablePoint(x: 1485, y: 1630), size: CodableSize(width: 110, height: 160), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1480, y: 1590), CodablePoint(x: 1450, y: 1560), CodablePoint(x: 1490, y: 1550), CodablePoint(x: 1530, y: 1570), CodablePoint(x: 1500, y: 1590), CodablePoint(x: 1500, y: 1620), CodablePoint(x: 1540, y: 1640), CodablePoint(x: 1540, y: 1680), CodablePoint(x: 1490, y: 1710), CodablePoint(x: 1430, y: 1690), CodablePoint(x: 1430, y: 1640), CodablePoint(x: 1480, y: 1620)]),

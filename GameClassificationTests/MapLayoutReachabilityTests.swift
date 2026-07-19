@@ -16,7 +16,7 @@ struct MapLayoutReachabilityTests {
 
     @Test("Initial story doors preserve chapter gating")
     func initialDoorGating() {
-        let closedDoors: Set<DoorID> = [.engine, .storage, .cockpit]
+        let closedDoors: Set<DoorID> = [.engine, .engineBackDoor, .storage, .cockpit]
 
         #expect(routeExists(
             from: GameMapLayout.playerSpawnPosition,
