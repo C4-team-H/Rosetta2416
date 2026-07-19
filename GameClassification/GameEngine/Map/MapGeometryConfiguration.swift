@@ -557,17 +557,13 @@ struct MapGeometryConfiguration: Codable, Equatable, Sendable {
 }
 
 extension MapGeometryConfiguration {
-    /// The physical book and its map marker share this console-derived anchor.
+    /// The physical book and its map marker sit on the Sleeping Main Console, nudged left for art alignment.
     var albumBookPosition: CGPoint {
         guard let console = objects.first(where: { $0.id == "object-sleeping-main-console" }) else {
             return spawnPoint(for: .sleepingRoom) ?? .zero
         }
-        let bounds = console.objectBounds
-        return CGPoint(
-            x: bounds.minX + GameMapLayout.scaled(30),
-            y: bounds.minY + GameMapLayout.scaled(30)
-        )
-    }
+        return CGPoint(x: console.position.x - 8, y: console.position.y)
+    } //geser posisi albumbook
 
     func spawnPoint(for roomID: RoomID) -> CGPoint? {
         spawnPoints.first(where: { $0.roomID == roomID && $0.position.isFinite })?.position.cgPoint

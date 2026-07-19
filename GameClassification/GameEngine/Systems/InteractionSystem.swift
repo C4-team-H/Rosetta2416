@@ -49,12 +49,18 @@ extension GameScene {
     }
 
     func checkProximityToAlbumBook() {
-        guard sessionState.phase == .playing, let player, let albumBookNode else {
+        guard sessionState.phase == .playing,
+              let player,
+              let albumBookNode,
+              !albumBookNode.isHidden else {
+            albumBookNode?.setProximityHighlighted(false)
             hideAlbumButton()
             return
         }
         let distance = hypot(player.position.x - albumBookNode.position.x, player.position.y - albumBookNode.position.y)
-        if distance <= GameMapLayout.scaled(76) {
+        let isWithinAlbumRadius = distance <= AlbumBookNode.interactionRadius
+        albumBookNode.setProximityHighlighted(isWithinAlbumRadius)
+        if isWithinAlbumRadius {
             showAlbumButton()
         } else {
             hideAlbumButton()

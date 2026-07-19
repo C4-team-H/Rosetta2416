@@ -69,31 +69,9 @@ extension GameScene {
 
     func createAlbumBook() {
         albumBookNode?.removeFromParent()
-        let bookPos = geometryStore.configuration.albumBookPosition
-        let book = SKShapeNode(rectOf: CGSize(width: 24, height: 30), cornerRadius: 3)
-        book.name = "album-book"
-        book.position = bookPos
-        book.fillColor = SKColor(red: 0.25, green: 0.45, blue: 0.75, alpha: 1)
-        book.strokeColor = SKColor(red: 0.8, green: 0.85, blue: 1.0, alpha: 0.9)
-        book.lineWidth = 1.5
+        let book = AlbumBookNode()
+        book.position = geometryStore.configuration.albumBookPosition
         book.zPosition = 2
-
-        // Book spine line
-        let spine = SKShapeNode(rectOf: CGSize(width: 3, height: 28))
-        spine.fillColor = SKColor(red: 0.15, green: 0.30, blue: 0.60, alpha: 1)
-        spine.strokeColor = .clear
-        spine.position = CGPoint(x: -9, y: 0)
-        spine.zPosition = 1
-        book.addChild(spine)
-
-        // Pages lines
-        for i in 0..<3 {
-            let line = SKShapeNode(rectOf: CGSize(width: 10, height: 1.5))
-            line.fillColor = .white.withAlphaComponent(0.5)
-            line.strokeColor = .clear
-            line.position = CGPoint(x: 4, y: CGFloat(i * 5) - 4)
-            book.addChild(line)
-        }
 
         (shipMapNode?.furnitureLayer ?? self).addChild(book)
         albumBookNode = book
@@ -123,6 +101,10 @@ extension GameScene {
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        if albumBookNode?.isHidden == true {
+            albumBookNode?.setProximityHighlighted(false, animated: false)
+            hideAlbumButton()
+        }
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
             walkabilitySystem.updateDoorStates(doorStates)
@@ -137,6 +119,10 @@ extension GameScene {
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        if albumBookNode?.isHidden == true {
+            albumBookNode?.setProximityHighlighted(false, animated: false)
+            hideAlbumButton()
+        }
     }
 
     func animateCompletedStation(id: String) {

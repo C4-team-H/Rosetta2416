@@ -37,7 +37,7 @@ final class GameScene: SKScene {
     var foodActionButton: SKShapeNode?
     var foodObject: SKShapeNode!
     var stationNodes: [String: SKShapeNode] = [:]
-    var albumBookNode: SKShapeNode?
+    var albumBookNode: AlbumBookNode?
     var albumBookButton: SKShapeNode?
     var activeStationID: String?
     var lastDeniedStationID: String?
@@ -211,6 +211,8 @@ final class GameScene: SKScene {
             stopPlayerMovement()
             hideInteractionButton()
             hideFoodInteractionButton()
+            hideAlbumButton()
+            albumBookNode?.setProximityHighlighted(false, animated: false)
         } else if tacticalMapViewModel.isMapPresented {
             if !wasMapInputSuspended {
                 clearPencilTarget()
@@ -409,6 +411,9 @@ final class GameScene: SKScene {
             createInteractiveStations()
             createFoodObject()
         }
+        if update.changeSet.isFullReplacement || changedCategories.contains(.object) {
+            createAlbumBook()
+        }
         if update.changeSet.isFullReplacement
             || !changedCategories.isDisjoint(with: [.room, .doorway, .missionStation, .foodStation]) {
             resetContactTracking()
@@ -476,6 +481,7 @@ final class GameScene: SKScene {
         )
         walkabilitySystem.replaceMap(gameMap)
         shipMapNode?.apply(map: gameMap)
+        createAlbumBook()
         refreshStoryVisuals()
         resetPlayerToDebugSpawnIfInvalid()
     }

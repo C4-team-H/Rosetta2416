@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import SpriteKit
 import Testing
 @testable import GameClassification
 
@@ -160,8 +161,10 @@ struct PersistenceAndMapTests {
         let configuration = MapGeometryConfiguration.drawingSpaceDefault
         let console = configuration.objects.first { $0.id == "object-sleeping-main-console" }
         #expect(console != nil)
-        #expect(configuration.albumBookPosition.x > (console?.objectBounds.minX ?? .infinity))
-        #expect(configuration.albumBookPosition.y > (console?.objectBounds.minY ?? .infinity))
+        #expect(configuration.albumBookPosition == CGPoint(
+            x: (console?.position.x ?? .zero) - 10,
+            y: console?.position.y ?? .zero
+        ))
 
         let story = StoryProgressionSystem()
         _ = story.handle(.drawingFailed)
@@ -172,6 +175,59 @@ struct PersistenceAndMapTests {
             visibilitySystem: visibility
         ).first { $0.id == "album-book" }
         #expect(marker?.worldPosition == configuration.albumBookPosition)
+    }
+
+    @Test("Album sprite uses one shader-backed sprite and follows the interaction radius")
+    func albumProximityHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createAlbumBook()
+
+        guard let book = scene.albumBookNode else {
+            Issue.record("Album Book node was not created")
+            return
+        }
+        #expect(book.position == MapGeometryConfiguration.drawingSpaceDefault.albumBookPosition)
+        #expect(book.artworkSize == CGSize(width: 209, height: 224))
+        #expect(book.artworkSprite.size.width == (209 + 8) * AlbumBookNode.artworkScale)
+        #expect(book.artworkSprite.size.height == (224 + 8) * AlbumBookNode.artworkScale)
+        #expect(book.artworkSprite.xScale == 1)
+        #expect(book.artworkSprite.yScale == 1)
+        #expect(book.children.count == 1)
+        #expect(book.children.first === book.artworkSprite)
+        #expect(book.artworkSprite.shader != nil)
+        #expect(!book.isProximityHighlighted)
+
+        scene.player.position = book.position
+        scene.checkProximityToAlbumBook()
+        #expect(book.isProximityHighlighted)
+        #expect(book.action(forKey: "album-book-highlight-transition") != nil)
+        #expect(scene.albumBookButton != nil)
+
+        scene.player.position = CGPoint(
+            x: book.position.x + AlbumBookNode.interactionRadius + 1,
+            y: book.position.y
+        )
+        scene.checkProximityToAlbumBook()
+        #expect(!book.isProximityHighlighted)
+        #expect(scene.albumBookButton == nil)
+
+        book.removeFromParent()
+        book.setProximityHighlighted(true, animated: false)
+        let renderScene = SKScene(size: book.artworkSprite.size)
+        book.position = CGPoint(x: renderScene.size.width / 2, y: renderScene.size.height / 2)
+        renderScene.addChild(book)
+        let renderView = SKView(frame: CGRect(origin: .zero, size: renderScene.size))
+        renderView.allowsTransparency = true
+        renderView.presentScene(renderScene)
+        #expect(renderView.texture(from: book) != nil)
     }
 
     @Test("Delivered dialogue does not replay after restoration")

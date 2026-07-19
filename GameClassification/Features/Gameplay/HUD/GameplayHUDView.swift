@@ -3,6 +3,7 @@ import SwiftUI
 struct GameplayHUDView: View {
     let viewModel: TacticalMapViewModel
     let session: GameSessionState
+    let mapDebugViewModel: MapDebugViewModel?
     let onRetryCheckpoint: () -> Void
     let onPlayAgain: () -> Void
     let onMainMenu: () -> Void
@@ -12,6 +13,12 @@ struct GameplayHUDView: View {
 
     var body: some View {
         ZStack {
+            #if DEBUG
+            if let mapDebugViewModel {
+                MapDebugOverlayView(viewModel: mapDebugViewModel)
+                    .zIndex(1)
+            }
+            #endif
             if viewModel.isGameplayActive && !viewModel.isMapPresented {
                 StoryProgressHUDView(session: session)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
