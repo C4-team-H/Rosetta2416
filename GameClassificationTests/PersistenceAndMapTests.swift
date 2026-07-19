@@ -230,6 +230,61 @@ struct PersistenceAndMapTests {
         #expect(renderView.texture(from: book) != nil)
     }
 
+    @Test("Kitchen table replaces the Kitchen Food Station visual and proximity")
+    func kitchenTableFoodStationProximityHighlight() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let sideCounter = configuration.objects.first { $0.id == "object-kitchen-side-counter" }
+        #expect(sideCounter != nil)
+        #expect(configuration.kitchenTablePosition == CGPoint(
+            x: sideCounter?.position.x ?? .zero,
+            y: (sideCounter?.position.y ?? .zero) + 6
+        ))
+
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createFoodObject()
+
+        guard let table = scene.foodObject else {
+            Issue.record("Kitchen Table node was not created")
+            return
+        }
+        let padding = ceil(KitchenTableNode.outlineWidth) + 2
+        #expect(table.position == configuration.kitchenTablePosition)
+        #expect(table.artworkSize == CGSize(width: 211, height: 253))
+        #expect(table.artworkSprite.size == CGSize(
+            width: (table.artworkSize.width + padding * 2) * KitchenTableNode.artworkScale,
+            height: (table.artworkSize.height + padding * 2) * KitchenTableNode.artworkScale
+        ))
+        #expect(table.artworkSprite.xScale == 1)
+        #expect(table.artworkSprite.yScale == 1)
+        #expect(table.children.count == 1)
+        #expect(table.children.first === table.artworkSprite)
+        #expect(table.artworkSprite.shader != nil)
+        #expect(!table.isProximityHighlighted)
+
+        scene.player.position = table.position
+        scene.checkProximityToFoodObject()
+        #expect(table.isProximityHighlighted)
+        #expect(table.action(forKey: "kitchen-table-highlight-transition") != nil)
+        #expect(scene.foodActionButton != nil)
+
+        scene.player.position = CGPoint(
+            x: table.position.x + KitchenTableNode.interactionRadius + 1,
+            y: table.position.y
+        )
+        scene.checkProximityToFoodObject()
+        #expect(!table.isProximityHighlighted)
+        #expect(scene.foodActionButton == nil)
+    }
+
     @Test("Delivered dialogue does not replay after restoration")
     func dialogueDoesNotReplay() {
         let manager = AIDialogueManager(lines: [

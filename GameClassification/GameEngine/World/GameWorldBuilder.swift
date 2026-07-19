@@ -62,9 +62,11 @@ extension GameScene {
 
     func createFoodObject() {
         foodObject?.removeFromParent()
-        foodObject = makeStationNode(id: "kitchen-food", at: gameMap.foodStationPosition)
-        foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1)
-        addChild(foodObject)
+        let table = KitchenTableNode()
+        table.position = geometryStore.configuration.kitchenTablePosition
+        table.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(table)
+        foodObject = table
     }
 
     func createAlbumBook() {
@@ -105,6 +107,10 @@ extension GameScene {
             albumBookNode?.setProximityHighlighted(false, animated: false)
             hideAlbumButton()
         }
+        if foodObject?.isHidden == true {
+            foodObject?.setProximityHighlighted(false, animated: false)
+            hideFoodInteractionButton()
+        }
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
             walkabilitySystem.updateDoorStates(doorStates)
@@ -122,6 +128,10 @@ extension GameScene {
         if albumBookNode?.isHidden == true {
             albumBookNode?.setProximityHighlighted(false, animated: false)
             hideAlbumButton()
+        }
+        if foodObject?.isHidden == true {
+            foodObject?.setProximityHighlighted(false, animated: false)
+            hideFoodInteractionButton()
         }
     }
 
@@ -145,7 +155,7 @@ extension GameScene {
         candleLight?.removeFromParent()
         let light = CandleLightNode(
             sceneSize: size,
-            configuration: .init(radius: 180, darknessOpacity: 0.94, lightIntensity: 1, softness: 0.42, verticalScale: 1.08, warmth: 0.08, flickerAmount: 0.025, flickerSpeed: 1)
+            configuration: .init(radius: 260, darknessOpacity: 0.97, lightIntensity: 1, softness: 0.42, verticalScale: 1.08, warmth: 0.08, flickerAmount: 0.025, flickerSpeed: 1)
         )
         light.zPosition = 9.5
         light.position = CGPoint(x: -size.width / 2, y: -size.height / 2)

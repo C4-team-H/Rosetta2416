@@ -565,6 +565,13 @@ extension MapGeometryConfiguration {
         return CGPoint(x: console.position.x - 8, y: console.position.y)
     } //geser posisi albumbook
 
+    var kitchenTablePosition: CGPoint {
+        guard let counter = objects.first(where: { $0.id == "object-kitchen-side-counter" }) else {
+            return spawnPoint(for: .kitchen) ?? .zero
+        }
+        return CGPoint(x: counter.position.x, y: counter.position.y + 2)
+    }
+
     func spawnPoint(for roomID: RoomID) -> CGPoint? {
         spawnPoints.first(where: { $0.roomID == roomID && $0.position.isFinite })?.position.cgPoint
     }

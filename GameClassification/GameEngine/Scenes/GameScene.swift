@@ -13,6 +13,8 @@ protocol GameSceneEventDelegate: AnyObject {
 final class GameScene: SKScene {
     /// Preserves the requested 2.25x visual magnification in the 5504-point world.
     static let gameplayCameraScale: CGFloat = (0.6 / 2.25) * GameMapLayout.artworkScale
+    /// Keeps camera-space lighting above every gameplay world layer while HUD children remain above it.
+    static let cameraOverlayRootZ: CGFloat = 100
 
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel
@@ -35,7 +37,7 @@ final class GameScene: SKScene {
     var gridContainer: SKNode?
     var actionButton: SKShapeNode?
     var foodActionButton: SKShapeNode?
-    var foodObject: SKShapeNode!
+    var foodObject: KitchenTableNode!
     var stationNodes: [String: SKShapeNode] = [:]
     var albumBookNode: AlbumBookNode?
     var albumBookButton: SKShapeNode?
@@ -54,7 +56,7 @@ final class GameScene: SKScene {
     var joystickVector = CGPoint.zero
     var joystickActiveTouch: UITouch?
     let joystickRadius: CGFloat = 60
-    let playerSpeed: CGFloat = GameMapLayout.scaled(100)
+    let playerSpeed: CGFloat = GameMapLayout.scaled(80)
 
     var pencilTouch: UITouch?
     var pencilTarget: CGPoint?
@@ -121,6 +123,7 @@ final class GameScene: SKScene {
         self.collisionSystem = collisionSystem
         movementSystem = MovementSystem(collisionSystem: collisionSystem)
         super.init(size: size)
+        cameraNode.zPosition = Self.cameraOverlayRootZ
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -213,6 +216,7 @@ final class GameScene: SKScene {
             hideFoodInteractionButton()
             hideAlbumButton()
             albumBookNode?.setProximityHighlighted(false, animated: false)
+            foodObject?.setProximityHighlighted(false, animated: false)
         } else if tacticalMapViewModel.isMapPresented {
             if !wasMapInputSuspended {
                 clearPencilTarget()
@@ -354,7 +358,11 @@ final class GameScene: SKScene {
     /// the camera is still interpolating toward its follow target.
     func synchronizeCandleLightWithPlayer() {
         guard let candleLight, let player, candleLight.parent != nil, player.parent != nil else { return }
-        candleLight.update(lightPosition: candleLight.convert(player.position, from: self))
+        // Offset the light center upward so it illuminates the character's
+        // body and face rather than just the feet.
+        let playerPos = player.position
+        let offsetPos = CGPoint(x: playerPos.x, y: playerPos.y + 60)
+        candleLight.update(lightPosition: candleLight.convert(offsetPos, from: self))
     }
 
     func validatedPlayerPosition(_ requestedPosition: CGPoint) -> CGPoint {
@@ -407,7 +415,8 @@ final class GameScene: SKScene {
         }
         if update.changeSet.isFullReplacement
             || changedCategories.contains(.missionStation)
-            || changedCategories.contains(.foodStation) {
+            || changedCategories.contains(.foodStation)
+            || changedCategories.contains(.object) {
             createInteractiveStations()
             createFoodObject()
         }
@@ -481,6 +490,7 @@ final class GameScene: SKScene {
         )
         walkabilitySystem.replaceMap(gameMap)
         shipMapNode?.apply(map: gameMap)
+        createFoodObject()
         createAlbumBook()
         refreshStoryVisuals()
         resetPlayerToDebugSpawnIfInvalid()

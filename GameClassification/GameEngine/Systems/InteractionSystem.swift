@@ -40,12 +40,19 @@ extension GameScene {
     }
 
     func checkProximityToFoodObject() {
-        guard sessionState.phase == .playing, let player, let foodObject else {
+        guard sessionState.phase == .playing, let player, let foodObject, !foodObject.isHidden else {
+            foodObject?.setProximityHighlighted(false)
             hideFoodInteractionButton()
             return
         }
         let distance = hypot(player.position.x - foodObject.position.x, player.position.y - foodObject.position.y)
-        distance <= GameMapLayout.scaled(80) ? showFoodInteractionButton() : hideFoodInteractionButton()
+        let isWithinFoodRadius = distance <= KitchenTableNode.interactionRadius
+        foodObject.setProximityHighlighted(isWithinFoodRadius)
+        if isWithinFoodRadius {
+            showFoodInteractionButton()
+        } else {
+            hideFoodInteractionButton()
+        }
     }
 
     func checkProximityToAlbumBook() {

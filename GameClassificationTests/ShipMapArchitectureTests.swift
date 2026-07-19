@@ -185,7 +185,7 @@ struct ShipMapArchitectureTests {
         let sensorBody = scene.player.interactionSensor.physicsBody
         #expect(sensorBody?.categoryBitMask == PhysicsCategory.playerSensor)
         #expect(sensorBody?.collisionBitMask == PhysicsCategory.none)
-        #expect(abs(scene.playerSpeed - GameMapLayout.scaled(100)) < 0.001)
+        #expect(abs(scene.playerSpeed - GameMapLayout.scaled(80)) < 0.001)
         #expect(abs(scene.arrivalThreshold - GameMapLayout.scaled(4)) < 0.001)
         #expect(scene.player.collisionFootprint == GameMapLayout.playerFootprint)
     }
