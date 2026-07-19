@@ -180,11 +180,12 @@ StationVisibilitySystem (one rule)
 
 ### In Progress / Upcoming
 
-- [ ] Multiplayer networking — shared story state foundation exists, transport layer not yet implemented
-- [ ] Final map artwork replacement (current map uses debug vector rendering)
-- [ ] Additional visual polish — room-specific lighting, particle effects
-- [ ] Accessibility — Dynamic Type support, reduced motion alternatives
-- [ ] Localization
+- [ ] **Progress bar assets** — AI Intelligence, Engine, dan Energy butuh visual bar yang terbaca sepintas dan selaras dengan estetika kapal yang rusak. Bukan sekadar angka, tapi indikator yang terasa hidup.
+- [ ] **Button assets** — REPAIR, EAT, SUBMIT, dan tombol-tombol interaksi lainnya masih polos. Perlu sentuhan visual yang terasa taktil — seolah tombol itu benar-benar bisa ditekan di dalam dunia kapal.
+- [ ] **Interaction object slicing** — Setiap objek yang bisa disentuh pemain (stasiun reparasi, panel makanan, terminal) perlu di-slice dari sprite sheet menjadi komponen yang siap dipakai di scene. Akurasi potongan menentukan seberapa natural interaksi terasa.
+- [ ] **Dialog bar** — Panel dialog yang muncul di bagian bawah layar saat AI berbicara. Harus punya karakter: sedikit glitch, sedikit hangat, mencerminkan kepribadian AI yang retak namun setia.
+- [ ] **Mission bar** — Objective tracker yang selalu terlihat di HUD. Pemain harus bisa melirik dan langsung tahu: "Apa yang harus aku gambar sekarang?" Tanpa membuka menu, tanpa kehilangan ritme.
+- [ ] **Narrative dialogue list** — Semua dialog AI ditulis dulu dalam bentuk daftar naratif sebelum diintegrasikan ke sistem. Mencakup sapaan awal, reaksi keberhasilan/kegagalan misi, transisi antar chapter, peringatan energi rendah, dan momen-momen sunyi di antara perbaikan.
 
 ---
 
