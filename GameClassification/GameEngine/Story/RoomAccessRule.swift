@@ -7,12 +7,11 @@ struct RoomAccessRule: Codable, Equatable, Sendable {
     let minimumEngineProgress: Double?
     let requiresAdvancedTools: Bool
 
-    func allows(_ state: SharedStoryState) -> Bool {
+    func allows(_ state: StoryState) -> Bool {
         if let requiredChapter, state.currentChapter.order < requiredChapter.order { return false }
         if let minimumIntelligence, state.intelligence < minimumIntelligence { return false }
         if let minimumEngineProgress, state.engineProgress < minimumEngineProgress { return false }
-        if requiresAdvancedTools && !state.hasAdvancedTools { return false }
+        if requiresAdvancedTools && !state.hasAdvancedRepairTools { return false }
         return true
     }
 }
-

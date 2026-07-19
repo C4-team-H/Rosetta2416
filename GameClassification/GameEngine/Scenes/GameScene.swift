@@ -143,7 +143,6 @@ final class GameScene: SKScene {
         createInteractiveStations()
         createFoodObject()
         createAlbumBook()
-        createObstacles()
         enableCandleLight()
         refreshStoryVisuals()
 
@@ -249,7 +248,6 @@ final class GameScene: SKScene {
             checkProximityToFoodObject()
             checkProximityToLockedDoor()
             checkProximityToAlbumBook()
-            detectRoomChange()
         }
 
         updateStationVisibility()
@@ -313,10 +311,13 @@ final class GameScene: SKScene {
                 animateCompletedStation(id: id)
             case .doorAccessChanged, .stationVisualChanged:
                 refreshStoryVisuals()
-            case .cutscene:
+            case let .cutscene(cutscene):
                 stopPlayerMovement()
                 resetJoystick()
                 clearPencilTarget()
+                if cutscene == .advancedToolsAcquired {
+                    lightingSystem.playAdvancedToolsAcquired(in: self)
+                }
                 run(.sequence([
                     .wait(forDuration: 1.0),
                     .run { [weak self] in self?.sessionState.endCutscene() }

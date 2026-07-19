@@ -29,6 +29,18 @@ struct LightingSystemTests {
         #expect(abs((scene.gridContainer?.alpha ?? -1) - 1) < 0.001)
     }
 
+    @Test("Engine restoration leaves Cockpit displays off until Victory")
+    func cockpitDisplaysWaitForVictory() {
+        let scene = makeScene()
+        let lighting = LightingSystem()
+
+        lighting.apply(.fullyRestored, to: scene)
+        #expect(scene.childNode(withName: "cockpitDisplayGlow") == nil)
+
+        lighting.playVictory(in: scene)
+        #expect(scene.childNode(withName: "cockpitDisplayGlow") != nil)
+    }
+
     @Test("Flashlight center follows the physics-resolved player without camera lag")
     func flashlightFollowsPlayer() {
         let scene = makeScene()

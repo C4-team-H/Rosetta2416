@@ -31,7 +31,8 @@ struct FullMapView: View {
 
                 MapBackgroundView(
                     converter: converter,
-                    configuration: viewModel.geometryStore.configuration
+                    configuration: viewModel.geometryStore.configuration,
+                    isFullyRevealed: viewModel.isFullMapRevealed
                 )
 
                 ForEach(viewModel.visibleMarkers) { marker in

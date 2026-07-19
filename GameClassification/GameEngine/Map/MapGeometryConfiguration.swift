@@ -550,6 +550,18 @@ struct MapGeometryConfiguration: Codable, Equatable, Sendable {
 }
 
 extension MapGeometryConfiguration {
+    /// The physical book and its map marker share this console-derived anchor.
+    var albumBookPosition: CGPoint {
+        guard let console = objects.first(where: { $0.id == "object-sleeping-main-console" }) else {
+            return spawnPoint(for: .sleepingRoom) ?? .zero
+        }
+        let bounds = console.objectBounds
+        return CGPoint(
+            x: bounds.minX + GameMapLayout.scaled(30),
+            y: bounds.minY + GameMapLayout.scaled(30)
+        )
+    }
+
     func spawnPoint(for roomID: RoomID) -> CGPoint? {
         spawnPoints.first(where: { $0.roomID == roomID && $0.position.isFinite })?.position.cgPoint
     }
@@ -660,7 +672,7 @@ extension MapGeometryConfiguration {
             MapObjectDefinition(id: "object-kitchen-chair", name: "Kitchen Chair", type: .obstacle, position: CodablePoint(x: 3925, y: 2575), size: CodableSize(width: 110, height: 150), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3900, y: 2510), CodablePoint(x: 3920, y: 2500), CodablePoint(x: 3950, y: 2500), CodablePoint(x: 3970, y: 2510), CodablePoint(x: 3970, y: 2530), CodablePoint(x: 3950, y: 2540), CodablePoint(x: 3940, y: 2570), CodablePoint(x: 3980, y: 2590), CodablePoint(x: 3980, y: 2640), CodablePoint(x: 3940, y: 2650), CodablePoint(x: 3900, y: 2650), CodablePoint(x: 3870, y: 2640), CodablePoint(x: 3870, y: 2590), CodablePoint(x: 3920, y: 2570), CodablePoint(x: 3920, y: 2530), CodablePoint(x: 3910, y: 2530)]),
             MapObjectDefinition(id: "object-lab-room-front-wall", name: "Lab Room Front Wall", type: .obstacle, position: CodablePoint(x: 1415, y: 1960), size: CodableSize(width: 870, height: 260), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-side-wall-lab-room", name: "Side Wall Lab Room", type: .obstacle, position: CodablePoint(x: 705, y: 1420), size: CodableSize(width: 550, height: 1340), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 430, y: 750), CodablePoint(x: 580, y: 750), CodablePoint(x: 980, y: 1820), CodablePoint(x: 980, y: 2090)]),
-            MapObjectDefinition(id: "object-engine-pipe", name: "Engine Pipe", type: .obstacle, position: CodablePoint(x: 2915, y: 1955), size: CodableSize(width: 70, height: 230), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2890, y: 1840), CodablePoint(x: 2940, y: 1840), CodablePoint(x: 2950, y: 1860), CodablePoint(x: 2940, y: 1880), CodablePoint(x: 2930, y: 2030), CodablePoint(x: 2930, y: 2050), CodablePoint(x: 2910, y: 2070), CodablePoint(x: 2890, y: 2050), CodablePoint(x: 2880, y: 2010), CodablePoint(x: 2900, y: 1990), CodablePoint(x: 2900, y: 1880), CodablePoint(x: 2880, y: 1870)]),
+            MapObjectDefinition(id: "object-engine-pipe", name: "Engine Pipe", type: .obstacle, position: CodablePoint(x: 2910, y: 1975), size: CodableSize(width: 60, height: 190), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 2940, y: 1880), CodablePoint(x: 2930, y: 2030), CodablePoint(x: 2930, y: 2050), CodablePoint(x: 2910, y: 2070), CodablePoint(x: 2890, y: 2050), CodablePoint(x: 2880, y: 2010), CodablePoint(x: 2900, y: 1990), CodablePoint(x: 2900, y: 1880)]),
             MapObjectDefinition(id: "object-front-right-wall-engine-room", name: "Front Right Wall Engine Room", type: .obstacle, position: CodablePoint(x: 3050, y: 2045), size: CodableSize(width: 420, height: 170), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-front-left-wall-engine-room", name: "Front Left Wall Engine Room", type: .obstacle, position: CodablePoint(x: 2470, y: 2035), size: CodableSize(width: 400, height: 170), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-left-bottom-wall-lab-room", name: "Left Bottom Wall Lab Room", type: .obstacle, position: CodablePoint(x: 1920, y: 965), size: CodableSize(width: 100, height: 430), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1880, y: 750), CodablePoint(x: 1970, y: 750), CodablePoint(x: 1910, y: 1180), CodablePoint(x: 1870, y: 1170)]),
@@ -725,14 +737,15 @@ extension MapGeometryConfiguration {
             MapSpawnPointDefinition(id: "spawn-storage", name: "Storage Spawn", roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true)
             ],
             checkpoints: [
-            MapCheckpointDefinition(id: "checkpoint-cockpit", name: "cockpit", checkpointID: .cockpit, roomID: .cockpit, position: CodablePoint(x: 2752, y: 2899.11), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-engineBlocked", name: "engineBlocked", checkpointID: .engineBlocked, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-engineDisruption", name: "engineDisruption", checkpointID: .engineDisruption, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-engineFinal", name: "engineFinal", checkpointID: .engineFinal, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-enginePhaseOne", name: "enginePhaseOne", checkpointID: .enginePhaseOne, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-laboratory", name: "laboratory", checkpointID: .laboratory, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-sleepingRoom", name: "sleepingRoom", checkpointID: .sleepingRoom, roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
-            MapCheckpointDefinition(id: "checkpoint-storage", name: "storage", checkpointID: .storage, roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true)
+            MapCheckpointDefinition(id: "checkpoint-sleeping-start", name: "Sleeping Room Start", checkpointID: .sleepingRoomStart, roomID: .sleepingRoom, position: CodablePoint(x: 1656.67, y: 2427.11), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-laboratory-entered", name: "Laboratory Entered", checkpointID: .laboratoryEntered, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-laboratory-completed", name: "Laboratory Completed", checkpointID: .laboratoryCompleted, roomID: .laboratory, position: CodablePoint(x: 1283.56, y: 1376), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-10", name: "Engine 10", checkpointID: .engine10, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-40", name: "Engine 40", checkpointID: .engine40, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-60", name: "Engine 60", checkpointID: .engine60, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-advanced-tools", name: "Advanced Tools", checkpointID: .advancedToolsAcquired, roomID: .storage, position: CodablePoint(x: 3760, y: 1510), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-engine-100", name: "Engine 100", checkpointID: .engine100, roomID: .engine, position: CodablePoint(x: 2369.78, y: 1749.33), isRequired: true),
+            MapCheckpointDefinition(id: "checkpoint-cockpit-entered", name: "Cockpit Entered", checkpointID: .cockpitEntered, roomID: .cockpit, position: CodablePoint(x: 2752, y: 2899.11), isRequired: true)
             ]
         )
     }

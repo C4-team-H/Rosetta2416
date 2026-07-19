@@ -2,7 +2,11 @@ import SpriteKit
 
 extension GameScene {
     func checkProximityToInteractiveObject() {
-        guard let player else { return }
+        guard sessionState.phase == .playing, let player else {
+            activeStationID = nil
+            hideInteractionButton()
+            return
+        }
         let nearest = stationNodes
             .filter { !$0.value.isHidden }
             .map { (id: $0.key, node: $0.value, distance: hypot(player.position.x - $0.value.position.x, player.position.y - $0.value.position.y)) }
@@ -36,18 +40,21 @@ extension GameScene {
     }
 
     func checkProximityToFoodObject() {
-        guard let player, let foodObject else { return }
+        guard sessionState.phase == .playing, let player, let foodObject else {
+            hideFoodInteractionButton()
+            return
+        }
         let distance = hypot(player.position.x - foodObject.position.x, player.position.y - foodObject.position.y)
         distance <= GameMapLayout.scaled(80) ? showFoodInteractionButton() : hideFoodInteractionButton()
     }
 
     func checkProximityToAlbumBook() {
-        guard let player, let albumBookNode else {
+        guard sessionState.phase == .playing, let player, let albumBookNode else {
             hideAlbumButton()
             return
         }
         let distance = hypot(player.position.x - albumBookNode.position.x, player.position.y - albumBookNode.position.y)
-        if distance <= 76 {
+        if distance <= GameMapLayout.scaled(76) {
             showAlbumButton()
         } else {
             hideAlbumButton()

@@ -118,14 +118,15 @@ struct GameplayHUDView: View {
 private extension CheckpointID {
     var displayName: String {
         switch self {
-        case .sleepingRoom: "Sleeping Room"
-        case .laboratory: "Laboratory"
-        case .enginePhaseOne: "Engine"
-        case .engineDisruption: "Power Disruption"
-        case .engineBlocked: "Engine Blocked"
-        case .storage: "Storage"
-        case .engineFinal: "Final Engine"
-        case .cockpit: "Cockpit"
+        case .sleepingRoomStart: "Sleeping Room"
+        case .laboratoryEntered: "Laboratory Entered"
+        case .laboratoryCompleted: "Laboratory Restored"
+        case .engine10: "Engine 10%"
+        case .engine40: "Power Disruption"
+        case .engine60: "Engine 60%"
+        case .advancedToolsAcquired: "Advanced Tools"
+        case .engine100: "Engine Restored"
+        case .cockpitEntered: "Cockpit Entered"
         }
     }
 }

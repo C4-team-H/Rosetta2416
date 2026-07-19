@@ -36,45 +36,33 @@ final class LocalStoryAuthority: StoryAuthority {
         case let .submitDrawing(_, objectiveID, drawingData, _):
             do {
                 let drawing = try PKDrawing(data: drawingData)
+                guard !drawing.strokes.isEmpty else {
+                    return StoryAuthorityResult(
+                        accepted: false,
+                        message: "Draw something before submitting.",
+                        effects: [],
+                        recognition: nil
+                    )
+                }
                 let recognition = try await recognizer.recognize(drawing)
 
                 if objectiveID.hasPrefix("kitchen-") {
-                    guard let challenge = DrawingChallenge.foodPool.first(where: { $0.id == objectiveID }),
-                          normalize(recognition.label) == normalize(challenge.label) else {
-                        return StoryAuthorityResult(accepted: false, message: "Food drawing not recognized. Try again.", effects: [], recognition: recognition)
+                    let expectedLabel = String(objectiveID.dropFirst("kitchen-".count))
+                    guard sessionState.storySystem.labelCatalog.contains(expectedLabel, in: .food),
+                          normalize(recognition.label) == normalize(expectedLabel),
+                          recognition.confidence >= 0.50 else {
+                        let effects = sessionState.handle(.drawingFailed)
+                        return StoryAuthorityResult(accepted: false, message: "Food drawing not recognized. Try again.", effects: effects, recognition: recognition)
                     }
-                    sessionState.storySystem.markKitchenLabelCompleted(challenge.label)
                     _ = sessionState.handle(.foodCompleted)
                     return StoryAuthorityResult(accepted: true, message: "Energy restored by 50%.", effects: [], recognition: recognition)
                 }
 
-                if objectiveID == "retry-angel" {
-                    let accepted = normalize(recognition.label) == "angel"
-                    return StoryAuthorityResult(
-                        accepted: accepted,
-                        message: accepted ? "Angel recognized!" : "Drawing not recognized. Try again.",
-                        effects: [],
-                        recognition: recognition
-                    )
-                }
-
                 let effects = sessionState.handle(.drawingValidated(objectiveID: objectiveID, result: recognition))
-                let accepted = effects.contains { effect in
-                    if case .objectiveCompleted(objectiveID) = effect { return true }
-                    // For easel partial completions, check mapNeedsRefresh as an indicator
-                    if case .mapNeedsRefresh = effect { return true }
-                    return false
-                }
-                // Easel partial completion is also accepted
-                let isEaselPartial: Bool = {
-                    guard let def = sessionState.storySystem.definition(id: objectiveID),
-                          case .easel = def.kind else { return false }
-                    return !effects.contains { if case .interactionDenied = $0 { return true }; return false }
-                }()
-                let finalAccepted = accepted || isEaselPartial
+                let accepted = effects.contains(.objectiveCompleted(objectiveID))
                 return StoryAuthorityResult(
-                    accepted: finalAccepted,
-                    message: finalAccepted ? "Repair completed." : "Drawing not recognized. Try again.",
+                    accepted: accepted,
+                    message: accepted ? "Repair completed." : "Drawing not recognized. Try again.",
                     effects: effects,
                     recognition: recognition
                 )

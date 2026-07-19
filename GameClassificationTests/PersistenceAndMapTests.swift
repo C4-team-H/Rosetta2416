@@ -1,15 +1,20 @@
 import CoreGraphics
+import Foundation
 import Testing
 @testable import GameClassification
 
 @Suite("Persistence and derived presentation")
 @MainActor
 struct PersistenceAndMapTests {
-    @Test("SwiftData in-memory repository round trips latest and checkpoint snapshots")
+    @Test("SwiftData round trips schema-v2 state and checkpoint snapshots")
     func swiftDataRoundTrip() async throws {
         let repository = try LocalStoryProgressRepository(inMemory: true)
-        var story = SharedStoryState.initial
+        var story = StoryState.initial
         story.deliveredDialogueIDs.insert("intro-sleeping")
+        story.selectedChallengeLabels["lab-memory-repair"] = "cat"
+        story.albumBook.hasOpenedBook = true
+        story.albumBook.isMarkerVisible = true
+        story.albumBook.isMarkerPermanent = true
         let latest = snapshot(story: story, energy: 72, spawn: CGPoint(x: 10, y: 20))
         let checkpoint = snapshot(story: .initial, energy: 55, spawn: CGPoint(x: 30, y: 40))
 
@@ -18,38 +23,158 @@ struct PersistenceAndMapTests {
 
         #expect(loaded?.latest == latest)
         #expect(loaded?.checkpoint == checkpoint)
-        #expect(loaded?.latest.sharedStory.deliveredDialogueIDs.contains("intro-sleeping") == true)
+        #expect(loaded?.latest.schemaVersion == 2)
+        #expect(loaded?.latest.sharedStory.selectedChallengeLabels["lab-memory-repair"] == "cat")
+        #expect(loaded?.latest.sharedStory.albumBook.isMarkerPermanent == true)
 
         try await repository.clear()
         #expect(try await repository.load() == nil)
     }
 
-    @Test("Map markers derive locked and unlocked room status from story state")
-    func mapMarkers() {
-        let initial = StoryProgressionSystem()
-        let initialMarkers = TacticalMapMarkerFactory.make(story: initial)
-        #expect(status(of: "room-engine", in: initialMarkers) == .locked)
-        #expect(status(of: "room-cockpit", in: initialMarkers) == .locked)
+    @Test("Schema-v1 easels migrate to categorized physical stations and schema v2")
+    func schemaV1Migration() throws {
+        let legacyJSON = """
+        {
+          "currentChapter": "enginePhaseOne",
+          "intelligence": 40,
+          "engineProgress": 0,
+          "completedObjectiveIDs": ["reach-laboratory", "lab-easel"],
+          "easelSelectedLabels": {"lab-easel": ["hand", "cat", "tree"]},
+          "easelCompletedLabels": {"lab-easel": ["hand", "cat", "tree"]},
+          "hasOpenedAlbum": true,
+          "deliveredDialogueIDs": ["intro-1"],
+          "latestCheckpoint": "laboratory"
+        }
+        """
+        let migratedState = try JSONDecoder().decode(StoryState.self, from: Data(legacyJSON.utf8))
+        let story = StoryProgressionSystem(state: migratedState)
 
-        var restored = SharedStoryState.initial
-        restored.currentChapter = .cockpit
-        restored.intelligence = 100
-        restored.engineProgress = 100
-        restored.hasAdvancedTools = true
-        restored.powerState = .fullyRestored
-        restored.completedObjectiveIDs = Set(
-            ["reach-laboratory"] + StoryContent.labIDs + StoryContent.engineEaselOneIDs
-                + StoryContent.storageIDs + StoryContent.engineFinalIDs
+        #expect(story.state.currentChapter == .engineInitial)
+        #expect(story.state.selectedChallengeLabels["lab-memory-repair"] == "cat")
+        #expect(story.state.selectedChallengeLabels["lab-scanner-repair"] == "tree")
+        #expect(story.state.selectedChallengeLabels["lab-terminal-repair"] == "hand")
+        #expect(story.state.completedChallengeIDs.isSuperset(of: StoryConfiguration.laboratoryChallenges.map(\.id)))
+        #expect(story.state.albumBook.hasOpenedBook)
+        #expect(story.state.albumBook.isMarkerPermanent)
+        #expect(story.state.deliveredDialogueIDs.contains("intro-1"))
+
+        let snapshot = snapshot(story: story.state, energy: 75, spawn: CGPoint(x: 12, y: 34))
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(snapshot)) as? [String: Any])
+        object["schemaVersion"] = 1
+        let legacySnapshot = try JSONDecoder().decode(
+            StorySaveSnapshot.self,
+            from: JSONSerialization.data(withJSONObject: object)
         )
-        let completeEngine = StoryProgressionSystem(state: restored)
-        let completeMarkers = TacticalMapMarkerFactory.make(story: completeEngine)
-
-        #expect(status(of: "room-engine", in: completeMarkers) == .unlocked)
-        #expect(status(of: "room-storage", in: completeMarkers) == .unlocked)
-        #expect(status(of: "room-cockpit", in: completeMarkers) == .unlocked)
+        let migrated = CheckpointSystem.migrate(PersistedStoryProgress(latest: legacySnapshot, checkpoint: legacySnapshot))
+        #expect(migrated.latest.schemaVersion == 2)
+        #expect(migrated.checkpoint.schemaVersion == 2)
+        #expect(migrated.latest.sharedStory.selectedChallengeLabels == story.state.selectedChallengeLabels)
     }
 
-    @Test("Delivered dialogue does not replay after state restoration")
+    @Test("Map configuration contains every one of the nine canonical checkpoints")
+    func checkpointCatalog() {
+        let configured = Set(MapGeometryConfiguration.drawingSpaceDefault.checkpoints.compactMap(\.checkpointID))
+        #expect(CheckpointID.allCases.count == 9)
+        #expect(configured == Set(CheckpointID.allCases))
+    }
+
+    @Test("Opening the Album makes its marker permanent and idempotent")
+    func albumOpen() {
+        let story = StoryProgressionSystem()
+        _ = story.handle(.drawingFailed)
+        #expect(story.markAlbumOpened().contains(.mapNeedsRefresh))
+        #expect(story.state.albumBook.hasOpenedBook)
+        #expect(story.state.albumBook.isMarkerPermanent)
+        #expect(story.markAlbumOpened().isEmpty)
+    }
+
+    @Test("Visibility has active station, permanent Kitchen, repaired Storage prop, and no stale markers")
+    func centralizedVisibility() {
+        var state = StoryState.initial
+        state.currentChapter = .storage
+        state.completedChallengeIDs = Set(
+            StoryConfiguration.laboratoryChallenges.map(\.id)
+                + StoryConfiguration.engineInitialChallenges.map(\.id)
+                + ["storage-tool-terminal"]
+        )
+        let story = StoryProgressionSystem(state: state)
+        let visibility = StationVisibilitySystem(storySystem: story, isDebugEnabled: false)
+
+        #expect(visibility.visibility(interactionID: "storage-tool-terminal") == .worldOnly)
+        #expect(visibility.visibility(interactionID: "storage-robotic-arm") == .worldAndMap)
+        #expect(visibility.visibility(interactionID: "storage-calibration-unit") == .hidden)
+        #expect(visibility.visibility(interactionID: "engine-pressure-feed") == .hidden)
+        #expect(visibility.visibility(interactionID: StationVisibilitySystem.kitchenInteractionID) == .worldAndMap)
+
+        let markers = TacticalMapMarkerFactory.make(
+            story: story,
+            configuration: .drawingSpaceDefault,
+            visibilitySystem: visibility
+        ).filter(\.isVisible)
+        #expect(markers.contains { $0.id.contains("storage-robotic-arm") })
+        #expect(!markers.contains { $0.id.contains("storage-tool-terminal") })
+        #expect(markers.contains { $0.id == "kitchen" })
+    }
+
+    @Test("Kitchen is world-and-map visible for every story chapter")
+    func kitchenAlwaysVisible() {
+        for chapter in StoryChapter.allCases {
+            var state = StoryState.initial
+            state.currentChapter = chapter
+            let story = StoryProgressionSystem(state: state)
+            let visibility = StationVisibilitySystem(storySystem: story, isDebugEnabled: false)
+            #expect(visibility.visibility(interactionID: StationVisibilitySystem.kitchenInteractionID) == .worldAndMap)
+        }
+    }
+
+    @Test("Emergency map has travel destination; Engine 10 keeps full reveal through disruption")
+    func mapReveal() {
+        let initial = StoryProgressionSystem()
+        let initialVisibility = StationVisibilitySystem(storySystem: initial, isDebugEnabled: false)
+        let initialMarkers = TacticalMapMarkerFactory.make(
+            story: initial,
+            configuration: .drawingSpaceDefault,
+            visibilitySystem: initialVisibility
+        ).filter(\.isVisible)
+        #expect(initialMarkers.contains { $0.id == "room-laboratory" })
+        #expect(initialMarkers.contains { $0.id == "kitchen" })
+        #expect(!initialMarkers.contains { $0.kind == .door })
+
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        complete(.laboratory, in: session)
+        validate("engine-ignition-coil", in: session)
+        let viewModel = TacticalMapViewModel(sessionState: session)
+        #expect(viewModel.isFullMapRevealed)
+
+        for definition in StoryConfiguration.engineInitialChallenges.dropFirst().prefix(3) {
+            validate(definition.id, in: session)
+        }
+        #expect(session.sharedStory.powerState == .disrupted)
+        #expect(viewModel.isFullMapRevealed)
+    }
+
+    @Test("Album physical book and marker use the same console-derived coordinate")
+    func albumCoordinateAndMarker() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let console = configuration.objects.first { $0.id == "object-sleeping-main-console" }
+        #expect(console != nil)
+        #expect(configuration.albumBookPosition.x > (console?.objectBounds.minX ?? .infinity))
+        #expect(configuration.albumBookPosition.y > (console?.objectBounds.minY ?? .infinity))
+
+        let story = StoryProgressionSystem()
+        _ = story.handle(.drawingFailed)
+        let visibility = StationVisibilitySystem(storySystem: story, isDebugEnabled: false)
+        let marker = TacticalMapMarkerFactory.make(
+            story: story,
+            configuration: configuration,
+            visibilitySystem: visibility
+        ).first { $0.id == "album-book" }
+        #expect(marker?.worldPosition == configuration.albumBookPosition)
+    }
+
+    @Test("Delivered dialogue does not replay after restoration")
     func dialogueDoesNotReplay() {
         let manager = AIDialogueManager(lines: [
             AIDialogueLine(
@@ -60,13 +185,12 @@ struct PersistenceAndMapTests {
                 priority: 1
             )
         ])
-        var restored = SharedStoryState.initial
+        var restored = StoryState.initial
         restored.deliveredDialogueIDs.insert("saved-line")
-
         #expect(manager.nextLine(for: .chapterEntered(.sleepingRoom), story: restored) == nil)
     }
 
-    private func snapshot(story: SharedStoryState, energy: Double, spawn: CGPoint) -> StorySaveSnapshot {
+    private func snapshot(story: StoryState, energy: Double, spawn: CGPoint) -> StorySaveSnapshot {
         StorySaveSnapshot(
             sharedStory: story,
             localSurvival: PlayerSurvivalState(playerID: "local", energy: energy),
@@ -75,7 +199,21 @@ struct PersistenceAndMapTests {
         )
     }
 
-    private func status(of id: String, in markers: [MapMarker]) -> MapMarkerStatus? {
-        markers.first(where: { $0.id == id })?.status
+    private func complete(_ chapter: StoryChapter, in session: GameSessionState) {
+        for definition in StoryConfiguration.challenges(for: chapter) { validate(definition.id, in: session) }
+    }
+
+    private func validate(_ id: String, in session: GameSessionState) {
+        guard let prompt = session.storySystem.currentPrompt(for: id) else { return }
+        _ = session.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+        ))
+    }
+
+    private func makeSession() -> GameSessionState {
+        GameSessionState(localPlayer: PlayerState(
+            id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
+        ))
     }
 }

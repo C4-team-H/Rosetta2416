@@ -1,224 +1,211 @@
-import CoreGraphics
 import Testing
 @testable import GameClassification
 
 @Suite("Story progression")
 @MainActor
 struct StoryProgressionSystemTests {
-    @Test("Initial session starts safely in the Sleeping Room")
+    @Test("Story configuration uses the exact authored 19-station order")
+    func physicalStationOrder() {
+        #expect(StoryConfiguration.challenges.map(\.id) == [
+            "lab-memory-repair", "lab-scanner-repair", "lab-terminal-repair",
+            "engine-ignition-coil", "engine-power-connector", "engine-control-relay",
+            "engine-cooling-valve", "engine-cooling-restart", "engine-reactor-link",
+            "storage-tool-terminal", "storage-robotic-arm", "storage-calibration-unit",
+            "engine-calibration-port", "engine-core-reconnect", "engine-propulsion-calibration",
+            "engine-reactor-stabilizer", "cockpit-communications", "cockpit-navigation-control",
+            "cockpit-flight-console"
+        ])
+        #expect(StoryConfiguration.laboratoryChallenges.map(\.category) == [.animal, .plant, .human])
+        #expect(StoryConfiguration.storageChallenges.map(\.category) == [.tool, .equipment, .furniture])
+        #expect(StoryConfiguration.engineFinalChallenges.map(\.category) == [.electronics, .electronics, .weapon, .electronics])
+        #expect(StoryConfiguration.cockpitChallenges.allSatisfy { $0.category == .celestial })
+    }
+
+    @Test("Initial state exposes the exact travel mission")
     func initialState() {
         let system = StoryProgressionSystem()
 
         #expect(system.state.currentChapter == .sleepingRoom)
         #expect(system.state.intelligence == 10)
         #expect(system.state.engineProgress == 0)
-        #expect(system.state.powerState == .emergency)
-        #expect(system.activeObjective?.id == "reach-laboratory")
+        #expect(system.state.powerState == .off)
+        #expect(system.state.activeMission?.title == "Find the Laboratory.")
+        #expect(system.activeObjective == nil)
         #expect(system.canAccess(.laboratory))
         #expect(!system.canAccess(.engine))
     }
 
-    @Test("The complete deterministic story reaches victory only after Cockpit repairs")
-    func completeStory() {
+    @Test("All 19 physical stations produce the fixed progression and Victory")
+    func completeStory() throws {
         let system = StoryProgressionSystem()
-
         _ = system.handle(.roomEntered(.laboratory))
-        #expect(system.state.currentChapter == .laboratory)
 
-        complete(StoryContent.labIDs, in: system)
+        #expect(system.state.latestCheckpoint == .laboratoryEntered)
+        #expect(system.state.activeMission?.title == "Restore the AI.")
+        completeChapter(.laboratory, in: system)
         #expect(system.state.intelligence == 40)
-        #expect(system.state.currentChapter == .enginePhaseOne)
-        #expect(system.canAccess(.engine))
+        #expect(system.state.engineProgress == 0)
+        #expect(system.state.currentChapter == .engineInitial)
+        #expect(system.state.activeMission?.title == "Repair the Engine.")
 
-        // Step drawings on engine-easel-1 one by one to verify power changes
-        let easelID = "engine-easel-1"
-        guard let objective = system.definition(id: easelID),
-              case .easel(_) = objective.kind else {
-            Issue.record("engine-easel-1 must be an easel")
-            return
+        for (index, definition) in StoryConfiguration.engineInitialChallenges.enumerated() {
+            let effects = validate(definition.id, in: system)
+            #expect(system.state.engineProgress == Double((index + 1) * 10))
+            #expect(system.state.intelligence == 40)
+            if index == 0 { #expect(effects.contains(.powerChanged(.basicPower))) }
+            if index == 3 { #expect(effects.contains(.powerChanged(.disrupted))) }
         }
-
-        // Drawing 1
-        if let prompt = system.currentEaselPrompt(for: easelID) {
-            _ = system.handle(.drawingValidated(objectiveID: easelID, result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])))
-        }
-        #expect(system.state.engineProgress == 10)
-        #expect(system.state.powerState == .basicPower)
-
-        // Drawings 2, 3, 4
-        for _ in 0..<3 {
-            if let prompt = system.currentEaselPrompt(for: easelID) {
-                _ = system.handle(.drawingValidated(objectiveID: easelID, result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])))
-            }
-        }
-        #expect(system.state.engineProgress == 40)
-        #expect(system.state.powerState == .disrupted)
-
-        // Drawings 5, 6
-        for _ in 0..<2 {
-            if let prompt = system.currentEaselPrompt(for: easelID) {
-                _ = system.handle(.drawingValidated(objectiveID: easelID, result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])))
-            }
-        }
-        #expect(system.state.engineProgress == 60)
-        #expect(system.state.intelligence == 60)
-        #expect(system.state.currentChapter == .engineBlocked)
-        #expect(system.canAccess(.storage))
-
-        _ = system.handle(.roomEntered(.storage))
         #expect(system.state.currentChapter == .storage)
-        complete(StoryContent.storageIDs, in: system)
-        #expect(system.state.hasAdvancedTools)
-        #expect(system.state.currentChapter == .engineFinal)
+        #expect(system.state.engineProgress == 60)
+        #expect(system.state.activeMission?.title == "Retrieve the calibration tools from Storage.")
 
-        complete(StoryContent.engineFinalIDs, in: system)
-        #expect(system.state.engineProgress == 100)
-        #expect(system.state.intelligence == 100)
+        completeChapter(.storage, in: system)
+        #expect(system.state.hasAdvancedRepairTools)
+        #expect(system.state.currentChapter == .engineFinal)
+        #expect(system.state.activeMission?.title == "Continue repairing the Engine.")
+
+        for (index, definition) in StoryConfiguration.engineFinalChallenges.enumerated() {
+            _ = validate(definition.id, in: system)
+            #expect(system.state.engineProgress == Double(70 + index * 10))
+            #expect(system.state.intelligence == Double(55 + index * 15))
+        }
         #expect(system.state.powerState == .fullyRestored)
         #expect(system.state.currentChapter == .cockpit)
         #expect(system.canAccess(.cockpit))
+        #expect(system.state.activeMission?.title == "Go to the Cockpit and initiate launch.")
+
+        let cockpitLabels = StoryConfiguration.cockpitChallenges.compactMap {
+            system.state.selectedChallengeLabels[$0.id]
+        }
+        #expect(Set(cockpitLabels) == Set(["moon", "sun", "ufo"]))
 
         _ = system.handle(.roomEntered(.cockpit))
-        #expect(system.state.currentChapter == .cockpit)
-
-        let cockpitEaselID = "cockpit-easel"
-        guard let cockpitDef = system.definition(id: cockpitEaselID),
-              case let .easel(cockpitEaselDef) = cockpitDef.kind else {
-            Issue.record("cockpit-easel must be an easel")
-            return
-        }
-        for i in 0..<cockpitEaselDef.count {
-            guard let prompt = system.currentEaselPrompt(for: cockpitEaselID) else { break }
-            let effects = system.handle(.drawingValidated(
-                objectiveID: cockpitEaselID,
-                result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])
-            ))
-            if i < cockpitEaselDef.count - 1 {
+        for (index, definition) in StoryConfiguration.cockpitChallenges.enumerated() {
+            let effects = validate(definition.id, in: system)
+            if index < 2 {
                 #expect(system.state.currentChapter == .cockpit)
             } else {
-                #expect(system.state.currentChapter == .completed)
+                #expect(system.state.currentChapter == .victory)
                 #expect(effects.contains(.victory))
             }
         }
+        #expect(system.state.completedChallengeIDs.count == 19)
+        #expect(system.state.completedMissionIDs.count == 6)
     }
 
-    @Test("Duplicate completions and invalid order never grant rewards twice")
-    func idempotencyAndOrder() {
-        let system = StoryProgressionSystem()
-
-        #expect(validate("engine-easel-1", in: system).isEmpty)
-        _ = system.handle(.roomEntered(.laboratory))
-        
-        guard let prompt = system.currentEaselPrompt(for: "lab-easel") else {
-            Issue.record("Must have current prompt for lab-easel")
-            return
-        }
-        let first = system.handle(.drawingValidated(
-            objectiveID: "lab-easel",
-            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])
-        ))
-        let intelligence = system.state.intelligence
-        let duplicate = system.handle(.drawingValidated(
-            objectiveID: "lab-easel",
-            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])
-        ))
-
-        #expect(first.contains(.mapNeedsRefresh))
-        #expect(duplicate.contains { if case .interactionDenied = $0 { return true }; return false })
-        #expect(system.state.intelligence == intelligence)
-    }
-
-    @Test("Low confidence and wrong labels remain retryable")
-    func recognitionValidation() {
+    @Test("Wrong and low-confidence recognition fail once without progress or repeated hints")
+    func recognitionValidationAndAlbumHint() throws {
         let system = StoryProgressionSystem()
         _ = system.handle(.roomEntered(.laboratory))
+        let id = try #require(system.activeObjective?.id)
+        let prompt = try #require(system.currentPrompt(for: id))
 
-        guard let prompt = system.currentEaselPrompt(for: "lab-easel") else {
-            Issue.record("No prompt")
-            return
-        }
         let wrong = system.handle(.drawingValidated(
-            objectiveID: "lab-easel",
-            result: RecognitionResult(label: "invalid-label", confidence: 0.99, alternatives: [])
+            objectiveID: id,
+            result: RecognitionResult(label: "invalid-label", confidence: 1, alternatives: [])
         ))
         let uncertain = system.handle(.drawingValidated(
-            objectiveID: "lab-easel",
+            objectiveID: id,
             result: RecognitionResult(label: prompt.expectedLabel, confidence: 0.49, alternatives: [])
         ))
 
-        #expect(wrong.contains { if case .interactionDenied = $0 { return true }; return false })
-        #expect(uncertain.contains { if case .interactionDenied = $0 { return true }; return false })
-        #expect(system.easelCompletedCount(for: "lab-easel") == 0)
+        #expect(wrong.contains(.dialogue(.albumHint)))
+        #expect(!uncertain.contains(.dialogue(.albumHint)))
+        #expect(system.state.albumBook.hasFailedDrawingBefore)
+        #expect(system.state.albumBook.hasReceivedHint)
+        #expect(system.state.albumBook.isMarkerVisible)
+        #expect(system.state.intelligence == 10)
+        #expect(system.state.completedChallengeIDs.isEmpty)
     }
 
-    @Test("Restored values and unknown IDs normalize without bypassing gates")
+    @Test("Challenge and milestone rewards are idempotent")
+    func idempotency() throws {
+        let system = StoryProgressionSystem()
+        _ = system.handle(.roomEntered(.laboratory))
+        let id = try #require(system.activeObjective?.id)
+        let prompt = try #require(system.currentPrompt(for: id))
+        let result = RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+
+        let first = system.handle(.drawingValidated(objectiveID: id, result: result))
+        let duplicate = system.handle(.drawingValidated(objectiveID: id, result: result))
+
+        #expect(first.contains(.objectiveCompleted(id)))
+        #expect(duplicate.contains { if case .interactionDenied = $0 { true } else { false } })
+        #expect(system.state.intelligence == 20)
+        #expect(system.state.completedChallengeIDs.filter { $0 == id }.count == 1)
+    }
+
+    @Test("Chapter labels are stable, unique, category-valid, and persisted")
+    func deterministicLabels() {
+        var initial = StoryState.initial
+        initial.storyRandomSeed = 8_675_309
+        initial.currentChapter = .laboratory
+        let first = StoryProgressionSystem(state: initial)
+        let restored = StoryProgressionSystem(state: first.state)
+
+        #expect(first.state.selectedChallengeLabels == restored.state.selectedChallengeLabels)
+        #expect(first.state.chapterChallengeSelections == restored.state.chapterChallengeSelections)
+        let selections = first.state.chapterChallengeSelections[.laboratory] ?? []
+        #expect(Set(selections.map(\.label)).count == selections.count)
+        #expect(selections.allSatisfy { first.labelCatalog.contains($0.label, in: $0.category) })
+        for (definition, selection) in zip(StoryConfiguration.laboratoryChallenges, selections) {
+            #expect(first.state.selectedChallengeLabels[definition.id] == selection.label)
+        }
+    }
+
+    @Test("Malformed final repairs cannot push Engine beyond 60 without Storage tools")
+    func hardEngineCapWithoutTools() {
+        var state = StoryState.initial
+        state.currentChapter = .engineFinal
+        state.completedChallengeIDs = Set(
+            StoryConfiguration.laboratoryChallenges.map(\.id)
+                + StoryConfiguration.engineInitialChallenges.map(\.id)
+                + StoryConfiguration.engineFinalChallenges.map(\.id)
+        )
+
+        let system = StoryProgressionSystem(state: state)
+
+        #expect(system.state.engineProgress == 60)
+        #expect(system.state.intelligence == 40)
+        #expect(system.state.currentChapter == .storage)
+        #expect(!system.state.hasAdvancedRepairTools)
+        #expect(!system.canAccess(.cockpit))
+    }
+
+    @Test("Malformed values cannot bypass the Cockpit gate")
     func restoreNormalization() {
-        var malformed = SharedStoryState.initial
+        var malformed = StoryState.initial
         malformed.currentChapter = .cockpit
-        malformed.completedObjectiveIDs = ["unknown-objective"]
+        malformed.completedChallengeIDs = ["unknown-objective"]
         malformed.intelligence = 900
         malformed.engineProgress = 900
         malformed.powerState = .fullyRestored
 
         let system = StoryProgressionSystem(state: malformed)
 
-        #expect(system.state.intelligence == 100)
-        #expect(system.state.engineProgress == 60)
-        #expect(system.state.currentChapter == .sleepingRoom)
-        #expect(system.state.powerState == .emergency)
-        #expect(system.state.completedObjectiveIDs.isEmpty)
+        #expect(system.state.intelligence == 10)
+        #expect(system.state.engineProgress == 0)
+        #expect(system.state.currentChapter == .laboratory)
+        #expect(system.state.powerState == .off)
+        #expect(system.state.completedChallengeIDs.isEmpty)
         #expect(!system.canAccess(.cockpit))
     }
 
-    @Test("Cockpit requires both Engine and Intelligence at 100")
-    func cockpitThresholds() {
-        var lowIntelligence = SharedStoryState.initial
-        lowIntelligence.currentChapter = .engineFinal
-        lowIntelligence.completedObjectiveIDs = Set(
-            ["reach-laboratory"] + StoryContent.labIDs + StoryContent.engineEaselOneIDs + StoryContent.storageIDs
-        )
-        lowIntelligence.hasAdvancedTools = true
-        lowIntelligence.engineProgress = 100
-        lowIntelligence.intelligence = 99
-
-        var lowEngine = lowIntelligence
-        lowEngine.engineProgress = 99
-        lowEngine.intelligence = 100
-
-        let intelligenceGate = StoryProgressionSystem(state: lowIntelligence)
-        let engineGate = StoryProgressionSystem(state: lowEngine)
-
-        #expect(!intelligenceGate.canAccess(.cockpit))
-        #expect(!engineGate.canAccess(.cockpit))
-    }
-
-    private func complete(_ ids: [String], in system: StoryProgressionSystem) {
-        for id in ids { _ = validate(id, in: system) }
+    private func completeChapter(_ chapter: StoryChapter, in system: StoryProgressionSystem) {
+        for definition in StoryConfiguration.challenges(for: chapter) {
+            _ = validate(definition.id, in: system)
+        }
     }
 
     @discardableResult
     private func validate(_ id: String, in system: StoryProgressionSystem) -> [StoryEffect] {
-        guard let definition = system.definition(id: id) else { return [] }
-        switch definition.kind {
-        case let .drawing(prompt):
-            return system.handle(.drawingValidated(
-                objectiveID: id,
-                result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])
-            ))
-        case let .easel(easelDef):
-            var lastEffects: [StoryEffect] = []
-            for _ in 0..<easelDef.count {
-                guard let prompt = system.currentEaselPrompt(for: id) else { break }
-                lastEffects = system.handle(.drawingValidated(
-                    objectiveID: id,
-                    result: RecognitionResult(label: prompt.expectedLabel, confidence: 1.0, alternatives: [])
-                ))
-            }
-            return lastEffects
-        case .roomEntry:
-            return system.completeObjective(id: id)
-        default:
-            return system.completeObjective(id: id)
+        guard let prompt = system.currentPrompt(for: id) else {
+            Issue.record("Missing prompt for \(id)")
+            return []
         }
+        return system.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+        ))
     }
 }

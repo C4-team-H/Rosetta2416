@@ -1,13 +1,14 @@
 [
-  {"id":"intro-1","chapter":"sleepingRoom","trigger":"chapter","text":"Sys... systems damaged. Solar... flare impact detected. Find... laboratory.","priority":100},
-  {"id":"lab-complete","chapter":"enginePhaseOne","trigger":"chapter","text":"Communication restored. The primary engine is offline. Proceed to the Engine Room.","priority":100},
-  {"id":"power-basic","chapter":"enginePhaseOne","trigger":"power","value":"basicPower","text":"Primary lighting restored. Flashlight no longer required.","priority":100},
-  {"id":"power-disrupted","chapter":"enginePhaseOne","trigger":"power","value":"disrupted","text":"Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.","priority":100},
-  {"id":"storage-route","chapter":"engineBlocked","trigger":"chapter","text":"Repair progress halted. Retrieve advanced calibration tools from Storage.","priority":100},
-  {"id":"tools-acquired","chapter":"engineFinal","trigger":"chapter","text":"Advanced repair tools acquired. Return to the Engine Room.","priority":100},
-  {"id":"engine-complete","chapter":"cockpit","trigger":"chapter","text":"Engine restoration complete. My cognitive systems are fully operational. Cockpit access restored.","priority":100},
+  {"id":"intro-1","chapter":"sleepingRoom","trigger":"chapter","text":"Sys... systems damaged.\nSolar... flare impact detected.\nFind... laboratory.","priority":100},
+  {"id":"lab-complete","chapter":"engineInitial","trigger":"chapter","text":"Communication restored.\nThe ship’s primary engine is offline.\nProceed to the Engine Room.","priority":100},
+  {"id":"power-basic","chapter":"engineInitial","trigger":"power","value":"basicPower","text":"Primary lighting restored. Flashlight no longer required.","priority":100},
+  {"id":"power-disrupted","chapter":"engineInitial","trigger":"power","value":"disrupted","text":"Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.","priority":100},
+  {"id":"storage-route","chapter":"storage","trigger":"chapter","text":"Repair progress halted.\nAdvanced calibration tools are required.\nProceed to Storage.","priority":100},
+  {"id":"tools-acquired","chapter":"engineFinal","trigger":"chapter","text":"Advanced repair tools acquired.\nReturn to the Engine Room.","priority":100},
+  {"id":"engine-complete","chapter":"cockpit","trigger":"chapter","text":"Engine restoration complete.\nCockpit access restored.","priority":100},
+  {"id":"album-hint","chapter":"sleepingRoom","trigger":"albumHint","text":"Having trouble drawing?\nCheck the Album Book in the Sleeping Room for references.","priority":110},
   {"id":"deny-engine-fragmented","chapter":"sleepingRoom","trigger":"roomDenied","value":"engine","text":"Engine... sealed. Need... laboratory memory repair first.","priority":80,"maximumIntelligence":39},
-  {"id":"deny-storage-analytical","chapter":"enginePhaseOne","trigger":"roomDenied","value":"storage","text":"Storage authorization depends on a stable 60 percent engine feed. Current access conditions are unmet.","priority":80,"minimumIntelligence":40,"maximumIntelligence":99},
+  {"id":"deny-storage-analytical","chapter":"engineInitial","trigger":"roomDenied","value":"storage","text":"Storage authorization depends on a stable 60 percent engine feed. Current access conditions are unmet.","priority":80,"minimumIntelligence":40,"maximumIntelligence":99},
   {"id":"deny-cockpit-confident","chapter":"engineFinal","trigger":"roomDenied","value":"cockpit","text":"Cockpit lock is functioning correctly. Complete full Engine and Intelligence restoration before entry.","priority":80,"minimumIntelligence":60},
-  {"id":"victory","chapter":"completed","trigger":"victory","text":"All systems restored. Navigation control is responding. You brought us back online.","priority":100}
+  {"id":"victory","chapter":"victory","trigger":"victory","text":"All systems restored.\nNavigation control is responding.\nYou brought us back online.","priority":100}
 ]

@@ -5,39 +5,44 @@ import Testing
 @Suite("Core ML label compatibility")
 @MainActor
 struct CoreMLLabelCompatibilityTests {
-    @Test("Every story and Kitchen drawing prompt exists in the bundled classifier")
-    func everyDrawingPromptUsesAnExactModelLabel() throws {
+    @Test("Every configured category and Kitchen prompt intersects the 159-label model")
+    func categoriesUseExactModelLabels() throws {
         let configuration = MLModelConfiguration()
         configuration.computeUnits = .cpuOnly
         let model = try SketchClassifierV3(configuration: configuration)
         let modelLabels = Set((model.model.modelDescription.classLabels ?? []).compactMap { $0 as? String })
-        
-        let storyLabels = StoryContent.objectives.flatMap { objective -> [String] in
-            switch objective.kind {
-            case let .drawing(prompt):
-                return [prompt.expectedLabel]
-            case let .easel(easelDef):
-                return easelDef.pool.map(\.expectedLabel)
-            default:
-                return []
-            }
-        }
-        let kitchenLabels = DrawingChallenge.foodPool.map(\.label)
+        let catalog = CoreMLLabelCatalog(availableLabels: modelLabels)
 
         #expect(modelLabels.count == 159)
-        #expect((storyLabels + kitchenLabels).allSatisfy(modelLabels.contains))
+        for definition in StoryConfiguration.challenges {
+            #expect(!catalog.labels(in: definition.category).isEmpty)
+            #expect(catalog.labels(in: definition.category).allSatisfy(modelLabels.contains))
+        }
+        #expect(!catalog.labels(in: .food).isEmpty)
+        #expect(catalog.labels(in: .food).allSatisfy(modelLabels.contains))
     }
 
-    @Test("Cockpit easel contains moon, sun, and ufo")
-    func cockpitEaselContainsMoonSunUfo() throws {
-        let objective = try #require(StoryContent.definition(id: "cockpit-easel"))
-        let kind = objective.kind
-        guard case let .easel(easelDef) = kind else {
-            Issue.record("Cockpit easel must remain an easel objective")
-            return
-        }
+    @Test("Cockpit materializes moon, sun, and ufo exactly once")
+    func cockpitLabels() {
+        var state = StoryState.initial
+        state.currentChapter = .cockpit
+        state.completedChallengeIDs = Set(
+            StoryConfiguration.laboratoryChallenges.map(\.id)
+                + StoryConfiguration.engineInitialChallenges.map(\.id)
+                + StoryConfiguration.storageChallenges.map(\.id)
+                + StoryConfiguration.engineFinalChallenges.map(\.id)
+        )
+        let system = StoryProgressionSystem(state: state)
+        let labels = StoryConfiguration.cockpitChallenges.compactMap { system.state.selectedChallengeLabels[$0.id] }
 
-        let labels = easelDef.pool.map(\.expectedLabel)
-        #expect(labels == ["moon", "sun", "ufo"])
+        #expect(Set(labels) == Set(["moon", "sun", "ufo"]))
+        #expect(labels.count == 3)
+        #expect(Set(labels).count == 3)
+    }
+
+    @Test("Album retains the verified 157 references")
+    func albumReferenceCount() {
+        #expect(AlbumBookViewModel.allLabels.count == 157)
+        #expect(Set(AlbumBookViewModel.allLabels).count == 157)
     }
 }

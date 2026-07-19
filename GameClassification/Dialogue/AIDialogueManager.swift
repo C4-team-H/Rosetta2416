@@ -8,7 +8,7 @@ final class AIDialogueManager {
         self.lines = lines ?? StoryDialogueLoader.load()
     }
 
-    func nextLine(for trigger: DialogueTrigger, story: SharedStoryState) -> AIDialogueLine? {
+    func nextLine(for trigger: DialogueTrigger, story: StoryState) -> AIDialogueLine? {
         lines
             .filter {
                 $0.trigger == trigger
