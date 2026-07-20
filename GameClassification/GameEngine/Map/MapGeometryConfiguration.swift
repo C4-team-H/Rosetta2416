@@ -572,6 +572,30 @@ extension MapGeometryConfiguration {
         return CGPoint(x: counter.position.x, y: counter.position.y + 2)
     }
 
+    /// The lab table artwork sits on the Lab Main Table object, nudged up +6 for art alignment.
+    var labTablePosition: CGPoint {
+        guard let table = objects.first(where: { $0.id == "object-lab-main-table" }) else {
+            return spawnPoint(for: .laboratory) ?? .zero
+        }
+        return CGPoint(x: table.position.x - 4, y: table.position.y + 46)
+    }
+
+    /// The lab monitor 2 artwork sits on the Lab Monitor 2 object, nudged up +6 for art alignment.
+    var labMonitor2Position: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-lab-monitor-2" }) else {
+            return spawnPoint(for: .laboratory) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y + 6)
+    }
+
+    /// The lab monitor 1 artwork sits on the Lab Monitor 1 object, nudged up +6 for art alignment.
+    var labMonitor1Position: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-lab-monitor-1" }) else {
+            return spawnPoint(for: .laboratory) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y + 6)
+    }
+
     func spawnPoint(for roomID: RoomID) -> CGPoint? {
         spawnPoints.first(where: { $0.roomID == roomID && $0.position.isFinite })?.position.cgPoint
     }

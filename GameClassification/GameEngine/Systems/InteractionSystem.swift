@@ -4,14 +4,60 @@ extension GameScene {
     func checkProximityToInteractiveObject() {
         guard sessionState.phase == .playing, let player else {
             activeStationID = nil
+            labTableNode?.setProximityHighlighted(false)
+            labMonitor2Node?.setProximityHighlighted(false)
+            labMonitor1Node?.setProximityHighlighted(false)
             hideInteractionButton()
             return
         }
-        let nearest = stationNodes
+
+        let stationCandidates = stationNodes
             .filter { !$0.value.isHidden }
-            .map { (id: $0.key, node: $0.value, distance: hypot(player.position.x - $0.value.position.x, player.position.y - $0.value.position.y)) }
-            .filter { $0.distance <= GameMapLayout.scaled(76) }
+            .map { (
+                id: $0.key,
+                distance: hypot(player.position.x - $0.value.position.x, player.position.y - $0.value.position.y),
+                radius: GameMapLayout.scaled(76)
+            ) }
+        let labTableCandidate = labTableNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            return (
+                id: Self.labScannerRepairInteractionID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: LabTableNode.interactionRadius
+            )
+        }
+        let labMonitor2Candidate = labMonitor2Node.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden,
+                  let objective = sessionState.objectives.first(where: { $0.id == "lab-terminal-repair" }),
+                  objective.status == .available || objective.status == .active else { return nil }
+            return (
+                id: "lab-terminal-repair",
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: LabMonitor2Node.interactionRadius
+            )
+        }
+        let labMonitor1Candidate = labMonitor1Node.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden,
+                  let objective = sessionState.objectives.first(where: { $0.id == "lab-memory-repair" }),
+                  objective.status == .available || objective.status == .active else { return nil }
+            return (
+                id: "lab-memory-repair",
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: LabMonitor1Node.interactionRadius
+            )
+        }
+        let nearest = (stationCandidates + [labTableCandidate, labMonitor2Candidate, labMonitor1Candidate].compactMap { $0 })
+            .filter { $0.distance <= $0.radius }
             .min { $0.distance < $1.distance }
+        labTableNode?.setProximityHighlighted(
+            labTableCandidate.map { $0.distance <= $0.radius } ?? false
+        )
+        labMonitor2Node?.setProximityHighlighted(
+            labMonitor2Candidate.map { $0.distance <= $0.radius } ?? false
+        )
+        labMonitor1Node?.setProximityHighlighted(
+            labMonitor1Candidate.map { $0.distance <= $0.radius } ?? false
+        )
 
         guard let nearest,
               let objective = sessionState.objectives.first(where: { $0.id == nearest.id }) else {
@@ -76,6 +122,21 @@ extension GameScene {
 
     func requestAlbumInteraction() {
         eventDelegate?.gameSceneDidRequestAlbum(self)
+    }
+
+    func checkProximityToLabMonitor2() {
+        guard sessionState.phase == .playing,
+              let player,
+              let labMonitor2Node,
+              !labMonitor2Node.isHidden,
+              let objective = sessionState.objectives.first(where: { $0.id == "lab-terminal-repair" }),
+              objective.status == .available || objective.status == .active else {
+            labMonitor2Node?.setProximityHighlighted(false)
+            return
+        }
+        let distance = hypot(player.position.x - labMonitor2Node.position.x, player.position.y - labMonitor2Node.position.y)
+        let isWithinRadius = distance <= LabMonitor2Node.interactionRadius
+        labMonitor2Node.setProximityHighlighted(isWithinRadius)
     }
 
     private func showAlbumButton() {

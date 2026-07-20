@@ -15,6 +15,7 @@ final class GameScene: SKScene {
     static let gameplayCameraScale: CGFloat = (0.6 / 2.25) * GameMapLayout.artworkScale
     /// Keeps camera-space lighting above every gameplay world layer while HUD children remain above it.
     static let cameraOverlayRootZ: CGFloat = 100
+    static let labScannerRepairInteractionID = "lab-scanner-repair"
 
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel
@@ -41,6 +42,9 @@ final class GameScene: SKScene {
     var stationNodes: [String: SKShapeNode] = [:]
     var albumBookNode: AlbumBookNode?
     var albumBookButton: SKShapeNode?
+    var labTableNode: LabTableNode?
+    var labMonitor2Node: LabMonitor2Node?
+    var labMonitor1Node: LabMonitor1Node?
     var activeStationID: String?
     var lastDeniedStationID: String?
     var lastDeniedDoorID: DoorID?
@@ -146,6 +150,8 @@ final class GameScene: SKScene {
         createInteractiveStations()
         createFoodObject()
         createAlbumBook()
+        createLabTable()
+        createLabMonitor2()
         enableCandleLight()
         refreshStoryVisuals()
 
@@ -217,6 +223,9 @@ final class GameScene: SKScene {
             hideAlbumButton()
             albumBookNode?.setProximityHighlighted(false, animated: false)
             foodObject?.setProximityHighlighted(false, animated: false)
+            labTableNode?.setProximityHighlighted(false, animated: false)
+            labMonitor2Node?.setProximityHighlighted(false, animated: false)
+            labMonitor1Node?.setProximityHighlighted(false, animated: false)
         } else if tacticalMapViewModel.isMapPresented {
             if !wasMapInputSuspended {
                 clearPencilTarget()
@@ -254,6 +263,7 @@ final class GameScene: SKScene {
             checkProximityToFoodObject()
             checkProximityToLockedDoor()
             checkProximityToAlbumBook()
+            checkProximityToLabMonitor2()
         }
 
         updateStationVisibility()
@@ -419,6 +429,9 @@ final class GameScene: SKScene {
             || changedCategories.contains(.object) {
             createInteractiveStations()
             createFoodObject()
+            createLabTable()
+            createLabMonitor2()
+            createLabMonitor1()
         }
         if update.changeSet.isFullReplacement || changedCategories.contains(.object) {
             createAlbumBook()
@@ -492,6 +505,9 @@ final class GameScene: SKScene {
         shipMapNode?.apply(map: gameMap)
         createFoodObject()
         createAlbumBook()
+        createLabTable()
+        createLabMonitor2()
+        createLabMonitor1()
         refreshStoryVisuals()
         resetPlayerToDebugSpawnIfInvalid()
     }

@@ -1,12 +1,12 @@
 import SpriteKit
 import UIKit
 
-final class KitchenTableNode: SKNode {
-    static let artworkScale: CGFloat = 1.3
+final class LabMonitor1Node: SKNode {
+    static let artworkScale: CGFloat = 1.0
     static let interactionRadius = GameMapLayout.scaled(76)
     static let outlineWidth = GameMapLayout.scaled(2)
 
-    private static let highlightActionKey = "kitchen-table-highlight-transition"
+    private static let highlightActionKey = "lab-monitor-1-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18
 
     let artworkSprite: SKSpriteNode
@@ -16,20 +16,20 @@ final class KitchenTableNode: SKNode {
     private let highlightUniform: SKUniform
 
     init(
-        image: UIImage? = UIImage(named: "KitchenTable"),
-        outlineWidth: CGFloat = KitchenTableNode.outlineWidth
+        image: UIImage? = UIImage(named: "labMonitor1"),
+        outlineWidth: CGFloat = LabMonitor1Node.outlineWidth
     ) {
-        guard let sourceImage = image,
-              sourceImage.size.width > 0,
-              sourceImage.size.height > 0 else {
-            preconditionFailure("Missing or empty KitchenTable artwork")
-        }
-
+        let sourceImage = image ?? UIImage()
         artworkSize = sourceImage.size
+
         let padding = ceil(outlineWidth) + 2
         let paddedImage = Self.makePaddedImage(sourceImage, padding: padding)
         let paddedTexture = SKTexture(image: paddedImage)
         paddedTexture.filteringMode = .linear
+        let paddedDisplaySize = CGSize(
+            width: paddedImage.size.width * Self.artworkScale,
+            height: paddedImage.size.height * Self.artworkScale
+        )
 
         highlightUniform = SKUniform(name: "u_highlightMix", float: 0)
         let outlineStepUniform = SKUniform(
@@ -40,21 +40,15 @@ final class KitchenTableNode: SKNode {
             )
         )
 
-        artworkSprite = SKSpriteNode(
-            texture: paddedTexture,
-            size: CGSize(
-                width: paddedImage.size.width * Self.artworkScale,
-                height: paddedImage.size.height * Self.artworkScale
-            )
-        )
-        artworkSprite.name = "kitchen-table-artwork"
+        artworkSprite = SKSpriteNode(texture: paddedTexture, size: paddedDisplaySize)
+        artworkSprite.name = "lab-monitor-1-artwork"
         artworkSprite.shader = SKShader(
             source: Self.outlineShaderSource,
             uniforms: [highlightUniform, outlineStepUniform]
         )
 
         super.init()
-        name = "kitchen-table"
+        name = "lab-monitor-1"
         addChild(artworkSprite)
     }
 

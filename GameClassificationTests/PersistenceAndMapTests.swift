@@ -285,6 +285,79 @@ struct PersistenceAndMapTests {
         #expect(scene.foodActionButton == nil)
     }
 
+    @Test("Lab table position is derived from object-lab-main-table with +6 Y offset")
+    func labTablePositionDerivation() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let anchor = configuration.objects.first { $0.id == "object-lab-main-table" }
+        #expect(anchor != nil)
+        #expect(configuration.labTablePosition == CGPoint(
+            x: anchor?.position.x ?? .zero,
+            y: (anchor?.position.y ?? .zero) + 6
+        ))
+    }
+
+    @Test("Lab table replaces station-lab-scanner-repair visual and shows proximity highlight")
+    func labTableProximityHighlight() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let anchor = configuration.objects.first { $0.id == "object-lab-main-table" }
+        #expect(anchor != nil)
+
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        validate("lab-memory-repair", in: session)
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createInteractiveStations()
+        scene.createLabTable()
+
+        guard let labTable = scene.labTableNode else {
+            Issue.record("Lab Table node was not created")
+            return
+        }
+        #expect(scene.stationNodes[GameScene.labScannerRepairInteractionID] == nil)
+        let padding = ceil(LabTableNode.outlineWidth) + 2
+        #expect(labTable.position == configuration.labTablePosition)
+        #expect(labTable.artworkSize == CGSize(width: 294, height: 186))
+        #expect(labTable.artworkSprite.size == CGSize(
+            width: (labTable.artworkSize.width + padding * 2) * LabTableNode.artworkScale,
+            height: (labTable.artworkSize.height + padding * 2) * LabTableNode.artworkScale
+        ))
+        #expect(labTable.artworkSprite.xScale == 1)
+        #expect(labTable.artworkSprite.yScale == 1)
+        #expect(labTable.children.count == 1)
+        #expect(labTable.children.first === labTable.artworkSprite)
+        #expect(labTable.artworkSprite.shader != nil)
+        #expect(!labTable.isProximityHighlighted)
+
+        scene.player.position = labTable.position
+        scene.checkProximityToInteractiveObject()
+        #expect(labTable.isProximityHighlighted)
+        #expect(labTable.action(forKey: "lab-table-highlight-transition") != nil)
+        #expect(scene.activeStationID == GameScene.labScannerRepairInteractionID)
+        #expect(scene.actionButton != nil)
+
+        scene.player.position = CGPoint(
+            x: labTable.position.x + LabTableNode.interactionRadius + 1,
+            y: labTable.position.y
+        )
+        scene.checkProximityToInteractiveObject()
+        #expect(!labTable.isProximityHighlighted)
+        #expect(scene.activeStationID == nil)
+        #expect(scene.actionButton == nil)
+
+        labTable.isHidden = true
+        labTable.setProximityHighlighted(true, animated: false)
+        scene.checkProximityToInteractiveObject()
+        #expect(!labTable.isProximityHighlighted)
+    }
+
     @Test("Delivered dialogue does not replay after restoration")
     func dialogueDoesNotReplay() {
         let manager = AIDialogueManager(lines: [
@@ -325,6 +398,292 @@ struct PersistenceAndMapTests {
     private func makeSession() -> GameSessionState {
         GameSessionState(localPlayer: PlayerState(
             id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
+        ))
+    }
+}
+
+// MARK: - Lab Monitor 2
+
+@Suite("Lab Monitor 2")
+@MainActor
+struct LabMonitor2Tests {
+    @Test("Lab Monitor 2 position derived from object-lab-monitor-2 with offset y+6")
+    func labMonitor2Coordinate() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let anchor = configuration.objects.first { $0.id == "object-lab-monitor-2" }
+        #expect(anchor != nil)
+        #expect(configuration.labMonitor2Position == CGPoint(
+            x: anchor?.position.x ?? .zero,
+            y: (anchor?.position.y ?? .zero) + 6
+        ))
+    }
+
+    @Test("Lab Monitor 2 sprite uses one shader-backed sprite and follows the interaction radius")
+    func labMonitor2ProximityHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        for id in ["lab-memory-repair", "lab-scanner-repair"] { validate(id, in: session) }
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createLabMonitor2()
+
+        guard let monitor = scene.labMonitor2Node else {
+            Issue.record("Lab Monitor 2 node was not created")
+            return
+        }
+        #expect(monitor.position == MapGeometryConfiguration.drawingSpaceDefault.labMonitor2Position)
+        #expect(monitor.artworkSize == CGSize(width: 318, height: 186))
+        #expect(monitor.artworkSprite.xScale == 1)
+        #expect(monitor.artworkSprite.yScale == 1)
+        #expect(monitor.children.count == 1)
+        #expect(monitor.children.first === monitor.artworkSprite)
+        #expect(monitor.artworkSprite.shader != nil)
+        #expect(!monitor.isProximityHighlighted)
+
+        scene.player.position = monitor.position
+        scene.checkProximityToLabMonitor2()
+        #expect(monitor.isProximityHighlighted)
+        #expect(monitor.action(forKey: "lab-monitor-2-highlight-transition") != nil)
+
+        scene.player.position = CGPoint(
+            x: monitor.position.x + LabMonitor2Node.interactionRadius + 1,
+            y: monitor.position.y
+        )
+        scene.checkProximityToLabMonitor2()
+        #expect(!monitor.isProximityHighlighted)
+
+        monitor.removeFromParent()
+        monitor.setProximityHighlighted(true, animated: false)
+        let renderScene = SKScene(size: monitor.artworkSprite.size)
+        monitor.position = CGPoint(x: renderScene.size.width / 2, y: renderScene.size.height / 2)
+        renderScene.addChild(monitor)
+        let renderView = SKView(frame: CGRect(origin: .zero, size: renderScene.size))
+        renderView.allowsTransparency = true
+        renderView.presentScene(renderScene)
+        #expect(renderView.texture(from: monitor) != nil)
+    }
+
+    @Test("Lab monitor 2 has no highlight when objective is not active")
+    func labMonitor2NoHighlightWithoutObjective() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createLabMonitor2()
+        guard let monitor = scene.labMonitor2Node else {
+            Issue.record("Lab Monitor 2 node was not created")
+            return
+        }
+        scene.player.position = monitor.position
+        scene.checkProximityToLabMonitor2()
+        #expect(!monitor.isProximityHighlighted)
+    }
+
+    @Test("Hidden lab monitor 2 clears highlight")
+    func labMonitor2HiddenClearsHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        for id in ["lab-memory-repair", "lab-scanner-repair"] { validate(id, in: session) }
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createLabMonitor2()
+        guard let monitor = scene.labMonitor2Node else {
+            Issue.record("Lab Monitor 2 node was not created")
+            return
+        }
+        monitor.isHidden = true
+        scene.checkProximityToLabMonitor2()
+        #expect(!monitor.isProximityHighlighted)
+    }
+
+    @Test("station-lab-terminal-repair is not created as a visual station node")
+    func stationLabTerminalRepairNotCreated() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createInteractiveStations()
+        #expect(scene.stationNodes["lab-terminal-repair"] == nil)
+    }
+
+    private func makeSession() -> GameSessionState {
+        GameSessionState(localPlayer: PlayerState(
+            id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
+        ))
+    }
+
+    private func validate(_ id: String, in session: GameSessionState) {
+        guard let prompt = session.storySystem.currentPrompt(for: id) else { return }
+        _ = session.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+        ))
+    }
+}
+
+// MARK: - Lab Monitor 1
+
+@Suite("Lab Monitor 1")
+@MainActor
+struct LabMonitor1Tests {
+    @Test("Lab Monitor 1 position derived from object-lab-monitor-1 with offset y+6")
+    func labMonitor1Coordinate() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let anchor = configuration.objects.first { $0.id == "object-lab-monitor-1" }
+        #expect(anchor != nil)
+        #expect(configuration.labMonitor1Position == CGPoint(
+            x: anchor?.position.x ?? .zero,
+            y: (anchor?.position.y ?? .zero) + 6
+        ))
+    }
+
+    @Test("Lab Monitor 1 sprite uses one shader-backed sprite and follows the interaction radius")
+    func labMonitor1ProximityHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createLabMonitor1()
+        scene.createInteractiveStations()
+
+        guard let monitor = scene.labMonitor1Node else {
+            Issue.record("Lab Monitor 1 node was not created")
+            return
+        }
+        #expect(monitor.position == MapGeometryConfiguration.drawingSpaceDefault.labMonitor1Position)
+        #expect(monitor.artworkSize == CGSize(width: 137, height: 365))
+        #expect(monitor.artworkSprite.xScale == 1)
+        #expect(monitor.artworkSprite.yScale == 1)
+        #expect(monitor.children.count == 1)
+        #expect(monitor.children.first === monitor.artworkSprite)
+        #expect(monitor.artworkSprite.shader != nil)
+        #expect(!monitor.isProximityHighlighted)
+
+        scene.player.position = monitor.position
+        scene.checkProximityToInteractiveObject()
+        #expect(monitor.isProximityHighlighted)
+        #expect(monitor.action(forKey: "lab-monitor-1-highlight-transition") != nil)
+        #expect(scene.activeStationID == "lab-memory-repair")
+        #expect(scene.actionButton != nil)
+
+        scene.player.position = CGPoint(
+            x: monitor.position.x + LabMonitor1Node.interactionRadius + 1,
+            y: monitor.position.y
+        )
+        scene.checkProximityToInteractiveObject()
+        #expect(!monitor.isProximityHighlighted)
+        #expect(scene.activeStationID == nil)
+        #expect(scene.actionButton == nil)
+
+        monitor.removeFromParent()
+        monitor.setProximityHighlighted(true, animated: false)
+        let renderScene = SKScene(size: monitor.artworkSprite.size)
+        monitor.position = CGPoint(x: renderScene.size.width / 2, y: renderScene.size.height / 2)
+        renderScene.addChild(monitor)
+        let renderView = SKView(frame: CGRect(origin: .zero, size: renderScene.size))
+        renderView.allowsTransparency = true
+        renderView.presentScene(renderScene)
+        #expect(renderView.texture(from: monitor) != nil)
+    }
+
+    @Test("Lab monitor 1 has no highlight when objective is not active")
+    func labMonitor1NoHighlightWithoutObjective() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createLabMonitor1()
+        guard let monitor = scene.labMonitor1Node else {
+            Issue.record("Lab Monitor 1 node was not created")
+            return
+        }
+        scene.player.position = monitor.position
+        scene.checkProximityToInteractiveObject()
+        #expect(!monitor.isProximityHighlighted)
+    }
+
+    @Test("Hidden lab monitor 1 clears highlight")
+    func labMonitor1HiddenClearsHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        for id in ["lab-memory-repair", "lab-scanner-repair"] { validate(id, in: session) }
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createPlayer()
+        scene.createLabMonitor1()
+        guard let monitor = scene.labMonitor1Node else {
+            Issue.record("Lab Monitor 1 node was not created")
+            return
+        }
+        monitor.isHidden = true
+        scene.checkProximityToInteractiveObject()
+        #expect(!monitor.isProximityHighlighted)
+    }
+
+    @Test("station-lab-memory-repair is not created as a visual station node")
+    func stationLabMemoryRepairNotCreated() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createInteractiveStations()
+        #expect(scene.stationNodes["station-lab-memory-repair"] == nil)
+    }
+
+    private func makeSession() -> GameSessionState {
+        GameSessionState(localPlayer: PlayerState(
+            id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
+        ))
+    }
+
+    private func validate(_ id: String, in session: GameSessionState) {
+        guard let prompt = session.storySystem.currentPrompt(for: id) else { return }
+        _ = session.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
         ))
     }
 }

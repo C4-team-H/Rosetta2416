@@ -53,6 +53,9 @@ extension GameScene {
         stationNodes.removeAll()
         let parent = shipMapNode?.furnitureLayer ?? self
         for definition in gameMap.stations {
+            guard definition.id != Self.labScannerRepairInteractionID else { continue }
+            guard definition.id != "lab-terminal-repair" else { continue }
+            guard definition.id != "station-lab-memory-repair" else { continue }
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
             attachInteractionSensor(to: station, id: definition.id)
             parent.addChild(station)
@@ -79,6 +82,33 @@ extension GameScene {
         albumBookNode = book
     }
 
+    func createLabTable() {
+        labTableNode?.removeFromParent()
+        let table = LabTableNode()
+        table.position = geometryStore.configuration.labTablePosition
+        table.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(table)
+        labTableNode = table
+    }
+
+    func createLabMonitor2() {
+        labMonitor2Node?.removeFromParent()
+        let monitor = LabMonitor2Node()
+        monitor.position = geometryStore.configuration.labMonitor2Position
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        labMonitor2Node = monitor
+    }
+
+    func createLabMonitor1() {
+        labMonitor1Node?.removeFromParent()
+        let monitor = LabMonitor1Node()
+        monitor.position = geometryStore.configuration.labMonitor1Position
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        labMonitor1Node = monitor
+    }
+
     func refreshStoryVisuals() {
         let objectiveByID = Dictionary(uniqueKeysWithValues: sessionState.objectives.map { ($0.id, $0) })
         let visibility = stationVisibilitySystem
@@ -103,6 +133,7 @@ extension GameScene {
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        labTableNode?.isHidden = !visibility.shouldShowStation(interactionID: Self.labScannerRepairInteractionID)
         if albumBookNode?.isHidden == true {
             albumBookNode?.setProximityHighlighted(false, animated: false)
             hideAlbumButton()
@@ -110,6 +141,12 @@ extension GameScene {
         if foodObject?.isHidden == true {
             foodObject?.setProximityHighlighted(false, animated: false)
             hideFoodInteractionButton()
+        }
+        if labTableNode?.isHidden == true {
+            labTableNode?.setProximityHighlighted(false, animated: false)
+        }
+        if labMonitor2Node?.isHidden == true {
+            labMonitor2Node?.setProximityHighlighted(false, animated: false)
         }
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
@@ -124,7 +161,8 @@ extension GameScene {
             node.isHidden = !visibility.shouldShowStation(interactionID: id)
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
-        albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        labTableNode?.isHidden = !visibility.shouldShowStation(interactionID: Self.labScannerRepairInteractionID)
         if albumBookNode?.isHidden == true {
             albumBookNode?.setProximityHighlighted(false, animated: false)
             hideAlbumButton()
@@ -132,6 +170,12 @@ extension GameScene {
         if foodObject?.isHidden == true {
             foodObject?.setProximityHighlighted(false, animated: false)
             hideFoodInteractionButton()
+        }
+        if labTableNode?.isHidden == true {
+            labTableNode?.setProximityHighlighted(false, animated: false)
+        }
+        if labMonitor2Node?.isHidden == true {
+            labMonitor2Node?.setProximityHighlighted(false, animated: false)
         }
     }
 

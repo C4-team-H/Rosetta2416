@@ -1,12 +1,15 @@
 import SpriteKit
 import UIKit
 
-final class KitchenTableNode: SKNode {
-    static let artworkScale: CGFloat = 1.3
+/// Decorative proximity overlay for the Lab Main Table.
+/// Visually replaces the `station-lab-scanner-repair` easel node in the Lab room.
+/// Shows a white outline when the player enters the interaction radius.
+final class LabTableNode: SKNode {
+    static let artworkScale: CGFloat = 1.25
     static let interactionRadius = GameMapLayout.scaled(76)
     static let outlineWidth = GameMapLayout.scaled(2)
 
-    private static let highlightActionKey = "kitchen-table-highlight-transition"
+    private static let highlightActionKey = "lab-table-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18
 
     let artworkSprite: SKSpriteNode
@@ -16,13 +19,13 @@ final class KitchenTableNode: SKNode {
     private let highlightUniform: SKUniform
 
     init(
-        image: UIImage? = UIImage(named: "KitchenTable"),
-        outlineWidth: CGFloat = KitchenTableNode.outlineWidth
+        image: UIImage? = UIImage(named: "LabTable"),
+        outlineWidth: CGFloat = LabTableNode.outlineWidth
     ) {
         guard let sourceImage = image,
               sourceImage.size.width > 0,
               sourceImage.size.height > 0 else {
-            preconditionFailure("Missing or empty KitchenTable artwork")
+            preconditionFailure("Missing or empty LabTable artwork")
         }
 
         artworkSize = sourceImage.size
@@ -47,14 +50,14 @@ final class KitchenTableNode: SKNode {
                 height: paddedImage.size.height * Self.artworkScale
             )
         )
-        artworkSprite.name = "kitchen-table-artwork"
+        artworkSprite.name = "lab-table-artwork"
         artworkSprite.shader = SKShader(
             source: Self.outlineShaderSource,
             uniforms: [highlightUniform, outlineStepUniform]
         )
 
         super.init()
-        name = "kitchen-table"
+        name = "lab-table"
         addChild(artworkSprite)
     }
 
