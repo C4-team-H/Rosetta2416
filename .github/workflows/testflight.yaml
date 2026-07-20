@@ -44,42 +44,20 @@ jobs:
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APP_BUNDLE_ID: com.academy.hendraaaa.Rosetta
         run: |
           set -euo pipefail
 
           CERTIFICATE_PATH="$RUNNER_TEMP/distribution.p12"
-          PP_PATH="$RUNNER_TEMP/build.mobileprovision"
+          PROFILE_PATH="$RUNNER_TEMP/Rosetta.mobileprovision"
           PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
 
-          if [ -z "$BUILD_CERTIFICATE_BASE64" ]; then
-            echo "BUILD_CERTIFICATE_BASE64 is empty"
-            exit 1
-          fi
-
-          if [ -z "$BUILD_PROVISION_PROFILE_BASE64" ]; then
-            echo "BUILD_PROVISION_PROFILE_BASE64 is empty"
-            exit 1
-          fi
-
-          if [ -z "$P12_PASSWORD" ]; then
-            echo "P12_PASSWORD is empty"
-            exit 1
-          fi
-
           printf '%s' "$BUILD_CERTIFICATE_BASE64" \
-            | /usr/bin/base64 -D \
-            > "$CERTIFICATE_PATH"
+            | base64 -D > "$CERTIFICATE_PATH"
 
           printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" \
-            | /usr/bin/base64 -D \
-            > "$PP_PATH"
-
-          echo "Decoded certificate size:"
-          stat -f "%z bytes" "$CERTIFICATE_PATH"
-
-          echo "Decoded provisioning profile size:"
-          stat -f "%z bytes" "$PP_PATH"
+            | base64 -D > "$PROFILE_PATH"
 
           security create-keychain \
             -p "$KEYCHAIN_PASSWORD" \
@@ -108,15 +86,9 @@ jobs:
             -d user \
             -s "$KEYCHAIN_PATH"
 
-          echo "Available signing identities:"
-          security find-identity \
-            -v \
-            -p codesigning \
-            "$KEYCHAIN_PATH"
-
           security cms \
             -D \
-            -i "$PP_PATH" \
+            -i "$PROFILE_PATH" \
             > "$PROFILE_PLIST"
 
           PROFILE_UUID=$(
@@ -131,15 +103,48 @@ jobs:
               "$PROFILE_PLIST"
           )
 
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_APP_IDENTIFIER=$(
+            /usr/libexec/PlistBuddy \
+              -c "Print :Entitlements:application-identifier" \
+              "$PROFILE_PLIST"
+          )
 
-          cp "$PP_PATH" \
-            "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          PROFILE_BUNDLE_ID="${PROFILE_APP_IDENTIFIER#*.}"
 
-          echo "Installed provisioning profile:"
-          echo "Name: $PROFILE_NAME"
-          echo "UUID: $PROFILE_UUID"
+          echo "Profile name: $PROFILE_NAME"
+          echo "Profile UUID: $PROFILE_UUID"
+          echo "Profile Bundle ID: $PROFILE_BUNDLE_ID"
 
+          if [ "$PROFILE_BUNDLE_ID" != "$APP_BUNDLE_ID" ]; then
+            echo "ERROR: Provisioning profile Bundle ID mismatch"
+            echo "Expected: $APP_BUNDLE_ID"
+            echo "Found: $PROFILE_BUNDLE_ID"
+            exit 1
+          fi
+
+          OLD_PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          NEW_PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+
+          mkdir -p "$OLD_PROFILE_DIR"
+          mkdir -p "$NEW_PROFILE_DIR"
+
+          cp "$PROFILE_PATH" \
+            "$OLD_PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+
+          cp "$PROFILE_PATH" \
+            "$NEW_PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+
+          echo "Installed profiles:"
+          find "$OLD_PROFILE_DIR" "$NEW_PROFILE_DIR" \
+            -name "*.mobileprovision" \
+            -print
+
+          echo "Available signing identities:"
+          security find-identity -v -p codesigning
+          
       - name: Verify signing identities
         run: |
           security find-identity -v -p codesigning
