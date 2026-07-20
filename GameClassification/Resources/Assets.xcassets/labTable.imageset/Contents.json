@@ -1,17 +1,17 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "LabTable.png",
-      "idiom": "universal",
-      "scale": "1x"
+      "filename" : "LabTable.png",
+      "idiom" : "universal",
+      "scale" : "1x"
     },
     {
-      "idiom": "universal",
-      "scale": "2x"
+      "idiom" : "universal",
+      "scale" : "2x"
     },
     {
-      "idiom": "universal",
-      "scale": "3x"
+      "idiom" : "universal",
+      "scale" : "3x"
     }
   ],
   "info": {
