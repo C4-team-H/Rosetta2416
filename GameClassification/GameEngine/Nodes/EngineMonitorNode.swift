@@ -1,12 +1,12 @@
 import SpriteKit
 import UIKit
 
-final class LabMonitor1Node: SKNode {
-    static let artworkScale: CGFloat = 1.0
+final class EngineMonitorNode: SKNode {
+    static let artworkScale: CGFloat = 0.8
     static let interactionRadius = GameMapLayout.scaled(76)
     static let outlineWidth = GameMapLayout.scaled(2)
 
-    private static let highlightActionKey = "lab-monitor-1-highlight-transition"
+    private static let highlightActionKey = "engine-monitor-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18
 
     let artworkSprite: SKSpriteNode
@@ -16,14 +16,10 @@ final class LabMonitor1Node: SKNode {
     private let highlightUniform: SKUniform
 
     init(
-        image: UIImage? = UIImage(named: "labMonitor1"),
-        outlineWidth: CGFloat = LabMonitor1Node.outlineWidth
+        image: UIImage? = UIImage(named: "EngineMonitor"),
+        outlineWidth: CGFloat = EngineMonitorNode.outlineWidth
     ) {
-        guard let sourceImage = image,
-              sourceImage.size.width > 0,
-              sourceImage.size.height > 0 else {
-            preconditionFailure("Missing or empty labMonitor1 artwork")
-        }
+        let sourceImage = image ?? UIImage()
         artworkSize = sourceImage.size
 
         let padding = ceil(outlineWidth) + 2
@@ -45,14 +41,14 @@ final class LabMonitor1Node: SKNode {
         )
 
         artworkSprite = SKSpriteNode(texture: paddedTexture, size: paddedDisplaySize)
-        artworkSprite.name = "lab-monitor-1-artwork"
+        artworkSprite.name = "engine-monitor-artwork"
         artworkSprite.shader = SKShader(
             source: Self.outlineShaderSource,
             uniforms: [highlightUniform, outlineStepUniform]
         )
 
         super.init()
-        name = "lab-monitor-1"
+        name = "engine-monitor"
         addChild(artworkSprite)
     }
 

@@ -170,6 +170,32 @@ struct LightingSystemTests {
         #expect(candleWorldZ < joystickWorldZ)
     }
 
+    @Test("Candle overlay also covers the rocket power-off smoke effect")
+    func candleOverlayCoversRocketPowerOffSmoke() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createRocketPowerOffSmoke()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let smoke = try #require(scene.rocketPowerOffSmokeNode)
+        let candleLight = try #require(scene.candleLight)
+
+        let smokeWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + smoke.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(smokeWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+    }
+
     @Test("Engine restoration leaves Cockpit displays off until Victory")
     func cockpitDisplaysWaitForVictory() {
         let scene = makeScene()

@@ -15,7 +15,17 @@ final class GameScene: SKScene {
     static let gameplayCameraScale: CGFloat = (0.6 / 2.25) * GameMapLayout.artworkScale
     /// Keeps camera-space lighting above every gameplay world layer while HUD children remain above it.
     static let cameraOverlayRootZ: CGFloat = 100
+    static let labMemoryRepairInteractionID = "lab-memory-repair"
     static let labScannerRepairInteractionID = "lab-scanner-repair"
+    static let engineIgnitionCoilInteractionID = "engine-ignition-coil"
+    static let enginePowerConnectorInteractionID = "engine-power-connector"
+    static let engineReactorLinkInteractionID = "engine-reactor-link"
+
+    static let replacedEngineStationIDs: Set<String> = [
+        engineIgnitionCoilInteractionID,
+        enginePowerConnectorInteractionID,
+        engineReactorLinkInteractionID
+    ]
 
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel
@@ -45,6 +55,8 @@ final class GameScene: SKScene {
     var labTableNode: LabTableNode?
     var labMonitor2Node: LabMonitor2Node?
     var labMonitor1Node: LabMonitor1Node?
+    var engineMonitorNode: EngineMonitorNode?
+    var rocketPowerOffSmokeNode: RocketPowerOffSmokeNode?
     var activeStationID: String?
     var lastDeniedStationID: String?
     var lastDeniedDoorID: DoorID?
@@ -152,6 +164,9 @@ final class GameScene: SKScene {
         createAlbumBook()
         createLabTable()
         createLabMonitor2()
+        createLabMonitor1()
+        createEngineMonitor()
+        createRocketPowerOffSmoke()
         enableCandleLight()
         refreshStoryVisuals()
 
@@ -226,6 +241,7 @@ final class GameScene: SKScene {
             labTableNode?.setProximityHighlighted(false, animated: false)
             labMonitor2Node?.setProximityHighlighted(false, animated: false)
             labMonitor1Node?.setProximityHighlighted(false, animated: false)
+            engineMonitorNode?.setProximityHighlighted(false, animated: false)
         } else if tacticalMapViewModel.isMapPresented {
             if !wasMapInputSuspended {
                 clearPencilTarget()
@@ -432,6 +448,8 @@ final class GameScene: SKScene {
             createLabTable()
             createLabMonitor2()
             createLabMonitor1()
+            createEngineMonitor()
+            createRocketPowerOffSmoke()
         }
         if update.changeSet.isFullReplacement || changedCategories.contains(.object) {
             createAlbumBook()
@@ -508,6 +526,8 @@ final class GameScene: SKScene {
         createLabTable()
         createLabMonitor2()
         createLabMonitor1()
+        createEngineMonitor()
+        createRocketPowerOffSmoke()
         refreshStoryVisuals()
         resetPlayerToDebugSpawnIfInvalid()
     }

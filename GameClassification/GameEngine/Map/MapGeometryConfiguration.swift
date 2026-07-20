@@ -572,7 +572,7 @@ extension MapGeometryConfiguration {
         return CGPoint(x: counter.position.x, y: counter.position.y + 2)
     }
 
-    /// The lab table artwork sits on the Lab Main Table object, nudged up +6 for art alignment.
+    /// The lab table artwork sits on the Lab Main Table object, nudged up +46 for art alignment.
     var labTablePosition: CGPoint {
         guard let table = objects.first(where: { $0.id == "object-lab-main-table" }) else {
             return spawnPoint(for: .laboratory) ?? .zero
@@ -588,12 +588,25 @@ extension MapGeometryConfiguration {
         return CGPoint(x: anchor.position.x, y: anchor.position.y + 6)
     }
 
-    /// The lab monitor 1 artwork sits on the Lab Monitor 1 object, nudged up +6 for art alignment.
+    /// The lab monitor 1 artwork sits on the Lab Monitor 1 object.
     var labMonitor1Position: CGPoint {
         guard let anchor = objects.first(where: { $0.id == "object-lab-monitor-1" }) else {
             return spawnPoint(for: .laboratory) ?? .zero
         }
-        return CGPoint(x: anchor.position.x, y: anchor.position.y + 6)
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// The engine monitor artwork sits on the Starboard Equipment object in the Engine Room.
+    var engineMonitorPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-engine-starboard-equipment" }) else {
+            return spawnPoint(for: .engine) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// Power-off rocket smoke/fire effect anchor requested in world-space.
+    var rocketPowerOffSmokePosition: CGPoint {
+        CGPoint(x: 2750.33, y: 531.5)
     }
 
     func spawnPoint(for roomID: RoomID) -> CGPoint? {

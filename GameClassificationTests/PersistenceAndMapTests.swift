@@ -543,7 +543,117 @@ struct LabMonitor2Tests {
     }
 }
 
-// MARK: - Lab Monitor 1
+@Suite("Rocket power-off smoke")
+@MainActor
+struct RocketPowerOffSmokeTests {
+    @Test("Rocket power-off smoke uses the requested world coordinate")
+    func rocketPowerOffSmokeCoordinate() {
+        let position = MapGeometryConfiguration.drawingSpaceDefault.rocketPowerOffSmokePosition
+        #expect(abs(position.x - 2750.33) < 0.001)
+        #expect(abs(position.y - 521.5) < 0.001)
+    }
+
+    @Test("Rocket power-off smoke node animates a single sprite from four frames")
+    func rocketPowerOffSmokeNodeContract() {
+        let smoke = RocketPowerOffSmokeNode()
+
+        #expect(smoke.name == "rocket-power-off-smoke")
+        #expect(smoke.children.count == 1)
+        #expect(smoke.children.first === smoke.artworkSprite)
+        #expect(smoke.artworkSprite.name == "rocket-power-off-smoke-artwork")
+        #expect(smoke.animationFrameCount == 4)
+        #expect(smoke.artworkSize.width > 0)
+        #expect(smoke.artworkSize.height > 0)
+        #expect(abs(smoke.artworkSprite.size.width - smoke.artworkSize.width * RocketPowerOffSmokeNode.displayScale) < 0.001)
+        #expect(abs(smoke.artworkSprite.size.height - smoke.artworkSize.height * RocketPowerOffSmokeNode.displayScale) < 0.001)
+        #expect(smoke.artworkSprite.xScale == 1)
+        #expect(smoke.artworkSprite.yScale == 1)
+        #expect(smoke.isHidden)
+        #expect(!smoke.isEffectActive)
+
+        smoke.setEffectActive(true)
+        #expect(!smoke.isHidden)
+        #expect(smoke.isEffectActive)
+        #expect(smoke.artworkSprite.action(forKey: RocketPowerOffSmokeNode.animationActionKey) != nil)
+
+        smoke.setEffectActive(false)
+        #expect(smoke.isHidden)
+        #expect(!smoke.isEffectActive)
+        #expect(smoke.artworkSprite.action(forKey: RocketPowerOffSmokeNode.animationActionKey) == nil)
+    }
+
+    @Test("Rocket power-off smoke appears only for dark or broken engine power states")
+    func rocketPowerOffSmokeVisibilityFollowsPowerState() throws {
+        let offScene = makeScene(powerState: .off)
+        offScene.createShipMap()
+        offScene.createRocketPowerOffSmoke()
+        let offSmoke = try #require(offScene.rocketPowerOffSmokeNode)
+        #expect(abs(offSmoke.position.x - MapGeometryConfiguration.drawingSpaceDefault.rocketPowerOffSmokePosition.x) < 0.001)
+        #expect(abs(offSmoke.position.y - MapGeometryConfiguration.drawingSpaceDefault.rocketPowerOffSmokePosition.y) < 0.001)
+        #expect(offSmoke.isEffectActive)
+        #expect(!offSmoke.isHidden)
+
+        offScene.sessionState.storySystem.restore(makeStory(powerState: .basicPower))
+        offScene.updateStationVisibility()
+        #expect(!offSmoke.isEffectActive)
+        #expect(offSmoke.isHidden)
+
+        offScene.sessionState.storySystem.restore(makeStory(powerState: .disrupted))
+        offScene.updateStationVisibility()
+        #expect(offSmoke.isEffectActive)
+        #expect(!offSmoke.isHidden)
+
+        let restoredScene = makeScene(powerState: .fullyRestored)
+        restoredScene.createShipMap()
+        restoredScene.createRocketPowerOffSmoke()
+        let restoredSmoke = try #require(restoredScene.rocketPowerOffSmokeNode)
+        #expect(!restoredSmoke.isEffectActive)
+        #expect(restoredSmoke.isHidden)
+    }
+
+    private func makeScene(powerState: ShipPowerState) -> GameScene {
+        let storySystem = StoryProgressionSystem(state: makeStory(powerState: powerState))
+        let session = GameSessionState(localPlayer: PlayerState(
+            id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
+        ), storySystem: storySystem)
+        return GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: TacticalMapViewModel(sessionState: session)
+        )
+    }
+
+    private func makeStory(powerState: ShipPowerState) -> StoryState {
+        var story = StoryState.initial
+        switch powerState {
+        case .off:
+            break
+        case .basicPower:
+            story.completedChallengeIDs.formUnion(StoryConfiguration.laboratoryChallenges.map(\.id))
+            story.completedChallengeIDs.insert(StoryConfiguration.engineInitialChallenges[0].id)
+        case .disrupted:
+            story.completedChallengeIDs.formUnion(StoryConfiguration.laboratoryChallenges.map(\.id))
+            story.completedChallengeIDs.formUnion(StoryConfiguration.engineInitialChallenges.prefix(4).map(\.id))
+        case .fullyRestored:
+            story.completedChallengeIDs.formUnion(StoryConfiguration.laboratoryChallenges.map(\.id))
+            story.completedChallengeIDs.formUnion(StoryConfiguration.engineInitialChallenges.map(\.id))
+            story.completedChallengeIDs.formUnion(StoryConfiguration.storageChallenges.map(\.id))
+            story.completedChallengeIDs.formUnion(StoryConfiguration.engineFinalChallenges.map(\.id))
+        }
+        switch powerState {
+        case .off:
+            story.engineProgress = 0
+        case .basicPower:
+            story.engineProgress = 10
+        case .disrupted:
+            story.engineProgress = 40
+        case .fullyRestored:
+            story.engineProgress = 100
+        }
+        story.powerState = powerState
+        return story
+    }
+}
 
 @Suite("Lab Monitor 1")
 @MainActor
@@ -570,14 +680,18 @@ struct LabMonitor1Tests {
             sessionState: session,
             tacticalMapViewModel: mapViewModel
         )
+        scene.createShipMap()
         scene.createPlayer()
         scene.createLabMonitor1()
         scene.createInteractiveStations()
+        scene.updateStationVisibility()
 
         guard let monitor = scene.labMonitor1Node else {
             Issue.record("Lab Monitor 1 node was not created")
             return
         }
+        #expect(!monitor.isHidden)
+        #expect(scene.stationNodes[GameScene.labMemoryRepairInteractionID] == nil)
         #expect(monitor.position == MapGeometryConfiguration.drawingSpaceDefault.labMonitor1Position)
         #expect(monitor.artworkSize == CGSize(width: 137, height: 365))
         #expect(monitor.artworkSprite.xScale == 1)
@@ -624,15 +738,19 @@ struct LabMonitor1Tests {
             sessionState: session,
             tacticalMapViewModel: mapViewModel
         )
+        scene.createShipMap()
         scene.createPlayer()
         scene.createLabMonitor1()
+        scene.updateStationVisibility()
         guard let monitor = scene.labMonitor1Node else {
             Issue.record("Lab Monitor 1 node was not created")
             return
         }
+        #expect(monitor.isHidden)
         scene.player.position = monitor.position
         scene.checkProximityToInteractiveObject()
         #expect(!monitor.isProximityHighlighted)
+        #expect(scene.actionButton == nil)
     }
 
     @Test("Hidden lab monitor 1 clears highlight")
@@ -658,7 +776,7 @@ struct LabMonitor1Tests {
         #expect(!monitor.isProximityHighlighted)
     }
 
-    @Test("station-lab-memory-repair is not created as a visual station node")
+    @Test("lab-memory-repair is not created as an orange rectangle station node")
     func stationLabMemoryRepairNotCreated() {
         let session = makeSession()
         session.beginGameplay()
@@ -670,7 +788,157 @@ struct LabMonitor1Tests {
         )
         scene.createShipMap()
         scene.createInteractiveStations()
-        #expect(scene.stationNodes["station-lab-memory-repair"] == nil)
+        #expect(scene.stationNodes[GameScene.labMemoryRepairInteractionID] == nil)
+    }
+
+    private func makeSession() -> GameSessionState {
+        GameSessionState(localPlayer: PlayerState(
+            id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
+        ))
+    }
+
+    private func validate(_ id: String, in session: GameSessionState) {
+        guard let prompt = session.storySystem.currentPrompt(for: id) else { return }
+        _ = session.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
+        ))
+    }
+}
+
+// MARK: - Engine Monitor
+
+@Suite("Engine Monitor")
+@MainActor
+struct EngineMonitorTests {
+    @Test("Engine Monitor position derived from object-engine-starboard-equipment")
+    func engineMonitorCoordinate() {
+        let configuration = MapGeometryConfiguration.drawingSpaceDefault
+        let anchor = configuration.objects.first { $0.id == "object-engine-starboard-equipment" }
+        #expect(anchor != nil)
+        #expect(configuration.engineMonitorPosition == CGPoint(
+            x: anchor?.position.x ?? .zero,
+            y: anchor?.position.y ?? .zero
+        ))
+    }
+
+    @Test("Engine Monitor sprite uses one shader-backed sprite and follows the interaction radius")
+    func engineMonitorProximityHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.engine))
+        validate("engine-ignition-coil", in: session)
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createInteractiveStations()
+        scene.createEngineMonitor()
+        scene.updateStationVisibility()
+
+        guard let monitor = scene.engineMonitorNode else {
+            Issue.record("Engine Monitor node was not created")
+            return
+        }
+        #expect(!monitor.isHidden)
+        for id in GameScene.replacedEngineStationIDs {
+            #expect(scene.stationNodes[id] == nil)
+        }
+        #expect(monitor.position == MapGeometryConfiguration.drawingSpaceDefault.engineMonitorPosition)
+        #expect(monitor.artworkSize == CGSize(width: 414, height: 247))
+        #expect(monitor.artworkSprite.xScale == 1)
+        #expect(monitor.artworkSprite.yScale == 1)
+        #expect(monitor.children.count == 1)
+        #expect(monitor.children.first === monitor.artworkSprite)
+        #expect(monitor.artworkSprite.shader != nil)
+        #expect(!monitor.isProximityHighlighted)
+
+        scene.player.position = monitor.position
+        scene.checkProximityToInteractiveObject()
+        #expect(monitor.isProximityHighlighted)
+        #expect(monitor.action(forKey: "engine-monitor-highlight-transition") != nil)
+        #expect(scene.activeStationID == "engine-ignition-coil")
+        #expect(scene.actionButton != nil)
+
+        scene.player.position = CGPoint(
+            x: monitor.position.x + EngineMonitorNode.interactionRadius + 1,
+            y: monitor.position.y
+        )
+        scene.checkProximityToInteractiveObject()
+        #expect(!monitor.isProximityHighlighted)
+        #expect(scene.activeStationID == nil)
+        #expect(scene.actionButton == nil)
+    }
+
+    @Test("Engine Monitor has no highlight when no objective is active")
+    func engineMonitorNoHighlightWithoutObjective() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createEngineMonitor()
+        scene.updateStationVisibility()
+        guard let monitor = scene.engineMonitorNode else {
+            Issue.record("Engine Monitor node was not created")
+            return
+        }
+        #expect(monitor.isHidden)
+        scene.player.position = monitor.position
+        scene.checkProximityToInteractiveObject()
+        #expect(!monitor.isProximityHighlighted)
+        #expect(scene.actionButton == nil)
+    }
+
+    @Test("Hidden engine monitor clears highlight")
+    func engineMonitorHiddenClearsHighlight() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.engine))
+        validate("engine-ignition-coil", in: session)
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createEngineMonitor()
+        scene.updateStationVisibility()
+        guard let monitor = scene.engineMonitorNode else {
+            Issue.record("Engine Monitor node was not created")
+            return
+        }
+        monitor.isHidden = true
+        scene.checkProximityToInteractiveObject()
+        #expect(!monitor.isProximityHighlighted)
+    }
+
+    @Test("Replaced engine stations are not created as orange rectangle station nodes")
+    func replacedEngineStationsNotCreated() {
+        let session = makeSession()
+        session.beginGameplay()
+        let mapViewModel = TacticalMapViewModel(sessionState: session)
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: mapViewModel
+        )
+        scene.createShipMap()
+        scene.createInteractiveStations()
+        for id in GameScene.replacedEngineStationIDs {
+            #expect(scene.stationNodes[id] == nil)
+        }
     }
 
     private func makeSession() -> GameSessionState {

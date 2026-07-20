@@ -55,7 +55,8 @@ extension GameScene {
         for definition in gameMap.stations {
             guard definition.id != Self.labScannerRepairInteractionID else { continue }
             guard definition.id != "lab-terminal-repair" else { continue }
-            guard definition.id != "station-lab-memory-repair" else { continue }
+            guard definition.id != Self.labMemoryRepairInteractionID else { continue }
+            guard !Self.replacedEngineStationIDs.contains(definition.id) else { continue }
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
             attachInteractionSensor(to: station, id: definition.id)
             parent.addChild(station)
@@ -109,6 +110,25 @@ extension GameScene {
         labMonitor1Node = monitor
     }
 
+    func createEngineMonitor() {
+        engineMonitorNode?.removeFromParent()
+        let monitor = EngineMonitorNode()
+        monitor.position = geometryStore.configuration.engineMonitorPosition
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        engineMonitorNode = monitor
+    }
+
+    func createRocketPowerOffSmoke() {
+        rocketPowerOffSmokeNode?.removeFromParent()
+        let smoke = RocketPowerOffSmokeNode()
+        smoke.position = geometryStore.configuration.rocketPowerOffSmokePosition
+        smoke.zPosition = 2.1
+        (shipMapNode?.furnitureLayer ?? self).addChild(smoke)
+        rocketPowerOffSmokeNode = smoke
+        refreshRocketPowerOffSmokeVisibility()
+    }
+
     func refreshStoryVisuals() {
         let objectiveByID = Dictionary(uniqueKeysWithValues: sessionState.objectives.map { ($0.id, $0) })
         let visibility = stationVisibilitySystem
@@ -134,6 +154,7 @@ extension GameScene {
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
         labTableNode?.isHidden = !visibility.shouldShowStation(interactionID: Self.labScannerRepairInteractionID)
+        labMonitor1Node?.isHidden = !isLabMemoryRepairInteractable
         if albumBookNode?.isHidden == true {
             albumBookNode?.setProximityHighlighted(false, animated: false)
             hideAlbumButton()
@@ -148,6 +169,22 @@ extension GameScene {
         if labMonitor2Node?.isHidden == true {
             labMonitor2Node?.setProximityHighlighted(false, animated: false)
         }
+        if labMonitor1Node?.isHidden == true {
+            labMonitor1Node?.setProximityHighlighted(false, animated: false)
+            if activeStationID == Self.labMemoryRepairInteractionID {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        engineMonitorNode?.isHidden = !isEngineMonitorInteractable
+        if engineMonitorNode?.isHidden == true {
+            engineMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedEngineStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        refreshRocketPowerOffSmokeVisibility()
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
             walkabilitySystem.updateDoorStates(doorStates)
@@ -161,8 +198,9 @@ extension GameScene {
             node.isHidden = !visibility.shouldShowStation(interactionID: id)
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
-albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
         labTableNode?.isHidden = !visibility.shouldShowStation(interactionID: Self.labScannerRepairInteractionID)
+        labMonitor1Node?.isHidden = !isLabMemoryRepairInteractable
         if albumBookNode?.isHidden == true {
             albumBookNode?.setProximityHighlighted(false, animated: false)
             hideAlbumButton()
@@ -177,6 +215,50 @@ albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVi
         if labMonitor2Node?.isHidden == true {
             labMonitor2Node?.setProximityHighlighted(false, animated: false)
         }
+        if labMonitor1Node?.isHidden == true {
+            labMonitor1Node?.setProximityHighlighted(false, animated: false)
+            if activeStationID == Self.labMemoryRepairInteractionID {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        engineMonitorNode?.isHidden = !isEngineMonitorInteractable
+        if engineMonitorNode?.isHidden == true {
+            engineMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedEngineStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        refreshRocketPowerOffSmokeVisibility()
+    }
+
+    private var isLabMemoryRepairInteractable: Bool {
+        guard let objective = sessionState.objectives.first(where: { $0.id == Self.labMemoryRepairInteractionID }) else {
+            return false
+        }
+        return objective.status == .available || objective.status == .active
+    }
+
+    private var isEngineMonitorInteractable: Bool {
+        let objectives = sessionState.objectives
+        return Self.replacedEngineStationIDs.contains { engineID in
+            guard let objective = objectives.first(where: { $0.id == engineID }) else { return false }
+            return objective.status == .available || objective.status == .active
+        }
+    }
+
+    private var shouldShowRocketPowerOffSmoke: Bool {
+        switch sessionState.sharedStory.powerState {
+        case .off, .disrupted:
+            return true
+        case .basicPower, .fullyRestored:
+            return false
+        }
+    }
+
+    private func refreshRocketPowerOffSmokeVisibility() {
+        rocketPowerOffSmokeNode?.setEffectActive(shouldShowRocketPowerOffSmoke)
     }
 
     func animateCompletedStation(id: String) {

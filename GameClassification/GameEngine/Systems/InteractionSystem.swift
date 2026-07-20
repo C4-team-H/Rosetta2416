@@ -7,6 +7,7 @@ extension GameScene {
             labTableNode?.setProximityHighlighted(false)
             labMonitor2Node?.setProximityHighlighted(false)
             labMonitor1Node?.setProximityHighlighted(false)
+            engineMonitorNode?.setProximityHighlighted(false)
             hideInteractionButton()
             return
         }
@@ -38,15 +39,28 @@ extension GameScene {
         }
         let labMonitor1Candidate = labMonitor1Node.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
             guard !node.isHidden,
-                  let objective = sessionState.objectives.first(where: { $0.id == "lab-memory-repair" }),
+                  let objective = sessionState.objectives.first(where: { $0.id == Self.labMemoryRepairInteractionID }),
                   objective.status == .available || objective.status == .active else { return nil }
             return (
-                id: "lab-memory-repair",
+                id: Self.labMemoryRepairInteractionID,
                 distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
                 radius: LabMonitor1Node.interactionRadius
             )
         }
-        let nearest = (stationCandidates + [labTableCandidate, labMonitor2Candidate, labMonitor1Candidate].compactMap { $0 })
+        let engineMonitorCandidate = engineMonitorNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            let eligibleID = Self.replacedEngineStationIDs.first { engineID in
+                guard let objective = sessionState.objectives.first(where: { $0.id == engineID }) else { return false }
+                return objective.status == .available || objective.status == .active
+            }
+            guard let eligibleID else { return nil }
+            return (
+                id: eligibleID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: EngineMonitorNode.interactionRadius
+            )
+        }
+        let nearest = (stationCandidates + [labTableCandidate, labMonitor2Candidate, labMonitor1Candidate, engineMonitorCandidate].compactMap { $0 })
             .filter { $0.distance <= $0.radius }
             .min { $0.distance < $1.distance }
         labTableNode?.setProximityHighlighted(
@@ -57,6 +71,9 @@ extension GameScene {
         )
         labMonitor1Node?.setProximityHighlighted(
             labMonitor1Candidate.map { $0.distance <= $0.radius } ?? false
+        )
+        engineMonitorNode?.setProximityHighlighted(
+            engineMonitorCandidate.map { $0.distance <= $0.radius } ?? false
         )
 
         guard let nearest,

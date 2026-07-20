@@ -1,6 +1,6 @@
 ---
 name: add-spritekit-map-object
-description: Add or replace interactive SpriteKit artwork objects in the GameClassification map in /Users/neuhendra/Developer/cobaGameC4. Use when a user supplies a PNG or asset and asks to place it at an existing map object or centralized coordinate, resize or offset it, register proximity interaction, add or tune a smooth white outline, make it follow the candle darkness overlay, connect an action or Tactical Map marker, or repeat the Album Book integration pattern without duplicating gameplay, lighting, or story systems.
+description: Add or replace interactive SpriteKit artwork and mission-station visuals in the GameClassification map in /Users/neuhendra/Developer/cobaGameC4. Use when a user supplies a PNG or asset and asks to place it at an existing map object or centralized coordinate, replace a legacy station rectangle, resize or offset it, gate visibility and interaction by mission status, register proximity interaction, add or tune a smooth white outline, make it follow the candle darkness overlay, connect an action or Tactical Map marker, or repeat the Album Book/Lab Monitor integration patterns without duplicating gameplay, lighting, or story systems.
 ---
 
 # Add SpriteKit Map Object
@@ -14,12 +14,13 @@ Determine these values from the request and current checkout before editing:
 - Swift type and scene property names
 - asset source path and asset-catalog name
 - node name and interaction ID
+- for a station replacement: authored station definition ID, runtime interaction/objective ID, and the legacy visual owner
 - anchor map object ID or existing centralized coordinate
 - map-space offset from the anchor
 - rendered artwork multiplier or exact size
 - interaction radius and outline width
 - whether it is a world object that must follow candle darkness or a camera-space HUD element
-- interaction action, action-button label, visibility rule, and Tactical Map marker requirement
+- interaction action, action-button label, visibility rule, active mission statuses, and Tactical Map marker requirement
 
 Infer naming and purely visual defaults from nearby code. Ask only when an unspecified action or story condition would materially change gameplay.
 
@@ -28,14 +29,14 @@ Infer naming and purely visual defaults from nearby code. Ask only when an unspe
 1. Read [references/cobagamec4-integration.md](references/cobagamec4-integration.md) before patching this repository.
 2. Inspect local instructions, `git status --short`, the supplied image, and current owners with `rg`. Preserve unrelated user changes.
 3. Add the image to `GameClassification/Resources/Assets.xcassets/<Asset>.imageset`. Keep the original transparent pixels and use a valid `Contents.json`.
-4. Add one computed position to the canonical `MapGeometryConfiguration`. Derive it from the configured anchor object or existing geometry plus the requested map-space offset. Do not create a second coordinate store.
+4. Add one computed position to the canonical `MapGeometryConfiguration`. Derive it from the configured anchor object or existing geometry plus the requested map-space offset. Keep this artwork anchor separate from the station's runtime interaction/objective ID, and do not create a second coordinate store.
 5. Create the visual node from [assets/InteractiveMapObjectNode.swift.template](assets/InteractiveMapObjectNode.swift.template). Replace every `__TOKEN__` and adapt names, size, radius, and outline width.
 6. Keep exactly one `SKSpriteNode` for the artwork. Expand its texture with transparent padding, apply the outline in one shader, and animate one highlight uniform. Set rendered dimensions through `SKSpriteNode.size`; keep `xScale` and `yScale` at `1` unless the request explicitly requires mirroring.
-7. Register one optional node property on `GameScene`. In `GameWorldBuilder`, remove the old instance before creating the new one, position it from `geometryStore.configuration`, and add it to `shipMapNode?.furnitureLayer ?? self`.
-8. Connect proximity through `InteractionSystem` and the existing scene update flow. Toggle highlight only when the desired state changes. On leaving the radius, hiding the object, pausing input, or leaving gameplay, remove the outline and interaction UI.
+7. Register one optional node property on `GameScene`. In `GameWorldBuilder`, remove the old instance before creating the new one, position it from `geometryStore.configuration`, and add it to `shipMapNode?.furnitureLayer ?? self`. When replacing a station visual, exclude that station's runtime interaction ID from legacy station-node creation so the old rectangle and new sprite cannot coexist.
+8. Connect proximity through `InteractionSystem` and the existing scene update flow. For a replacement mission station, insert the sprite as a candidate in the existing nearest-station/action-button flow, using the runtime objective ID and the sprite's radius. Require the configured active statuses—normally `.available` or `.active`—before the node can be visible, highlighted, selected as `activeStationID`, or show interaction UI. Toggle highlight only when the desired state changes. On leaving the radius, hiding or locking/completing the object, pausing input, or leaving gameplay, remove the outline and interaction UI and clear a matching active station.
 9. Verify the candle render stack described in [references/cobagamec4-integration.md](references/cobagamec4-integration.md#candle-overlay-and-render-order). Keep a world object's accumulated Z below the candle overlay and keep camera HUD controls above it. Use the shared overlay; do not darken individual objects separately.
-10. Recreate or reposition the object when map object geometry changes. Reuse the existing action, story, lighting, visibility, and marker systems; extend them only when the request requires new behavior.
-11. Add focused Swift Testing coverage. Start from [assets/InteractiveMapObjectTests.swift.template](assets/InteractiveMapObjectTests.swift.template), then adapt it to the actual scene action, lighting, and visibility contract.
+10. Create the object during initial scene setup and recreate or reposition it after full geometry replacement, forced geometry refresh, or every edited geometry category that owns its anchor or replaced station. Remove the old instance first. Reuse the existing action, story, lighting, visibility, and marker systems; extend them only when the request requires new behavior.
+11. Add focused Swift Testing coverage. Start from [assets/InteractiveMapObjectTests.swift.template](assets/InteractiveMapObjectTests.swift.template), then adapt it to the actual scene action, lighting, and visibility contract. For a station replacement, also prove that the legacy station node is absent, inactive missions hide and disable the sprite, active missions enable the existing action flow, leaving range clears outline/UI, and a later hide clears any matching `activeStationID`.
 
 ## Validate the integration
 
@@ -56,12 +57,15 @@ Then run the smallest relevant iOS Simulator test with an installed destination 
 ## Guardrails
 
 - Do not hard-code a second world position in the builder, marker factory, or interaction system.
+- Do not confuse an authored `station-*` definition ID with the runtime interaction/objective ID produced by `GameMapLayout.makeRuntimeMap`; inspect the conversion before filtering or indexing station nodes.
 - Do not silently substitute a nearby asset name or anchor object ID when the requested one is missing.
+- Do not leave the old shape/rectangle station visual alive behind a replacement sprite.
 - Do not add a duplicate sprite for the outline.
 - Do not add a per-object darkness shader, tint, or duplicate overlay when `CandleLightNode` should cover the world object.
 - Do not assign a world object's accumulated Z above the candle overlay; preserve `world object < candle overlay < camera HUD`.
 - Do not rebuild or restart the highlight action every frame.
 - Do not let interaction remain visible when the object becomes hidden or unavailable.
+- Do not let a locked, blocked, completed, or otherwise inactive mission replacement become a proximity candidate unless the user explicitly requests that status.
 - Do not move physical map collision merely to align decorative artwork unless explicitly requested.
 - Do not change unrelated story progression, station behavior, movement, collision, or map geometry.
 - Do not overwrite source assets or unrelated dirty worktree files.

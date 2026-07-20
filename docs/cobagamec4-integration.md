@@ -9,6 +9,7 @@ Read this file before implementing an interactive artwork object in `/Users/neuh
 - [Asset-catalog pattern](#asset-catalog-pattern)
 - [Node contract](#node-contract)
 - [Runtime and interaction contract](#runtime-and-interaction-contract)
+- [Mission-station visual replacement](#mission-station-visual-replacement)
 - [Candle overlay and render order](#candle-overlay-and-render-order)
 - [Story and marker boundary](#story-and-marker-boundary)
 - [Focused tests](#focused-tests)
@@ -20,6 +21,7 @@ Read this file before implementing an interactive artwork object in `/Users/neuh
 | --- | --- | --- |
 | Authored objects and derived positions | `GameClassification/GameEngine/Map/MapGeometryConfiguration.swift` | Keep the coordinate derived from live configured geometry. |
 | Runtime object creation | `GameClassification/GameEngine/World/GameWorldBuilder.swift` | Remove the prior node, construct once, and add it to the furniture layer. |
+| Legacy station visual suppression | `GameClassification/GameEngine/World/GameWorldBuilder.swift:createInteractiveStations()` | Exclude a replaced station by its runtime interaction ID so its shape and sprite are never both rendered. |
 | Scene-held state and update lifecycle | `GameClassification/GameEngine/Scenes/GameScene.swift` | Store the node, run proximity from the existing update loop, and rebuild after relevant geometry changes. |
 | Proximity and action UI | `GameClassification/GameEngine/Systems/InteractionSystem.swift` | Use the player's world position, node radius, highlight setter, and existing button/action flow. |
 | Candle darkness and render order | `GameClassification/GameEngine/Scenes/GameScene.swift`, `GameClassification/GameEngine/Nodes/Effects/CandleLightNode.swift`, `GameClassification/GameEngine/Systems/LightingSystem.swift` | Keep world objects below the shared candle overlay and camera HUD above it. |
@@ -108,6 +110,36 @@ The proximity check must:
 
 Call the check from the existing update loop. During map/debug suspension and story-driven hiding, reset immediately without animation. Recreate the node after full geometry replacement or `.object` changes, removing the old node first.
 
+## Mission-station visual replacement
+
+Use this path when supplied artwork replaces an existing mission or food station visual rather than adding a separate decorative object.
+
+First trace all identifiers through the runtime conversion. `MapStationDefinition.id` may be an authored editor ID such as `station-lab-memory-repair`, while `GameMapLayout.makeRuntimeMap` builds `StationDefinition.id` from `MapStationDefinition.interactionID`, such as `lab-memory-repair`. `stationNodes`, `activeStationID`, objective lookup, and station interaction requests use the runtime interaction/objective ID. The artwork position may still derive from a different authored map object such as `object-lab-monitor-1`.
+
+Define a scene-level constant for a replacement interaction ID when it is referenced in multiple owners. In `createInteractiveStations()`, skip that runtime ID before constructing the legacy `SKShapeNode`; then create exactly one custom sprite node separately. Do not remove the underlying station definition, objective, map object, collider, or story configuration.
+
+Keep mission availability centralized. Derive one Boolean from the existing objective state, normally `status == .available || status == .active`, and use it consistently in visibility refresh and proximity candidate construction:
+
+```swift
+private var isExampleMissionInteractable: Bool {
+    guard let objective = sessionState.objectives.first(where: {
+        $0.id == Self.exampleInteractionID
+    }) else { return false }
+    return objective.status == .available || objective.status == .active
+}
+```
+
+When the Boolean is false:
+
+- hide the replacement node;
+- remove its outline immediately with `animated: false` during a visibility refresh;
+- omit it from the nearest-station candidates;
+- clear `activeStationID` and hide the existing action button when it was the active station.
+
+When it is true, include the visible replacement node in `checkProximityToInteractiveObject()` with the existing station candidates. Use its own interaction radius, select it through the same nearest-candidate calculation, set `activeStationID` to the runtime objective ID, and reuse the existing action-button label and dispatch. The same in-range Boolean must control its outline. Leaving the radius must clear both the outline and action UI.
+
+Create the custom node during `didMove`, and recreate it after full replacement, `.missionStation`, `.foodStation`, or `.object` geometry changes according to the owners it depends on. Include it in `forceMapGeometryRefresh()`. Each creation path must remove the previous node first.
+
 ## Candle overlay and render order
 
 Treat every interactive object placed in `ShipMapNode.furnitureLayer` as world content that must follow the existing candle darkness by default. Do not add a second overlay, per-object dark tint, or darkness branch to the object's highlight shader.
@@ -163,6 +195,12 @@ Cover at least:
 - entering the radius activates highlight and the requested action UI;
 - leaving the radius deactivates both;
 - hidden or unavailable state clears highlight;
+- a replacement station does not create its legacy rectangle/shape node;
+- an inactive mission replacement is hidden, cannot highlight, cannot become `activeStationID`, and creates no action button;
+- an available or active mission replacement is visible and reuses the existing station action/button flow;
+- leaving its radius clears highlight, `activeStationID`, and the interaction button;
+- a visibility refresh that hides an active replacement clears highlight and interaction UI immediately;
+- geometry refresh recreates one replacement node without leaving a duplicate;
 - the object's accumulated Z is below the candle overlay while its interaction button or joystick remains above it;
 - a render smoke test can obtain an `SKTexture` from the highlighted node when practical.
 
