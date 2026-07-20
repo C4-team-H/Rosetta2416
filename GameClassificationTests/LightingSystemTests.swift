@@ -29,6 +29,173 @@ struct LightingSystemTests {
         #expect(abs((scene.gridContainer?.alpha ?? -1) - 1) < 0.001)
     }
 
+    @Test("Candle overlay darkens interactive furniture while camera HUD stays visible")
+    func candleOverlayCoversAlbumBook() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createAlbumBook()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let albumBook = try #require(scene.albumBookNode)
+        let candleLight = try #require(scene.candleLight)
+
+        scene.player.position = albumBook.position
+        scene.checkProximityToAlbumBook()
+        let albumButton = try #require(scene.albumBookButton)
+
+        let albumBookWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + albumBook.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+        let albumButtonWorldZ = scene.cameraNode.zPosition + albumButton.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(albumBookWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+        #expect(candleWorldZ < albumButtonWorldZ)
+    }
+
+    @Test("Candle overlay also covers the kitchen table object")
+    func candleOverlayCoversKitchenTableFoodStation() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createFoodObject()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let table = try #require(scene.foodObject)
+        let candleLight = try #require(scene.candleLight)
+
+        let tableWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + table.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(tableWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+    }
+
+    @Test("Candle overlay also covers the lab table object")
+    func candleOverlayCoversLabTable() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createLabTable()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let labTable = try #require(scene.labTableNode)
+        let candleLight = try #require(scene.candleLight)
+
+        let labTableWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + labTable.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(labTableWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+    }
+
+    @Test("Candle overlay also covers the lab monitor 2 object")
+    func candleOverlayCoversLabMonitor2() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createLabMonitor2()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let monitor = try #require(scene.labMonitor2Node)
+        let candleLight = try #require(scene.candleLight)
+
+        let monitorWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + monitor.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(monitorWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+    }
+
+    @Test("Candle overlay also covers the lab monitor 1 object")
+    func candleOverlayCoversLabMonitor1() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createLabMonitor1()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let monitor = try #require(scene.labMonitor1Node)
+        let candleLight = try #require(scene.candleLight)
+
+        let monitorWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + monitor.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(monitorWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+    }
+
+    @Test("Candle overlay also covers the rocket power-off smoke effect")
+    func candleOverlayCoversRocketPowerOffSmoke() throws {
+        let scene = makeScene()
+        scene.sessionState.beginGameplay()
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.createShipMap()
+        scene.createRocketPowerOffSmoke()
+        scene.createJoystick()
+        scene.enableCandleLight()
+
+        let shipMap = try #require(scene.shipMapNode)
+        let smoke = try #require(scene.rocketPowerOffSmokeNode)
+        let candleLight = try #require(scene.candleLight)
+
+        let smokeWorldZ = shipMap.zPosition
+            + shipMap.furnitureLayer.zPosition
+            + smoke.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let joystickWorldZ = scene.cameraNode.zPosition + scene.joystickBase.zPosition
+
+        #expect(scene.cameraNode.zPosition == GameScene.cameraOverlayRootZ)
+        #expect(smokeWorldZ < candleWorldZ)
+        #expect(candleWorldZ < joystickWorldZ)
+    }
+
     @Test("Engine restoration leaves Cockpit displays off until Victory")
     func cockpitDisplaysWaitForVictory() {
         let scene = makeScene()

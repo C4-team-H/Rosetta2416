@@ -2,9 +2,11 @@ import Foundation
 import Observation
 
 enum DebugAvailability {
+    static let enableDebugMode = true
+
     static var isMapEditorAvailable: Bool {
         #if DEBUG
-        true
+        enableDebugMode
         #else
         false
         #endif
@@ -39,8 +41,9 @@ final class GameDebugSettings {
     init(defaults: UserDefaults = .standard) {
         #if DEBUG
         self.defaults = defaults
-        let launchEnabled = ProcessInfo.processInfo.arguments.contains("-ShipMapDebug")
-        isMapDebugEnabled = launchEnabled || defaults.bool(forKey: Key.enabled)
+        let debugModeAvailable = DebugAvailability.isMapEditorAvailable
+        let launchEnabled = debugModeAvailable && ProcessInfo.processInfo.arguments.contains("-ShipMapDebug")
+        isMapDebugEnabled = debugModeAvailable && (launchEnabled || defaults.bool(forKey: Key.enabled))
         showRooms = defaults.object(forKey: Key.rooms) as? Bool ?? true
         showCorridors = defaults.object(forKey: Key.corridors) as? Bool ?? true
         showWalls = defaults.object(forKey: Key.walls) as? Bool ?? true

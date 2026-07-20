@@ -17,13 +17,13 @@ final class MapOverlayContainerView: UIView {
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         #if DEBUG
-        if debugSettings.isMapDebugEnabled {
+        if DebugAvailability.isMapEditorAvailable && debugSettings.isMapDebugEnabled {
             if debugSettings.editorMode == .testCollision {
                 return isInsideDebugChrome(point) ? super.hitTest(point, with: event) : nil
             }
             return super.hitTest(point, with: event)
         }
-        if debugButtonHitArea.contains(point) {
+        if DebugAvailability.isMapEditorAvailable && debugButtonHitArea.contains(point) {
             return super.hitTest(point, with: event)
         }
         #endif
