@@ -26,6 +26,10 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Resources/Font/GeistPixel-Regular-VariableFont_ELSH.ttf",
+				Resources/Music/Background_Music_Rosetta.mp3,
+				Resources/Music/Gameplay_until_prologue.mp3,
+				Resources/Music/Low_Energy_Heartbeat_Rosetta.mp3,
+				Resources/Music/Typing_sound.mp3,
 			);
 			target = B6BAE4152FFF8F5900746408 /* GameClassificationTests */;
 		};
