@@ -1,4 +1,4 @@
-name: Deploy to TestFlight
+name: Deploy Rosetta to TestFlight
 
 on:
   push:
@@ -14,50 +14,123 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  APP_BUNDLE_ID: com.academy.hendraaaa.Rosetta
+
 jobs:
   deploy:
-    name: Build and Upload
+    name: Build and Upload to TestFlight
     runs-on: macos-26
     timeout-minutes: 60
 
     env:
-      APP_BUNDLE_ID: com.academy.hendraaaa.Rosetta
-
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_CONTENT_BASE64: ${{ secrets.ASC_KEY_CONTENT_BASE64 }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APP_STORE_APP_ID: ${{ secrets.APP_STORE_APP_ID }}
 
     steps:
+      # ---------------------------------------------------------
+      # 1. Checkout source code
+      # ---------------------------------------------------------
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
+      # ---------------------------------------------------------
+      # 2. Select Xcode
+      # ---------------------------------------------------------
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode.app
+          set -euo pipefail
+
+          sudo xcode-select \
+            -s /Applications/Xcode.app/Contents/Developer
+
+          echo "Selected Xcode:"
           xcodebuild -version
 
+          echo "Available SDKs:"
+          xcodebuild -showsdks
+
+      # ---------------------------------------------------------
+      # 3. Validate required GitHub Secrets
+      # ---------------------------------------------------------
+      - name: Validate required secrets
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          REQUIRED_SECRETS=(
+            BUILD_CERTIFICATE_BASE64
+            P12_PASSWORD
+            BUILD_PROVISION_PROFILE_BASE64
+            KEYCHAIN_PASSWORD
+            ASC_KEY_ID
+            ASC_ISSUER_ID
+            ASC_KEY_CONTENT_BASE64
+            APP_STORE_APP_ID
+          )
+
+          for SECRET_NAME in "${REQUIRED_SECRETS[@]}"; do
+            if [ -z "${!SECRET_NAME:-}" ]; then
+              echo "::error::$SECRET_NAME is empty or unavailable."
+              exit 1
+            fi
+          done
+
+          echo "All required secrets are available."
+
+      # ---------------------------------------------------------
+      # 4. Install Apple Distribution certificate and profile
+      # ---------------------------------------------------------
       - name: Install signing certificate and provisioning profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          APP_BUNDLE_ID: com.academy.hendraaaa.Rosetta
         run: |
           set -euo pipefail
 
           CERTIFICATE_PATH="$RUNNER_TEMP/distribution.p12"
           PROFILE_PATH="$RUNNER_TEMP/Rosetta.mobileprovision"
-          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          PROFILE_PLIST="$RUNNER_TEMP/RosettaProfile.plist"
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
 
+          echo "Decoding signing files..."
+
           printf '%s' "$BUILD_CERTIFICATE_BASE64" \
-            | base64 -D > "$CERTIFICATE_PATH"
+            | /usr/bin/base64 -D \
+            > "$CERTIFICATE_PATH"
 
           printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" \
-            | base64 -D > "$PROFILE_PATH"
+            | /usr/bin/base64 -D \
+            > "$PROFILE_PATH"
+
+          if [ ! -s "$CERTIFICATE_PATH" ]; then
+            echo "::error::Decoded certificate file is empty."
+            exit 1
+          fi
+
+          if [ ! -s "$PROFILE_PATH" ]; then
+            echo "::error::Decoded provisioning profile is empty."
+            exit 1
+          fi
+
+          echo "Certificate size:"
+          stat -f "%z bytes" "$CERTIFICATE_PATH"
+
+          echo "Provisioning profile size:"
+          stat -f "%z bytes" "$PROFILE_PATH"
+
+          # Remove an old temporary keychain when it exists.
+          security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+
+          echo "Creating temporary keychain..."
 
           security create-keychain \
             -p "$KEYCHAIN_PASSWORD" \
@@ -71,10 +144,17 @@ jobs:
             -p "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
 
+          security default-keychain \
+            -d user \
+            -s "$KEYCHAIN_PATH"
+
+          echo "Importing Apple Distribution certificate..."
+
           security import "$CERTIFICATE_PATH" \
             -k "$KEYCHAIN_PATH" \
             -P "$P12_PASSWORD" \
-            -A
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
 
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
@@ -82,9 +162,7 @@ jobs:
             -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
 
-          security list-keychains \
-            -d user \
-            -s "$KEYCHAIN_PATH"
+          echo "Decoding provisioning profile metadata..."
 
           security cms \
             -D \
@@ -103,6 +181,12 @@ jobs:
               "$PROFILE_PLIST"
           )
 
+          PROFILE_TEAM_ID=$(
+            /usr/libexec/PlistBuddy \
+              -c "Print :TeamIdentifier:0" \
+              "$PROFILE_PLIST"
+          )
+
           PROFILE_APP_IDENTIFIER=$(
             /usr/libexec/PlistBuddy \
               -c "Print :Entitlements:application-identifier" \
@@ -111,91 +195,185 @@ jobs:
 
           PROFILE_BUNDLE_ID="${PROFILE_APP_IDENTIFIER#*.}"
 
-          echo "Profile name: $PROFILE_NAME"
-          echo "Profile UUID: $PROFILE_UUID"
-          echo "Profile Bundle ID: $PROFILE_BUNDLE_ID"
+          GET_TASK_ALLOW=$(
+            /usr/libexec/PlistBuddy \
+              -c "Print :Entitlements:get-task-allow" \
+              "$PROFILE_PLIST" 2>/dev/null || echo "false"
+          )
 
+          echo "Provisioning profile details:"
+          echo "Name:      $PROFILE_NAME"
+          echo "UUID:      $PROFILE_UUID"
+          echo "Team ID:   $PROFILE_TEAM_ID"
+          echo "Bundle ID: $PROFILE_BUNDLE_ID"
+
+          # Verify that the profile belongs to Rosetta.
           if [ "$PROFILE_BUNDLE_ID" != "$APP_BUNDLE_ID" ]; then
-            echo "ERROR: Provisioning profile Bundle ID mismatch"
+            echo "::error::Provisioning profile Bundle ID mismatch."
             echo "Expected: $APP_BUNDLE_ID"
-            echo "Found: $PROFILE_BUNDLE_ID"
+            echo "Found:    $PROFILE_BUNDLE_ID"
             exit 1
           fi
 
-          OLD_PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
-          NEW_PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          # App Store distribution profiles should not allow debugging.
+          if [ "$GET_TASK_ALLOW" = "true" ]; then
+            echo "::error::The provisioning profile is a development profile."
+            echo "::error::Create an App Store Connect distribution profile."
+            exit 1
+          fi
 
-          mkdir -p "$OLD_PROFILE_DIR"
-          mkdir -p "$NEW_PROFILE_DIR"
+          echo "Available code-signing identities:"
+
+          SIGNING_IDENTITIES=$(
+            security find-identity \
+              -v \
+              -p codesigning \
+              "$KEYCHAIN_PATH"
+          )
+
+          echo "$SIGNING_IDENTITIES"
+
+          if echo "$SIGNING_IDENTITIES" | grep -q "0 valid identities found"; then
+            echo "::error::No valid signing identity was imported."
+            echo "::error::Make sure the .p12 contains the private key."
+            exit 1
+          fi
+
+          # Confirm the certificate and profile belong to the same team.
+          if ! echo "$SIGNING_IDENTITIES" \
+            | grep -Fq "($PROFILE_TEAM_ID)"; then
+            echo "::error::Certificate and provisioning profile belong to different teams."
+            echo "::error::Provisioning profile Team ID: $PROFILE_TEAM_ID"
+            exit 1
+          fi
+
+          # Install in both profile directories for Xcode compatibility.
+          LEGACY_PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          XCODE_PROFILE_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+
+          mkdir -p "$LEGACY_PROFILE_DIR"
+          mkdir -p "$XCODE_PROFILE_DIR"
 
           cp "$PROFILE_PATH" \
-            "$OLD_PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+            "$LEGACY_PROFILE_DIR/$PROFILE_UUID.mobileprovision"
 
           cp "$PROFILE_PATH" \
-            "$NEW_PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+            "$XCODE_PROFILE_DIR/$PROFILE_UUID.mobileprovision"
 
-          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
-          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "Installed provisioning profiles:"
 
-          echo "Installed profiles:"
-          find "$OLD_PROFILE_DIR" "$NEW_PROFILE_DIR" \
+          find \
+            "$LEGACY_PROFILE_DIR" \
+            "$XCODE_PROFILE_DIR" \
             -name "*.mobileprovision" \
             -print
 
-          echo "Available signing identities:"
-          security find-identity -v -p codesigning
-          
-      - name: Verify signing identities
-        run: |
-          security find-identity -v -p codesigning
+          # Make these values available to subsequent workflow steps.
+          {
+            echo "PROFILE_NAME=$PROFILE_NAME"
+            echo "PROFILE_UUID=$PROFILE_UUID"
+            echo "PROFILE_TEAM_ID=$PROFILE_TEAM_ID"
+          } >> "$GITHUB_ENV"
 
-      - name: Install Ruby dependencies
-        run: |
-          bundle config path vendor/bundle
-          bundle install --jobs 4 --retry 3
+          echo "Signing certificate and provisioning profile installed successfully."
 
+      # ---------------------------------------------------------
+      # 5. Configure Ruby and install Fastlane
+      # ---------------------------------------------------------
+      - name: Set up Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      # ---------------------------------------------------------
+      # 6. Validate Fastlane
+      # ---------------------------------------------------------
+      - name: Validate Fastlane configuration
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "fastlane/Fastfile" ]; then
+            echo "::error::fastlane/Fastfile was not found."
+            exit 1
+          fi
+
+          ruby -c fastlane/Fastfile
+
+          echo "Available Fastlane lanes:"
+          bundle exec fastlane lanes
+
+      # ---------------------------------------------------------
+      # 7. Resolve Swift Package dependencies
+      # ---------------------------------------------------------
       - name: Resolve Swift packages
         run: |
+          set -euo pipefail
+
           xcodebuild \
             -resolvePackageDependencies \
             -project GameClassification.xcodeproj \
-            -scheme GameClassification
+            -scheme GameClassification \
+            -configuration Release
 
+      # ---------------------------------------------------------
+      # 8. Verify Release signing configuration
+      # ---------------------------------------------------------
       - name: Verify Release signing settings
         run: |
           set -euo pipefail
 
-          echo "PROFILE_NAME=$PROFILE_NAME"
-          echo "PROFILE_UUID=$PROFILE_UUID"
+          echo "Bundle ID:    $APP_BUNDLE_ID"
+          echo "Profile name: $PROFILE_NAME"
+          echo "Profile UUID: $PROFILE_UUID"
+          echo "Profile team: $PROFILE_TEAM_ID"
 
           xcodebuild \
             -project GameClassification.xcodeproj \
             -scheme GameClassification \
             -configuration Release \
             -showBuildSettings \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            PRODUCT_BUNDLE_IDENTIFIER="com.academy.hendraaaa.Rosetta" \
+            DEVELOPMENT_TEAM="$PROFILE_TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$APP_BUNDLE_ID" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
-          | grep -E \
-            "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE"
+            | grep -E \
+              "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE"
 
+      # ---------------------------------------------------------
+      # 9. Build, archive, export, and upload to TestFlight
+      # ---------------------------------------------------------
       - name: Build and upload to TestFlight
         run: |
+          set -euo pipefail
+
           bundle exec fastlane ios beta
 
-      - name: Upload IPA as workflow artifact
+      # ---------------------------------------------------------
+      # 10. Save generated IPA as GitHub artifact
+      # ---------------------------------------------------------
+      - name: Upload IPA artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: GameClassification-${{ github.run_number }}
-          path: build/GameClassification.ipa
+          name: Rosetta-${{ github.run_number }}
+          path: build/*.ipa
+          if-no-files-found: error
           retention-days: 7
 
-      - name: Clean temporary keychain
+      # ---------------------------------------------------------
+      # 11. Always remove temporary signing files
+      # ---------------------------------------------------------
+      - name: Clean signing credentials
         if: always()
         run: |
-          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
+          security delete-keychain \
+            "$RUNNER_TEMP/app-signing.keychain-db" \
+            2>/dev/null || true
+
           rm -f "$RUNNER_TEMP/distribution.p12"
-          rm -f "$RUNNER_TEMP/build_pp.mobileprovision"
+          rm -f "$RUNNER_TEMP/Rosetta.mobileprovision"
+          rm -f "$RUNNER_TEMP/RosettaProfile.plist"
+
+          echo "Temporary signing credentials removed."
