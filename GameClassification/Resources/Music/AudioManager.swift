@@ -13,10 +13,12 @@ class AudioManager {
     static let shared = AudioManager()
 
     private var backgroundMusicPlayer: AVAudioPlayer?
+    private var typingPlayer: AVAudioPlayer?
     
     enum BackgroundTrack {
         case rosetta
         case heartbeat
+        case menu
         case none
     }
     
@@ -25,14 +27,18 @@ class AudioManager {
 
     private init() {}
 
+    func playMainMenuMusic() {
+        playTrack(.menu)
+    }
+
     func playBackgroundMusic() {
         // Default to playing Rosetta music
         playTrack(.rosetta)
     }
 
     func updateBackgroundMusic(forEnergy energy: Double) {
-        // If we are not playing any background music (e.g. main menu), do nothing
-        guard currentTrack != .none else { return }
+        // If we are not playing in-game background music (e.g. main menu or none), do nothing
+        guard currentTrack == .rosetta || currentTrack == .heartbeat else { return }
 
         let targetTrack: BackgroundTrack = energy < 20.0 ? .heartbeat : .rosetta
         if currentTrack != targetTrack {
@@ -41,6 +47,10 @@ class AudioManager {
     }
 
     private func playTrack(_ track: BackgroundTrack) {
+        if currentTrack == track && backgroundMusicPlayer?.isPlaying == true {
+            return
+        }
+
         // Set up the audio session
         do {
             try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
@@ -60,6 +70,8 @@ class AudioManager {
             resourceName = "Background_Music_Rosetta"
         case .heartbeat:
             resourceName = "Low_Energy_Heartbeat_Rosetta"
+        case .menu:
+            resourceName = "Gameplay_until_prologue"
         case .none:
             return
         }
@@ -88,6 +100,30 @@ class AudioManager {
 
     func pauseBackgroundMusic() {
         backgroundMusicPlayer?.pause()
+    }
+
+    func playTypingSound() {
+        guard let url = Bundle.main.url(forResource: "Typing_sound", withExtension: "mp3") else {
+            print("Typing sound file not found: Typing_sound.mp3")
+            return
+        }
+        do {
+            if typingPlayer == nil {
+                typingPlayer = try AVAudioPlayer(contentsOf: url)
+                typingPlayer?.numberOfLoops = -1
+            }
+            if typingPlayer?.isPlaying == false {
+                typingPlayer?.currentTime = 0
+                typingPlayer?.play()
+            }
+        } catch {
+            print("Failed to play typing sound: \(error)")
+        }
+    }
+
+    func stopTypingSound() {
+        typingPlayer?.stop()
+        typingPlayer = nil
     }
 
     // MARK: - Sound Effects (SFX)

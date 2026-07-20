@@ -593,7 +593,8 @@ extension MapGeometryConfiguration {
         MapGeometryConfiguration(
             schemaVersion: 1,
             worldSize: CodableSize(width: 5504, height: 4128),
-            playerVisualRadius: 114.67,
+            playerVisualRadius: 95.0,
+//            playerVisualRadius: 114.67,
             playerFootprint: MapPlayerFootprintDefinition(
                 centerOffset: CodablePoint(x: 0, y: -62.93),
                 width: 91.73,

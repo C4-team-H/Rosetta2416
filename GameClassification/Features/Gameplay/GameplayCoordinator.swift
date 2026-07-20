@@ -127,8 +127,17 @@ final class GameplayCoordinator {
 
     func startNewGame(in view: SKView, size: CGSize) {
         tacticalMapViewModel.closeMap()
-        sessionState.startNewSession()
-        presentFreshGameScene(in: view, size: size)
+        presentPrologScene(in: view, size: size)
+    }
+
+    private func presentPrologScene(in view: SKView, size: CGSize) {
+        let prologScene = PrologScene(size: size) { [weak self, weak view] in
+            guard let self, let view else { return }
+            self.sessionState.startNewSession()
+            self.presentFreshGameScene(in: view, size: size)
+        }
+        prologScene.scaleMode = .resizeFill
+        view.presentScene(prologScene, transition: .fade(withDuration: 0.6))
     }
 
     func retryCheckpoint() {
@@ -152,7 +161,7 @@ final class GameplayCoordinator {
         presentingViewController?.dismiss(animated: true)
         guard let scene = activeGameScene, let view = scene.view else { return }
         sessionState.endGameplay()
-        AudioManager.shared.stopBackgroundMusic()
+        AudioManager.shared.playMainMenuMusic()
         let menu = makeMainMenuScene(size: scene.size)
         menu.scaleMode = .resizeFill
         view.presentScene(menu, transition: .fade(withDuration: 0.6))

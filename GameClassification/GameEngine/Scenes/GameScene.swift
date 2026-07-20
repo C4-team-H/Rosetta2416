@@ -12,7 +12,7 @@ protocol GameSceneEventDelegate: AnyObject {
 
 final class GameScene: SKScene {
     /// Preserves the requested 2.25x visual magnification in the 5504-point world.
-    static let gameplayCameraScale: CGFloat = (0.6 / 2.25) * GameMapLayout.artworkScale
+    static let gameplayCameraScale: CGFloat = (0.8 / 2.25) * GameMapLayout.artworkScale
 
     let sessionState: GameSessionState
     let tacticalMapViewModel: TacticalMapViewModel

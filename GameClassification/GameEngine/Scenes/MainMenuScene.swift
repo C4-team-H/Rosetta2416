@@ -25,6 +25,7 @@ final class MainMenuScene: SKScene {
     }
     
     override func didMove(to view: SKView) {
+        AudioManager.shared.playMainMenuMusic()
         backgroundColor = SKColor(red: 0.1, green: 0.12, blue: 0.18, alpha: 1.0)
 
         backgroundNode = SKSpriteNode(imageNamed: "MainMenuBackground")
