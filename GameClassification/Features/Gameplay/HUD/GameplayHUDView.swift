@@ -28,6 +28,7 @@ struct GameplayHUDView: View {
                     .padding(.leading, 16)
 
                 MapButton(action: openMap)
+                    .disabled(session.showLowEnergyAlert)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(.top, 80)
                     .padding(.trailing, 16)
@@ -89,7 +90,14 @@ struct GameplayHUDView: View {
                 )
                 .zIndex(3)
             }
-    }
+
+            if session.showLowEnergyAlert && session.phase != .gameOver && session.phase != .victory {
+                LowEnergyAlertOverlay(session: session) {
+                    session.dismissLowEnergyAlert()
+                }
+                .zIndex(4)
+            }
+        }
         .animation(overlayAnimation, value: viewModel.isMapPresented)
         .sensoryFeedback(.impact(weight: .light), trigger: feedbackTrigger)
     }

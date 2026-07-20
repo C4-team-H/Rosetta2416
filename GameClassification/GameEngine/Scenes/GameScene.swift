@@ -46,12 +46,12 @@ final class GameScene: SKScene {
     var joystickBase: SKShapeNode!
     var joystickKnob: SKShapeNode!
     var gridContainer: SKNode?
-    var actionButton: SKShapeNode?
-    var foodActionButton: SKShapeNode?
+    var actionButton: SKSpriteNode?
+    var foodActionButton: SKSpriteNode?
     var foodObject: KitchenTableNode!
     var stationNodes: [String: SKShapeNode] = [:]
     var albumBookNode: AlbumBookNode?
-    var albumBookButton: SKShapeNode?
+    var albumBookButton: SKSpriteNode?
     var labTableNode: LabTableNode?
     var labMonitor2Node: LabMonitor2Node?
     var labMonitor1Node: LabMonitor1Node?
@@ -242,7 +242,7 @@ final class GameScene: SKScene {
             labMonitor2Node?.setProximityHighlighted(false, animated: false)
             labMonitor1Node?.setProximityHighlighted(false, animated: false)
             engineMonitorNode?.setProximityHighlighted(false, animated: false)
-        } else if tacticalMapViewModel.isMapPresented {
+        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert {
             if !wasMapInputSuspended {
                 clearPencilTarget()
                 pencilTouch = nil

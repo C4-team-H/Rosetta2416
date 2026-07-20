@@ -40,7 +40,7 @@ class AudioManager {
         // If we are not playing in-game background music (e.g. main menu or none), do nothing
         guard currentTrack == .rosetta || currentTrack == .heartbeat else { return }
 
-        let targetTrack: BackgroundTrack = energy < 20.0 ? .heartbeat : .rosetta
+        let targetTrack: BackgroundTrack = energy <= 20.0 ? .heartbeat : .rosetta
         if currentTrack != targetTrack {
             playTrack(targetTrack)
         }
