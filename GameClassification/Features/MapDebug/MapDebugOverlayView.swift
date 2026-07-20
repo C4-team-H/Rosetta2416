@@ -12,6 +12,12 @@ struct MapDebugOverlayView: View {
     @State private var lastMagnification: CGFloat = 1
 
     var body: some View {
+        if DebugAvailability.isMapEditorAvailable {
+            overlayContent
+        }
+    }
+
+    private var overlayContent: some View {
         ZStack {
             if viewModel.settings.isMapDebugEnabled {
                 editorContent

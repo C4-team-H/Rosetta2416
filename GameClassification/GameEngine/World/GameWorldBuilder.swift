@@ -53,6 +53,10 @@ extension GameScene {
         stationNodes.removeAll()
         let parent = shipMapNode?.furnitureLayer ?? self
         for definition in gameMap.stations {
+            guard definition.id != Self.labScannerRepairInteractionID else { continue }
+            guard definition.id != "lab-terminal-repair" else { continue }
+            guard definition.id != Self.labMemoryRepairInteractionID else { continue }
+            guard !Self.replacedEngineStationIDs.contains(definition.id) else { continue }
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
             attachInteractionSensor(to: station, id: definition.id)
             parent.addChild(station)
@@ -62,41 +66,67 @@ extension GameScene {
 
     func createFoodObject() {
         foodObject?.removeFromParent()
-        foodObject = makeStationNode(id: "kitchen-food", at: gameMap.foodStationPosition)
-        foodObject.fillColor = SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1)
-        addChild(foodObject)
+        let table = KitchenTableNode()
+        table.position = geometryStore.configuration.kitchenTablePosition
+        table.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(table)
+        foodObject = table
     }
 
     func createAlbumBook() {
         albumBookNode?.removeFromParent()
-        let bookPos = geometryStore.configuration.albumBookPosition
-        let book = SKShapeNode(rectOf: CGSize(width: 24, height: 30), cornerRadius: 3)
-        book.name = "album-book"
-        book.position = bookPos
-        book.fillColor = SKColor(red: 0.25, green: 0.45, blue: 0.75, alpha: 1)
-        book.strokeColor = SKColor(red: 0.8, green: 0.85, blue: 1.0, alpha: 0.9)
-        book.lineWidth = 1.5
+        let book = AlbumBookNode()
+        book.position = geometryStore.configuration.albumBookPosition
         book.zPosition = 2
-
-        // Book spine line
-        let spine = SKShapeNode(rectOf: CGSize(width: 3, height: 28))
-        spine.fillColor = SKColor(red: 0.15, green: 0.30, blue: 0.60, alpha: 1)
-        spine.strokeColor = .clear
-        spine.position = CGPoint(x: -9, y: 0)
-        spine.zPosition = 1
-        book.addChild(spine)
-
-        // Pages lines
-        for i in 0..<3 {
-            let line = SKShapeNode(rectOf: CGSize(width: 10, height: 1.5))
-            line.fillColor = .white.withAlphaComponent(0.5)
-            line.strokeColor = .clear
-            line.position = CGPoint(x: 4, y: CGFloat(i * 5) - 4)
-            book.addChild(line)
-        }
 
         (shipMapNode?.furnitureLayer ?? self).addChild(book)
         albumBookNode = book
+    }
+
+    func createLabTable() {
+        labTableNode?.removeFromParent()
+        let table = LabTableNode()
+        table.position = geometryStore.configuration.labTablePosition
+        table.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(table)
+        labTableNode = table
+    }
+
+    func createLabMonitor2() {
+        labMonitor2Node?.removeFromParent()
+        let monitor = LabMonitor2Node()
+        monitor.position = geometryStore.configuration.labMonitor2Position
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        labMonitor2Node = monitor
+    }
+
+    func createLabMonitor1() {
+        labMonitor1Node?.removeFromParent()
+        let monitor = LabMonitor1Node()
+        monitor.position = geometryStore.configuration.labMonitor1Position
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        labMonitor1Node = monitor
+    }
+
+    func createEngineMonitor() {
+        engineMonitorNode?.removeFromParent()
+        let monitor = EngineMonitorNode()
+        monitor.position = geometryStore.configuration.engineMonitorPosition
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        engineMonitorNode = monitor
+    }
+
+    func createRocketPowerOffSmoke() {
+        rocketPowerOffSmokeNode?.removeFromParent()
+        let smoke = RocketPowerOffSmokeNode()
+        smoke.position = geometryStore.configuration.rocketPowerOffSmokePosition
+        smoke.zPosition = 2.1
+        (shipMapNode?.furnitureLayer ?? self).addChild(smoke)
+        rocketPowerOffSmokeNode = smoke
+        refreshRocketPowerOffSmokeVisibility()
     }
 
     func refreshStoryVisuals() {
@@ -123,6 +153,38 @@ extension GameScene {
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        labTableNode?.isHidden = !visibility.shouldShowStation(interactionID: Self.labScannerRepairInteractionID)
+        labMonitor1Node?.isHidden = !isLabMemoryRepairInteractable
+        if albumBookNode?.isHidden == true {
+            albumBookNode?.setProximityHighlighted(false, animated: false)
+            hideAlbumButton()
+        }
+        if foodObject?.isHidden == true {
+            foodObject?.setProximityHighlighted(false, animated: false)
+            hideFoodInteractionButton()
+        }
+        if labTableNode?.isHidden == true {
+            labTableNode?.setProximityHighlighted(false, animated: false)
+        }
+        if labMonitor2Node?.isHidden == true {
+            labMonitor2Node?.setProximityHighlighted(false, animated: false)
+        }
+        if labMonitor1Node?.isHidden == true {
+            labMonitor1Node?.setProximityHighlighted(false, animated: false)
+            if activeStationID == Self.labMemoryRepairInteractionID {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        engineMonitorNode?.isHidden = !isEngineMonitorInteractable
+        if engineMonitorNode?.isHidden == true {
+            engineMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedEngineStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        refreshRocketPowerOffSmokeVisibility()
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
             walkabilitySystem.updateDoorStates(doorStates)
@@ -137,6 +199,66 @@ extension GameScene {
         }
         foodObject?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.kitchenInteractionID)
         albumBookNode?.isHidden = !visibility.shouldShowStation(interactionID: StationVisibilitySystem.albumInteractionID)
+        labTableNode?.isHidden = !visibility.shouldShowStation(interactionID: Self.labScannerRepairInteractionID)
+        labMonitor1Node?.isHidden = !isLabMemoryRepairInteractable
+        if albumBookNode?.isHidden == true {
+            albumBookNode?.setProximityHighlighted(false, animated: false)
+            hideAlbumButton()
+        }
+        if foodObject?.isHidden == true {
+            foodObject?.setProximityHighlighted(false, animated: false)
+            hideFoodInteractionButton()
+        }
+        if labTableNode?.isHidden == true {
+            labTableNode?.setProximityHighlighted(false, animated: false)
+        }
+        if labMonitor2Node?.isHidden == true {
+            labMonitor2Node?.setProximityHighlighted(false, animated: false)
+        }
+        if labMonitor1Node?.isHidden == true {
+            labMonitor1Node?.setProximityHighlighted(false, animated: false)
+            if activeStationID == Self.labMemoryRepairInteractionID {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        engineMonitorNode?.isHidden = !isEngineMonitorInteractable
+        if engineMonitorNode?.isHidden == true {
+            engineMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedEngineStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        refreshRocketPowerOffSmokeVisibility()
+    }
+
+    private var isLabMemoryRepairInteractable: Bool {
+        guard let objective = sessionState.objectives.first(where: { $0.id == Self.labMemoryRepairInteractionID }) else {
+            return false
+        }
+        return objective.status == .available || objective.status == .active
+    }
+
+    private var isEngineMonitorInteractable: Bool {
+        let objectives = sessionState.objectives
+        return Self.replacedEngineStationIDs.contains { engineID in
+            guard let objective = objectives.first(where: { $0.id == engineID }) else { return false }
+            return objective.status == .available || objective.status == .active
+        }
+    }
+
+    private var shouldShowRocketPowerOffSmoke: Bool {
+        switch sessionState.sharedStory.powerState {
+        case .off, .disrupted:
+            return true
+        case .basicPower, .fullyRestored:
+            return false
+        }
+    }
+
+    private func refreshRocketPowerOffSmokeVisibility() {
+        rocketPowerOffSmokeNode?.setEffectActive(shouldShowRocketPowerOffSmoke)
     }
 
     func animateCompletedStation(id: String) {
@@ -159,7 +281,7 @@ extension GameScene {
         candleLight?.removeFromParent()
         let light = CandleLightNode(
             sceneSize: size,
-            configuration: .init(radius: 180, darknessOpacity: 0.94, lightIntensity: 1, softness: 0.42, verticalScale: 1.08, warmth: 0.08, flickerAmount: 0.025, flickerSpeed: 1)
+            configuration: .init(radius: 260, darknessOpacity: 0.97, lightIntensity: 1, softness: 0.42, verticalScale: 1.08, warmth: 0.08, flickerAmount: 0.025, flickerSpeed: 1)
         )
         light.zPosition = 9.5
         light.position = CGPoint(x: -size.width / 2, y: -size.height / 2)

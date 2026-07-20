@@ -557,16 +557,56 @@ struct MapGeometryConfiguration: Codable, Equatable, Sendable {
 }
 
 extension MapGeometryConfiguration {
-    /// The physical book and its map marker share this console-derived anchor.
+    /// The physical book and its map marker sit on the Sleeping Main Console, nudged left for art alignment.
     var albumBookPosition: CGPoint {
         guard let console = objects.first(where: { $0.id == "object-sleeping-main-console" }) else {
             return spawnPoint(for: .sleepingRoom) ?? .zero
         }
-        let bounds = console.objectBounds
-        return CGPoint(
-            x: bounds.minX + GameMapLayout.scaled(30),
-            y: bounds.minY + GameMapLayout.scaled(30)
-        )
+        return CGPoint(x: console.position.x - 8, y: console.position.y)
+    } //geser posisi albumbook
+
+    var kitchenTablePosition: CGPoint {
+        guard let counter = objects.first(where: { $0.id == "object-kitchen-side-counter" }) else {
+            return spawnPoint(for: .kitchen) ?? .zero
+        }
+        return CGPoint(x: counter.position.x, y: counter.position.y + 2)
+    }
+
+    /// The lab table artwork sits on the Lab Main Table object, nudged up +46 for art alignment.
+    var labTablePosition: CGPoint {
+        guard let table = objects.first(where: { $0.id == "object-lab-main-table" }) else {
+            return spawnPoint(for: .laboratory) ?? .zero
+        }
+        return CGPoint(x: table.position.x - 4, y: table.position.y + 46)
+    }
+
+    /// The lab monitor 2 artwork sits on the Lab Monitor 2 object, nudged up +6 for art alignment.
+    var labMonitor2Position: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-lab-monitor-2" }) else {
+            return spawnPoint(for: .laboratory) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y + 6)
+    }
+
+    /// The lab monitor 1 artwork sits on the Lab Monitor 1 object.
+    var labMonitor1Position: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-lab-monitor-1" }) else {
+            return spawnPoint(for: .laboratory) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// The engine monitor artwork sits on the Starboard Equipment object in the Engine Room.
+    var engineMonitorPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-engine-starboard-equipment" }) else {
+            return spawnPoint(for: .engine) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// Power-off rocket smoke/fire effect anchor requested in world-space.
+    var rocketPowerOffSmokePosition: CGPoint {
+        CGPoint(x: 2750.33, y: 501.5)
     }
 
     func spawnPoint(for roomID: RoomID) -> CGPoint? {

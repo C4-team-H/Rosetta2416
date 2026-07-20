@@ -24,6 +24,7 @@ struct MapMockMovementDemo: View {
         GameplayHUDView(
             viewModel: viewModel,
             session: session,
+            mapDebugViewModel: nil,
             onRetryCheckpoint: {},
             onPlayAgain: {},
             onMainMenu: {}
