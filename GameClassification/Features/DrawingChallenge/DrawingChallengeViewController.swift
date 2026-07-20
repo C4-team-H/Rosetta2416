@@ -20,6 +20,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     // MARK: - Challenge Configuration
     // Diset oleh GameScene sebelum present. Default ini hanya placeholder dan
     // selalu ditimpa oleh tantangan aktif sebelum controller ditampilkan.
+    var sessionState: GameSessionState?
     var challenge: DrawingChallenge = DrawingChallenge.foodPool[0]
     var challengeIndex: Int = 1   // Ronde ke-berapa (1-based) untuk ditampilkan ke user
     var totalChallenges: Int = 5  // Total ronde tantangan
@@ -60,6 +61,7 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
     // MARK: - Layout Setup
     private func setupViews() {
         let rootView = DrawingMissionCanvasLayout(
+            session: sessionState,
             challenge: challenge,
             challengeIndex: challengeIndex,
             totalChallenges: totalChallenges,
@@ -199,6 +201,7 @@ private final class DrawingChallengeLayoutState: ObservableObject {
 }
 
 private struct DrawingMissionCanvasLayout: View {
+    let session: GameSessionState?
     let challenge: DrawingChallenge
     let challengeIndex: Int
     let totalChallenges: Int
@@ -249,6 +252,13 @@ private struct DrawingMissionCanvasLayout: View {
                         .shadow(color: .black.opacity(0.65), radius: 24, x: 0, y: 18)
                 )
                 .padding(metrics.outerPadding)
+
+                if let session, session.showLowEnergyAlert {
+                    LowEnergyAlertOverlay(session: session) {
+                        session.dismissLowEnergyAlert()
+                    }
+                    .zIndex(99)
+                }
             }
             .ignoresSafeArea()
         }

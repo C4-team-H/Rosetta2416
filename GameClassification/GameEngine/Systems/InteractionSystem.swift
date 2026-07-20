@@ -161,7 +161,7 @@ extension GameScene {
         guard albumBookButton == nil else { return }
         hideInteractionButton()
         hideFoodInteractionButton()
-        let button = makeActionButton(name: "albumButton", title: "READ", color: SKColor(red: 0.25, green: 0.45, blue: 0.80, alpha: 1))
+        let button = makeImageButton(name: "albumButton", imageName: "ReadButton")
         albumBookButton = button
         cameraNode.addChild(button)
     }
@@ -217,7 +217,7 @@ extension GameScene {
     private func showInteractionButton(title: String) {
         hideFoodInteractionButton()
         if actionButton != nil { return }
-        actionButton = makeActionButton(name: "drawButton", title: title, color: SKColor(red: 0.9, green: 0.5, blue: 0.15, alpha: 1))
+        actionButton = makeImageButton(name: "drawButton", imageName: "DrawButton")
         if let actionButton { cameraNode.addChild(actionButton) }
     }
 
@@ -229,7 +229,7 @@ extension GameScene {
     private func showFoodInteractionButton() {
         hideInteractionButton()
         if foodActionButton != nil { return }
-        foodActionButton = makeActionButton(name: "foodDrawButton", title: "EAT", color: SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1))
+        foodActionButton = makeImageButton(name: "foodDrawButton", imageName: "EatButton")
         if let foodActionButton { cameraNode.addChild(foodActionButton) }
     }
 
@@ -238,23 +238,14 @@ extension GameScene {
         foodActionButton = nil
     }
 
-    private func makeActionButton(name: String, title: String, color: SKColor) -> SKShapeNode {
-        let button = SKShapeNode(circleOfRadius: 40)
-        button.fillColor = color
-        button.strokeColor = .white
-        button.lineWidth = 2
+    private func makeImageButton(name: String, imageName: String) -> SKSpriteNode {
+        let texture = SKTexture(imageNamed: imageName)
+        let button = SKSpriteNode(texture: texture)
+        button.size = CGSize(width: 150, height: 150)
         button.position = CGPoint(x: size.width / 2 - 90, y: -size.height / 2 + joystickRadius + 70)
         button.zPosition = 12
         button.name = name
 
-        let label = SKLabelNode(fontNamed: GameFont.fontName)
-        label.text = title
-        label.fontSize = 13
-        label.fontColor = .white
-        label.horizontalAlignmentMode = .center
-        label.verticalAlignmentMode = .center
-        label.name = name
-        button.addChild(label)
         button.run(.repeatForever(.sequence([.scale(to: 1.12, duration: 0.6), .scale(to: 0.96, duration: 0.6)])))
         return button
     }

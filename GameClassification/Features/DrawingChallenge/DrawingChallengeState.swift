@@ -23,7 +23,9 @@ struct DrawingChallenge: Equatable, Sendable {
         guard case let .drawing(prompt) = objective.kind else {
             preconditionFailure("DrawingChallenge requires a drawing objective")
         }
-        let category = StoryConfiguration.definition(id: objective.id)?.category ?? .otherObject
+        let category = CoreMLLabelCatalog().category(of: prompt.expectedLabel)
+            ?? StoryConfiguration.definition(id: objective.id)?.category
+            ?? .otherObject
         self.init(
             id: objective.id,
             label: prompt.expectedLabel,

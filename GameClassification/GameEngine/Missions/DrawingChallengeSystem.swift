@@ -79,8 +79,17 @@ struct DrawingChallengeSystem {
         state: inout StoryState
     ) {
         definitions.forEach { state.selectedChallengeLabels[$0.id] = nil }
-        for (definition, selection) in zip(definitions, selections) {
-            state.selectedChallengeLabels[definition.id] = selection.label
+        var remainingSelections = selections
+        for definition in definitions {
+            if let index = remainingSelections.firstIndex(where: {
+                $0.category == definition.category || $0.category == definition.fallbackCategory
+            }) {
+                let selection = remainingSelections.remove(at: index)
+                state.selectedChallengeLabels[definition.id] = selection.label
+            } else if !remainingSelections.isEmpty {
+                let selection = remainingSelections.removeFirst()
+                state.selectedChallengeLabels[definition.id] = selection.label
+            }
         }
     }
 

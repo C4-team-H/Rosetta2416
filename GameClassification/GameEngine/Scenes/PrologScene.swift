@@ -214,10 +214,28 @@ final class PrologScene: SKScene {
         }
     }
 
+    private func completeTyping() {
+        guard isTyping else { return }
+
+        typewriterTimer?.invalidate()
+        typewriterTimer = nil
+        isTyping = false
+        AudioManager.shared.stopTypingSound()
+
+        guard currentScreenIndex >= 0 && currentScreenIndex < screens.count else { return }
+        let fullText = screens[currentScreenIndex]
+        let paragraphTexts = fullText.components(separatedBy: "\n\n")
+
+        displayedCharacterCount = fullText.count
+        updateTypedParagraphs(fullText: fullText, paragraphTexts: paragraphTexts)
+        continueLabel.isHidden = false
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard touches.first != nil else { return }
 
         if isTyping {
+            completeTyping()
             return
         }
 

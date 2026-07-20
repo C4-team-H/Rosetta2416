@@ -179,6 +179,7 @@ final class GameplayCoordinator {
         sessionState.beginDrawing(objectiveID: challenge.id)
 
         let controller = DrawingChallengeViewController()
+        controller.sessionState = sessionState
         controller.challenge = challenge
         controller.challengeIndex = chapterIndex
         controller.totalChallenges = chapterCount

@@ -14,6 +14,8 @@ final class GameSessionState {
     private(set) var checkpointNotice: CheckpointID?
     private(set) var stats = GameSessionStats()
     private(set) var currentRoom: RoomID?
+    private(set) var showLowEnergyAlert: Bool = false
+    private var hasTriggeredLowEnergyAlert: Bool = false
 
     let storySystem: StoryProgressionSystem
     private var energySystem: EnergySystem
@@ -94,6 +96,7 @@ final class GameSessionState {
             energySystem.restoreFood()
             stats.kitchenRestores += 1
             persistLatest()
+            updateLowEnergyState()
             AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
             return []
         case .checkpointRetryRequested:
@@ -122,6 +125,7 @@ final class GameSessionState {
         if energySystem.update(deltaTime: deltaTime, isMoving: isMoving) {
             applyEffects(storySystem.handle(.energyDepleted))
         }
+        updateLowEnergyState()
         AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
@@ -185,6 +189,23 @@ final class GameSessionState {
         currentDialogue = nil
     }
 
+    func dismissLowEnergyAlert() {
+        showLowEnergyAlert = false
+    }
+
+    private func updateLowEnergyState() {
+        if energy <= 20.0 {
+            if !hasTriggeredLowEnergyAlert {
+                hasTriggeredLowEnergyAlert = true
+                showLowEnergyAlert = true
+                AudioManager.shared.playWrongSound()
+            }
+        } else {
+            hasTriggeredLowEnergyAlert = false
+            showLowEnergyAlert = false
+        }
+    }
+
     func loadProgress() async {
         let revisionAtLoadStart = sessionRevision
         do {
@@ -198,6 +219,8 @@ final class GameSessionState {
             currentRoom = nil
             stats = persisted.latest.stats
             checkpointSystem.restoreRecord(persisted.checkpoint)
+            updateLowEnergyState()
+            AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
         } catch {
             transientMessage = "Saved progress could not be restored. A new session was started."
         }
@@ -215,7 +238,10 @@ final class GameSessionState {
         phase = .playing
         currentDialogue = nil
         transientMessage = "Checkpoint restored"
+        hasTriggeredLowEnergyAlert = false
+        showLowEnergyAlert = false
         persistLatest()
+        updateLowEnergyState()
         AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
@@ -230,6 +256,8 @@ final class GameSessionState {
         currentDialogue = nil
         transientMessage = nil
         checkpointNotice = nil
+        hasTriggeredLowEnergyAlert = false
+        showLowEnergyAlert = false
 
         if let line = dialogueManager.nextLine(for: .chapterEntered(.sleepingRoom), story: storySystem.state) {
             currentDialogue = line
@@ -242,6 +270,7 @@ final class GameSessionState {
             if clearSavedProgress { try? await repository.clear() }
             try? await repository.save(progress)
         }
+        updateLowEnergyState()
         AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
@@ -265,6 +294,7 @@ final class GameSessionState {
             case let .powerChanged(power):
                 if power == .disrupted {
                     energySystem.applyElectricalDisruption()
+                    updateLowEnergyState()
                 }
                 shouldPersist = true
 

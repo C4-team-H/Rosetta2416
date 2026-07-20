@@ -15,6 +15,7 @@ extension GameScene {
         guard !tacticalMapViewModel.isMapPresented else { return }
         guard sessionState.phase == .playing else { return }
         guard !debugSettings.isEditingGameplaySuspended else { return }
+        guard !sessionState.showLowEnergyAlert else { return }
         
         for touch in touches {
             let touchLocation = touch.location(in: self)
@@ -62,6 +63,7 @@ extension GameScene {
         guard !tacticalMapViewModel.isMapPresented else { return }
         guard sessionState.phase == .playing else { return }
         guard !debugSettings.isEditingGameplaySuspended else { return }
+        guard !sessionState.showLowEnergyAlert else { return }
         
         // Geser Apple Pencil -> Pindahkan titik koordinat target bergerak
         if let activePencil = pencilTouch, touches.contains(activePencil) {
