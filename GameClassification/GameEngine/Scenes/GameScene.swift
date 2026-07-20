@@ -103,7 +103,7 @@ final class GameScene: SKScene {
 
     static var isShipMapDebugEnabled: Bool {
         #if DEBUG
-        ProcessInfo.processInfo.arguments.contains("-ShipMapDebug")
+        DebugAvailability.isMapEditorAvailable && ProcessInfo.processInfo.arguments.contains("-ShipMapDebug")
         #else
         false
         #endif

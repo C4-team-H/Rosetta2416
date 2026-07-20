@@ -14,7 +14,7 @@ struct GameplayHUDView: View {
     var body: some View {
         ZStack {
             #if DEBUG
-            if let mapDebugViewModel {
+            if DebugAvailability.isMapEditorAvailable, let mapDebugViewModel {
                 MapDebugOverlayView(viewModel: mapDebugViewModel)
                     .zIndex(1)
             }

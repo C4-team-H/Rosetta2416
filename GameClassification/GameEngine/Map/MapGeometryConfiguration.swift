@@ -606,7 +606,7 @@ extension MapGeometryConfiguration {
 
     /// Power-off rocket smoke/fire effect anchor requested in world-space.
     var rocketPowerOffSmokePosition: CGPoint {
-        CGPoint(x: 2750.33, y: 531.5)
+        CGPoint(x: 2750.33, y: 501.5)
     }
 
     func spawnPoint(for roomID: RoomID) -> CGPoint? {
