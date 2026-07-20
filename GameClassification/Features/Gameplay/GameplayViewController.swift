@@ -49,7 +49,6 @@ class GameViewController: UIViewController {
         let rootView = GameplayHUDView(
             viewModel: viewModel,
             session: coordinator.sessionState,
-            mapDebugViewModel: nil,
             onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
             onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
             onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
