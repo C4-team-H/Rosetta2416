@@ -27,8 +27,8 @@ class GameViewController: UIViewController {
         scene.scaleMode = .resizeFill
         spriteView.presentScene(scene)
         spriteView.ignoresSiblingOrder = true
-        spriteView.showsFPS = true
-        spriteView.showsNodeCount = true
+        spriteView.showsFPS = false
+        spriteView.showsNodeCount = false
 
         installGameplayOverlay()
         Task { await coordinator.loadProgress() }
