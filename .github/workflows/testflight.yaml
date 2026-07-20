@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 60
 
     env:
+      APP_BUNDLE_ID: com.academy.hendraaaa.Rosetta
+
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_CONTENT_BASE64: ${{ secrets.ASC_KEY_CONTENT_BASE64 }}
