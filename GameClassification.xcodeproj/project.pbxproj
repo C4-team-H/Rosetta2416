@@ -43,6 +43,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		4C96D7B0300F7427009D7F0B /* Config */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Config;
+			sourceTree = "<group>";
+		};
 		B6BAE3ED2FFF8F5800746408 /* GameClassification */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -80,6 +85,7 @@
 		B6BAE3E22FFF8F5800746408 = {
 			isa = PBXGroup;
 			children = (
+				4C96D7B0300F7427009D7F0B /* Config */,
 				B6BAE3ED2FFF8F5800746408 /* GameClassification */,
 				B6BAE4112FFF8F5900746408 /* GameClassificationTests */,
 				B6BAE3EC2FFF8F5800746408 /* Products */,
@@ -111,6 +117,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				4C96D7B0300F7427009D7F0B /* Config */,
 				B6BAE3ED2FFF8F5800746408 /* GameClassification */,
 			);
 			name = GameClassification;
@@ -227,6 +234,8 @@
 /* Begin XCBuildConfiguration section */
 		B6BAE4022FFF8F5900746408 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 4C96D7B0300F7427009D7F0B /* Config */;
+			baseConfigurationReferenceRelativePath = Base.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -265,6 +274,8 @@
 		};
 		B6BAE4032FFF8F5900746408 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 4C96D7B0300F7427009D7F0B /* Config */;
+			baseConfigurationReferenceRelativePath = Base.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -303,6 +314,8 @@
 		};
 		B6BAE4042FFF8F5900746408 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 4C96D7B0300F7427009D7F0B /* Config */;
+			baseConfigurationReferenceRelativePath = Base.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -367,6 +380,8 @@
 		};
 		B6BAE4052FFF8F5900746408 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 4C96D7B0300F7427009D7F0B /* Config */;
+			baseConfigurationReferenceRelativePath = Base.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -424,6 +439,8 @@
 		};
 		B6BAE4182FFF8F5900746408 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 4C96D7B0300F7427009D7F0B /* Config */;
+			baseConfigurationReferenceRelativePath = Base.xcconfig;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -442,6 +459,8 @@
 		};
 		B6BAE4192FFF8F5900746408 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 4C96D7B0300F7427009D7F0B /* Config */;
+			baseConfigurationReferenceRelativePath = Base.xcconfig;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -468,7 +487,7 @@
 				B6BAE4052FFF8F5900746408 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		B6BAE4012FFF8F5900746408 /* Build configuration list for PBXNativeTarget "GameClassification" */ = {
 			isa = XCConfigurationList;
@@ -477,7 +496,7 @@
 				B6BAE4032FFF8F5900746408 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		B6BAE41A2FFF8F5900746408 /* Build configuration list for PBXNativeTarget "GameClassificationTests" */ = {
 			isa = XCConfigurationList;
@@ -486,7 +505,7 @@
 				B6BAE4192FFF8F5900746408 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};
