@@ -250,7 +250,7 @@ createEnginePipeControl()
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        joystickBase?.position = CGPoint(x: -size.width / 2 + joystickRadius + 50, y: -size.height / 2 + joystickRadius + 70)
+        joystickBase?.position = CGPoint(x: -size.width / 2 + joystickRadius + 80, y: -size.height / 2 + joystickRadius + 100)
         positionActionButtons()
         candleLight?.position = CGPoint(x: -size.width / 2, y: -size.height / 2)
         candleLight?.resize(to: size)
@@ -338,7 +338,8 @@ createEnginePipeControl()
 
         if tacticalMapViewModel.shouldRunLocalSimulation
             && !isPaused
-            && !debugSettings.isMapDebugEnabled {
+            && !debugSettings.isMapDebugEnabled
+            && sessionState.currentDialogue == nil {
             sessionState.updateEnergy(deltaTime: frameDeltaTime, isMoving: isMoving)
             if sessionState.phase == .gameOver, !didNotifyGameOver {
                 didNotifyGameOver = true

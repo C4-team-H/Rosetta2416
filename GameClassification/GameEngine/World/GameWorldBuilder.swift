@@ -34,7 +34,7 @@ extension GameScene {
 
     func createJoystick() {
         joystickBase = SKShapeNode(circleOfRadius: joystickRadius)
-        joystickBase.position = CGPoint(x: -size.width / 2 + joystickRadius + 50, y: -size.height / 2 + joystickRadius + 70)
+        joystickBase.position = CGPoint(x: -size.width / 2 + joystickRadius + 80, y: -size.height / 2 + joystickRadius + 100)
         joystickBase.fillColor = .black.withAlphaComponent(0.2)
         joystickBase.strokeColor = .white.withAlphaComponent(0.6)
         joystickBase.lineWidth = 3
@@ -531,7 +531,7 @@ extension GameScene {
     }
 
     func positionActionButtons() {
-        let position = CGPoint(x: size.width / 2 - 90, y: -size.height / 2 + joystickRadius + 70)
+        let position = CGPoint(x: size.width / 2 - 90, y: -size.height / 2 + joystickRadius + 100)
         actionButton?.position = position
         foodActionButton?.position = position
     }
