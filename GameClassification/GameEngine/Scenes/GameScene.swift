@@ -282,6 +282,7 @@ final class GameScene: SKScene {
             checkProximityToLabMonitor2()
         }
 
+        player?.updateEnergyBar(value: sessionState.energy)
         updateStationVisibility()
 
         if debugSettings.isMapDebugEnabled {
@@ -366,6 +367,7 @@ final class GameScene: SKScene {
         didNotifyGameOver = false
         resetContactTracking()
         player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
+        player.updateEnergyBar(value: sessionState.energy)
         lastValidPlayerPosition = player.position
         lastMovementResult = .stationary(at: player.position)
         stopPlayerMovement()

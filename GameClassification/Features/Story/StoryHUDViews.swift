@@ -5,62 +5,129 @@ struct StoryProgressHUDView: View {
     let session: GameSessionState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(session.sharedStory.currentChapter.displayName.uppercased())
-                .font(GameFont.caption1Bold)
-                .foregroundStyle(.cyan)
+        VStack(alignment: .leading, spacing: 10) {
+//            chapterHeader
 
-            progressRow("ENERGY", value: session.progress.energy, color: energyColor)
-            progressRow("AI INTEL", value: session.progress.intelligence, color: .blue)
-            progressRow("ENGINE", value: session.progress.engineProgress, color: .orange)
+            VStack(alignment: .leading, spacing: 8) {
+                resourceBar(
+                    title: "Robo Intelligence",
+                    value: session.progress.intelligence,
+                    iconName: "AIKnowledgeBarIcon",
+                    tint: .blue
+                )
+                resourceBar(
+                    title: "Engine Progress",
+                    value: session.progress.engineProgress,
+                    iconName: "EngineBarIcon",
+                    tint: .yellow
+                )
+            }
 
             if let mission = session.sharedStory.activeMission {
-                Divider().overlay(.white.opacity(0.25))
-                Label(mission.title, systemImage: "scope")
-                    .font(GameFont.caption1Bold)
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                if let objective = session.activeObjective {
-                    Text(objective.definition.description)
-                    .font(GameFont.caption2)
-                    .foregroundStyle(.white.opacity(0.7))
-                    .lineLimit(2)
-                }
+                missionPanel(mission)
             }
         }
         .padding(12)
-        .frame(width: 220, alignment: .leading)
-        .background(.black.opacity(0.58), in: .rect(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).stroke(.cyan.opacity(0.25)) }
+        .frame(width: 300, alignment: .leading)
+//        .background(.black.opacity(0.62), in: .rect(cornerRadius: 12))
+//        .overlay { RoundedRectangle(cornerRadius: 12).stroke(.cyan.opacity(0.22)) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Story progress")
     }
 
-    private func progressRow(_ title: String, value: Double, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(title).font(GameFont.custom(size: 9, weight: 700))
-                Spacer()
-                Text("\(Int(value))%").font(GameFont.custom(size: 9, weight: 700))
-            }
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.15))
-                    Capsule().fill(color).frame(width: geometry.size.width * value.clamped(to: 0...100) / 100)
-                }
-            }
-            .frame(height: 7)
+    private var chapterHeader: some View {
+        HStack(spacing: 8) {
+            Text(session.sharedStory.currentChapter.displayName.uppercased())
+                .font(GameFont.caption1Bold)
+                .foregroundStyle(.cyan)
+                .lineLimit(1)
+            Spacer(minLength: 8)
         }
-        .foregroundStyle(.white)
     }
 
-    private var energyColor: Color {
-        switch session.energy {
-        case 50...: .green
-        case 20...: .orange
-        default: .red
+    private func resourceBar(title: String, value: Double, iconName: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(iconName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 40, height: 40)
+                .padding(4)
+//                .background(tint.opacity(0.14), in: .rect(cornerRadius: 6))
+//                .overlay { RoundedRectangle(cornerRadius: 6).stroke(tint.opacity(0.35)) }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(title)
+                        .font(GameFont.custom(size: 17, weight: 700))
+                        .foregroundStyle(.white.opacity(0.72))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                    Spacer(minLength: 6)
+                    Text("\(Int(value.clamped(to: 0...100)))%")
+                        .font(GameFont.custom(size: 15, weight: 800))
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                }
+
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.12))
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [tint.opacity(0.78), tint],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * value.clamped(to: 0...100) / 100)
+                    }
+                }
+                .frame(height: 8)
+                .overlay { Capsule().stroke(.white.opacity(0.14), lineWidth: 1) }
+            }
         }
     }
+
+    private func missionPanel(_ mission: MissionState) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(mission.title, systemImage: "scope")
+                .font(GameFont.bodySemiBold)
+                .foregroundStyle(missionChromeColor)
+                .lineLimit(2)
+
+            if let objective = session.activeObjective {
+                Text(objective.definition.description)
+                    .font(GameFont.callout)
+                    .foregroundStyle(missionChromeColor.opacity(0.76))
+                    .lineLimit(2)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(.black.opacity(missionBackgroundOpacity), in: .rect(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(missionChromeColor.opacity(0.72), lineWidth: 1)
+        }
+    }
+
+    private var missionChromeColor: Color {
+        switch session.sharedStory.powerState {
+        case .off, .disrupted, .basicPower, .fullyRestored:
+            .white
+        }
+    }
+
+    private var missionBackgroundOpacity: Double {
+        switch session.sharedStory.powerState {
+        case .off, .disrupted:
+            0.34
+        case .basicPower, .fullyRestored:
+            0.18
+        }
+    }
+
 }
 
 struct AIDialogueOverlay: View {
