@@ -612,6 +612,46 @@ extension MapGeometryConfiguration {
         return CGPoint(x: anchor.position.x, y: anchor.position.y)
     }
 
+    /// Storage Monitor artwork anchored on the Storage Monitor object in the Storage Room.
+    var storageMonitorPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-storage-monitor" }) else {
+            return spawnPoint(for: .storage) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// Storage Machinery terminal artwork sits on the Storage Machinery object.
+    var storageMachineryPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-storage-machinery" }) else {
+            return spawnPoint(for: .storage) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// Storage Cabinet artwork sits on the Storage Cabinets object.
+    var storageCabinetPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-storage-cabinets" }) else {
+            return spawnPoint(for: .storage) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// Cockpit Port Monitor artwork sits on the Cockpit Port Machinery object.
+    var cockpitPortMonitorPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-cockpit-port-machinery" }) else {
+            return spawnPoint(for: .cockpit) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
+    /// Cockpit Main Console artwork sits on the Cockpit Main Console object.
+    var cockpitMainConsolePosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-cockpit-main-console" }) else {
+            return spawnPoint(for: .cockpit) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
     /// Power-off rocket smoke/fire effect anchor requested in world-space.
     var rocketPowerOffSmokePosition: CGPoint {
         CGPoint(x: 2750.33, y: 501.5)
@@ -622,7 +662,7 @@ extension MapGeometryConfiguration {
         guard let anchor = objects.first(where: { $0.id == "object-engine-core" }) else {
             return spawnPoint(for: .engine) ?? .zero
         }
-        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+        return CGPoint(x: anchor.position.x - 6, y: anchor.position.y)
     }
 
     func spawnPoint(for roomID: RoomID) -> CGPoint? {

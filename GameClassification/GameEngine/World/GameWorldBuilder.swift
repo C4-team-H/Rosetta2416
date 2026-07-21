@@ -58,6 +58,11 @@ extension GameScene {
             guard definition.id != Self.labMemoryRepairInteractionID else { continue }
             guard !Self.replacedEngineStationIDs.contains(definition.id) else { continue }
             guard !Self.mainEngineCoreInteractionIDs.contains(definition.id) else { continue }
+            guard !Self.replacedStorageStationIDs.contains(definition.id) else { continue }
+            guard !Self.replacedStorageMachineryStationIDs.contains(definition.id) else { continue }
+            guard !Self.replacedStorageCabinetStationIDs.contains(definition.id) else { continue }
+            guard !Self.replacedCockpitPortMonitorStationIDs.contains(definition.id) else { continue }
+            guard !Self.replacedCockpitMainConsoleStationIDs.contains(definition.id) else { continue }
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
             attachInteractionSensor(to: station, id: definition.id)
             parent.addChild(station)
@@ -136,6 +141,51 @@ extension GameScene {
         control.zPosition = 2
         (shipMapNode?.furnitureLayer ?? self).addChild(control)
         mainEngineControlNode = control
+    }
+
+    func createStorageMonitor() {
+        storageMonitorNode?.removeFromParent()
+        let monitor = StorageMonitorNode()
+        monitor.position = geometryStore.configuration.storageMonitorPosition
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        storageMonitorNode = monitor
+    }
+
+    func createStorageMachinery() {
+        storageMachineryNode?.removeFromParent()
+        let machinery = StorageMachineryNode()
+        machinery.position = geometryStore.configuration.storageMachineryPosition
+        machinery.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(machinery)
+        storageMachineryNode = machinery
+    }
+
+    func createStorageCabinet() {
+        storageCabinetNode?.removeFromParent()
+        let cabinet = StorageCabinetNode()
+        cabinet.position = geometryStore.configuration.storageCabinetPosition
+        cabinet.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(cabinet)
+        storageCabinetNode = cabinet
+    }
+
+    func createCockpitPortMonitor() {
+        cockpitPortMonitorNode?.removeFromParent()
+        let monitor = CockpitPortMonitorNode()
+        monitor.position = geometryStore.configuration.cockpitPortMonitorPosition
+        monitor.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(monitor)
+        cockpitPortMonitorNode = monitor
+    }
+
+    func createCockpitMainConsole() {
+        cockpitMainConsoleNode?.removeFromParent()
+        let console = CockpitMainConsoleNode()
+        console.position = geometryStore.configuration.cockpitMainConsolePosition
+        console.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(console)
+        cockpitMainConsoleNode = console
     }
 
     func createRocketPowerOffSmoke() {
@@ -220,6 +270,46 @@ extension GameScene {
                 hideInteractionButton()
             }
         }
+        storageMonitorNode?.isHidden = !isStorageMonitorInteractable
+        if storageMonitorNode?.isHidden == true {
+            storageMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedStorageStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        storageMachineryNode?.isHidden = !isStorageMachineryInteractable
+        if storageMachineryNode?.isHidden == true {
+            storageMachineryNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedStorageMachineryStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        storageCabinetNode?.isHidden = !isStorageCabinetInteractable
+        if storageCabinetNode?.isHidden == true {
+            storageCabinetNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedStorageCabinetStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        cockpitPortMonitorNode?.isHidden = !isCockpitPortMonitorInteractable
+        if cockpitPortMonitorNode?.isHidden == true {
+            cockpitPortMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedCockpitPortMonitorStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        cockpitMainConsoleNode?.isHidden = !isCockpitMainConsoleInteractable
+        if cockpitMainConsoleNode?.isHidden == true {
+            cockpitMainConsoleNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedCockpitMainConsoleStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
         refreshRocketPowerOffSmokeVisibility()
         shipMapNode?.synchronizeDoors(with: sessionState.storySystem)
         if let doorStates = shipMapNode?.doorStates {
@@ -283,6 +373,46 @@ extension GameScene {
                 hideInteractionButton()
             }
         }
+        storageMonitorNode?.isHidden = !isStorageMonitorInteractable
+        if storageMonitorNode?.isHidden == true {
+            storageMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedStorageStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        storageMachineryNode?.isHidden = !isStorageMachineryInteractable
+        if storageMachineryNode?.isHidden == true {
+            storageMachineryNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedStorageMachineryStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        storageCabinetNode?.isHidden = !isStorageCabinetInteractable
+        if storageCabinetNode?.isHidden == true {
+            storageCabinetNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedStorageCabinetStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        cockpitPortMonitorNode?.isHidden = !isCockpitPortMonitorInteractable
+        if cockpitPortMonitorNode?.isHidden == true {
+            cockpitPortMonitorNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedCockpitPortMonitorStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        cockpitMainConsoleNode?.isHidden = !isCockpitMainConsoleInteractable
+        if cockpitMainConsoleNode?.isHidden == true {
+            cockpitMainConsoleNode?.setProximityHighlighted(false, animated: false)
+            if Self.replacedCockpitMainConsoleStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
         refreshRocketPowerOffSmokeVisibility()
     }
 
@@ -319,6 +449,42 @@ extension GameScene {
             guard let objective = objectives.first(where: { $0.id == id }) else { return false }
             return objective.status == .available || objective.status == .active
         }
+    }
+
+    private var isStorageMonitorInteractable: Bool {
+        let objectives = sessionState.objectives
+        return Self.replacedStorageStationIDs.contains { id in
+            guard let objective = objectives.first(where: { $0.id == id }) else { return false }
+            return objective.status == .available || objective.status == .active
+        }
+    }
+
+    private var isStorageMachineryInteractable: Bool {
+        guard let objective = sessionState.objectives.first(where: { $0.id == Self.storageToolTerminalInteractionID }) else {
+            return false
+        }
+        return objective.status == .available || objective.status == .active
+    }
+
+    private var isStorageCabinetInteractable: Bool {
+        guard let objective = sessionState.objectives.first(where: { $0.id == Self.storageCalibrationUnitInteractionID }) else {
+            return false
+        }
+        return objective.status == .available || objective.status == .active
+    }
+
+    private var isCockpitPortMonitorInteractable: Bool {
+        guard let objective = sessionState.objectives.first(where: { $0.id == Self.cockpitFlightConsoleInteractionID }) else {
+            return false
+        }
+        return objective.status == .available || objective.status == .active
+    }
+
+    private var isCockpitMainConsoleInteractable: Bool {
+        guard let objective = sessionState.objectives.first(where: { $0.id == Self.cockpitNavigationControlInteractionID }) else {
+            return false
+        }
+        return objective.status == .available || objective.status == .active
     }
 
     private var shouldShowRocketPowerOffSmoke: Bool {

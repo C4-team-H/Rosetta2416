@@ -2,9 +2,9 @@ import SpriteKit
 import UIKit
 
 final class EnginePipeControlNode: SKNode {
-    static let artworkScale: CGFloat = 0.8
+    static let artworkScale: CGFloat = 0.6
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(2)
+    static let outlineWidth = GameMapLayout.scaled(3)
 
     private static let highlightActionKey = "engine-pipe-control-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18

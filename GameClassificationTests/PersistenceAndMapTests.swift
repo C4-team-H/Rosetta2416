@@ -311,14 +311,6 @@ struct PersistenceAndMapTests {
         #expect(candleWorldZ < hudWorldZ)
     }
 
-
-        for definition in StoryConfiguration.engineInitialChallenges.dropFirst().prefix(3) {
-            validate(definition.id, in: session)
-        }
-        #expect(session.sharedStory.powerState == .disrupted)
-        #expect(viewModel.isFullMapRevealed)
-    }
-
     @Test("Album physical book and marker use the same console-derived coordinate")
     func albumCoordinateAndMarker() {
         let configuration = MapGeometryConfiguration.drawingSpaceDefault

@@ -10,6 +10,11 @@ extension GameScene {
             engineMonitorNode?.setProximityHighlighted(false)
             enginePipeControlNode?.setProximityHighlighted(false)
             mainEngineControlNode?.setProximityHighlighted(false)
+            storageMonitorNode?.setProximityHighlighted(false)
+            storageMachineryNode?.setProximityHighlighted(false)
+            storageCabinetNode?.setProximityHighlighted(false)
+            cockpitPortMonitorNode?.setProximityHighlighted(false)
+            cockpitMainConsoleNode?.setProximityHighlighted(false)
             hideInteractionButton()
             return
         }
@@ -88,7 +93,60 @@ extension GameScene {
                 radius: MainEngineControlNode.interactionRadius
             )
         }
-        let nearest = (stationCandidates + [labTableCandidate, labMonitor2Candidate, labMonitor1Candidate, engineMonitorCandidate, enginePipeControlCandidate, mainEngineControlCandidate].compactMap { $0 })
+        let storageMonitorCandidate = storageMonitorNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            let eligibleID = Self.replacedStorageStationIDs.first { id in
+                guard let objective = sessionState.objectives.first(where: { $0.id == id }) else { return false }
+                return objective.status == .available || objective.status == .active
+            }
+            guard let eligibleID else { return nil }
+            return (
+                id: eligibleID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: StorageMonitorNode.interactionRadius
+            )
+        }
+        let storageMachineryCandidate = storageMachineryNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            guard let objective = sessionState.objectives.first(where: { $0.id == Self.storageToolTerminalInteractionID }),
+                  objective.status == .available || objective.status == .active else { return nil }
+            return (
+                id: Self.storageToolTerminalInteractionID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: StorageMachineryNode.interactionRadius
+            )
+        }
+        let storageCabinetCandidate = storageCabinetNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            guard let objective = sessionState.objectives.first(where: { $0.id == Self.storageCalibrationUnitInteractionID }),
+                  objective.status == .available || objective.status == .active else { return nil }
+            return (
+                id: Self.storageCalibrationUnitInteractionID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: StorageCabinetNode.interactionRadius
+            )
+        }
+        let cockpitPortMonitorCandidate = cockpitPortMonitorNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            guard let objective = sessionState.objectives.first(where: { $0.id == Self.cockpitFlightConsoleInteractionID }),
+                  objective.status == .available || objective.status == .active else { return nil }
+            return (
+                id: Self.cockpitFlightConsoleInteractionID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: CockpitPortMonitorNode.interactionRadius
+            )
+        }
+        let cockpitMainConsoleCandidate = cockpitMainConsoleNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
+            guard !node.isHidden else { return nil }
+            guard let objective = sessionState.objectives.first(where: { $0.id == Self.cockpitNavigationControlInteractionID }),
+                  objective.status == .available || objective.status == .active else { return nil }
+            return (
+                id: Self.cockpitNavigationControlInteractionID,
+                distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
+                radius: CockpitMainConsoleNode.interactionRadius
+            )
+        }
+        let nearest = (stationCandidates + [labTableCandidate, labMonitor2Candidate, labMonitor1Candidate, engineMonitorCandidate, enginePipeControlCandidate, mainEngineControlCandidate, storageMonitorCandidate, storageMachineryCandidate, storageCabinetCandidate, cockpitPortMonitorCandidate, cockpitMainConsoleCandidate].compactMap { $0 })
             .filter { $0.distance <= $0.radius }
             .min { $0.distance < $1.distance }
         labTableNode?.setProximityHighlighted(
@@ -108,6 +166,21 @@ extension GameScene {
         )
         mainEngineControlNode?.setProximityHighlighted(
             mainEngineControlCandidate.map { $0.distance <= $0.radius } ?? false
+        )
+        storageMonitorNode?.setProximityHighlighted(
+            storageMonitorCandidate.map { $0.distance <= $0.radius } ?? false
+        )
+        storageMachineryNode?.setProximityHighlighted(
+            storageMachineryCandidate.map { $0.distance <= $0.radius } ?? false
+        )
+        storageCabinetNode?.setProximityHighlighted(
+            storageCabinetCandidate.map { $0.distance <= $0.radius } ?? false
+        )
+        cockpitPortMonitorNode?.setProximityHighlighted(
+            cockpitPortMonitorCandidate.map { $0.distance <= $0.radius } ?? false
+        )
+        cockpitMainConsoleNode?.setProximityHighlighted(
+            cockpitMainConsoleCandidate.map { $0.distance <= $0.radius } ?? false
         )
 
         guard let nearest,
