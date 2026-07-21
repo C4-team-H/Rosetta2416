@@ -25,6 +25,7 @@ extension GameScene {
         player = playerNode
         player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
         player.zPosition = 0
+        player.updateEnergyBar(value: sessionState.energy)
         lastValidPlayerPosition = player.position
         lastMovementResult = .stationary(at: player.position)
         let parent = shipMapNode?.playerLayer ?? self

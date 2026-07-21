@@ -353,6 +353,7 @@ createEnginePipeControl()
             checkProximityToLabMonitor2()
         }
 
+        player?.updateEnergyBar(value: sessionState.energy)
         updateStationVisibility()
 
         if debugSettings.isMapDebugEnabled {
@@ -437,6 +438,7 @@ createEnginePipeControl()
         didNotifyGameOver = false
         resetContactTracking()
         player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
+        player.updateEnergyBar(value: sessionState.energy)
         lastValidPlayerPosition = player.position
         lastMovementResult = .stationary(at: player.position)
         stopPlayerMovement()
