@@ -148,6 +148,169 @@ struct PersistenceAndMapTests {
         validate("engine-ignition-coil", in: session)
         let viewModel = TacticalMapViewModel(sessionState: session)
         #expect(viewModel.isFullMapRevealed)
+    }
+
+    @Test("MainEngineControlNode position derives from object-engine-core anchor")
+    func mainEngineCorePosition() {
+        let config = MapGeometryConfiguration.drawingSpaceDefault
+        let anchor = config.objects.first(where: { $0.id == "object-engine-core" })
+        #expect(anchor != nil)
+        #expect(config.mainEngineCorePosition == anchor?.position.cgPoint)
+    }
+
+    @Test("MainEngineControlNode structure has artwork sprite and shader")
+    func mainEngineControlNodeStructure() {
+        let node = MainEngineControlNode()
+        #expect(node.children.count == 1)
+        #expect(node.artworkSprite.name == "main-engine-control-artwork")
+        #expect(node.artworkSprite.shader != nil)
+        #expect(node.artworkSprite.xScale == 1)
+        #expect(node.artworkSprite.yScale == 1)
+        #expect(MainEngineControlNode.interactionRadius == GameMapLayout.scaled(76))
+        #expect(MainEngineControlNode.outlineWidth == GameMapLayout.scaled(2))
+    }
+
+    @Test("MainEngineControl proximity activates highlight and REPAIR button")
+    func mainEngineControlProximity() throws {
+        let session = makeSession()
+        session.beginGameplay()
+        let scene = makeScene(session: session)
+        complete(.laboratory, in: session)
+        validate("engine-ignition-coil", in: session)
+        // Make engine-calibration-port active
+        validate("engine-cooling-valve", in: session)
+        validate("engine-cooling-restart", in: session)
+        validate("engine-reactor-link", in: session)
+        session.sharedStory.currentChapter = .engineFinal
+
+        let mainEngine = try #require(scene.mainEngineControlNode)
+        scene.player.position = mainEngine.position
+        scene.checkProximityToInteractiveObject()
+
+        #expect(mainEngine.isProximityHighlighted)
+        #expect(scene.activeStationID == "engine-calibration-port")
+        #expect(scene.actionButton != nil)
+    }
+
+    @Test("MainEngineControl leaving radius clears highlight and UI")
+    func mainEngineControlLeaveRadius() throws {
+        let session = makeSession()
+        session.beginGameplay()
+        let scene = makeScene(session: session)
+        complete(.laboratory, in: session)
+        validate("engine-ignition-coil", in: session)
+        validate("engine-cooling-valve", in: session)
+        validate("engine-cooling-restart", in: session)
+        validate("engine-reactor-link", in: session)
+        session.sharedStory.currentChapter = .engineFinal
+
+        let mainEngine = try #require(scene.mainEngineControlNode)
+        scene.player.position = mainEngine.position
+        scene.checkProximityToInteractiveObject()
+        #expect(mainEngine.isProximityHighlighted)
+
+        scene.player.position = CGPoint(x: mainEngine.position.x + 200, y: mainEngine.position.y)
+        scene.checkProximityToInteractiveObject()
+
+        #expect(!mainEngine.isProximityHighlighted)
+        #expect(scene.activeStationID == nil)
+        #expect(scene.actionButton == nil)
+    }
+
+    @Test("Inactive MainEngineControl mission hides node and clears interaction")
+    func mainEngineControlInactiveMission() throws {
+        let session = makeSession()
+        session.beginGameplay()
+        let scene = makeScene(session: session)
+        complete(.laboratory, in: session)
+
+        let mainEngine = try #require(scene.mainEngineControlNode)
+        scene.refreshStoryVisuals()
+
+        #expect(mainEngine.isHidden)
+        #expect(!mainEngine.isProximityHighlighted)
+    }
+
+    @Test("Active MainEngineControl mission shows node and enables interaction")
+    func mainEngineControlActiveMission() throws {
+        let session = makeSession()
+        session.beginGameplay()
+        let scene = makeScene(session: session)
+        complete(.laboratory, in: session)
+        validate("engine-ignition-coil", in: session)
+        validate("engine-cooling-valve", in: session)
+        validate("engine-cooling-restart", in: session)
+        validate("engine-reactor-link", in: session)
+        session.sharedStory.currentChapter = .engineFinal
+
+        let mainEngine = try #require(scene.mainEngineControlNode)
+        scene.refreshStoryVisuals()
+
+        #expect(!mainEngine.isHidden)
+        scene.player.position = mainEngine.position
+        scene.checkProximityToInteractiveObject()
+        #expect(mainEngine.isProximityHighlighted)
+        #expect(scene.activeStationID == "engine-calibration-port")
+    }
+
+    @Test("Seven engine-core stations do not create legacy rectangle nodes")
+    func mainEngineCoreStationsExcluded() {
+        let session = makeSession()
+        session.beginGameplay()
+        let scene = makeScene(session: session)
+
+        let coreStationIDs = GameScene.mainEngineCoreInteractionIDs
+        for stationID in coreStationIDs {
+            #expect(scene.stationNodes[stationID] == nil)
+        }
+    }
+
+    @Test("TacticalMap markers for engine-core missions use mainEngineCorePosition")
+    func mainEngineCoreMarkerPosition() {
+        let session = makeSession()
+        session.beginGameplay()
+        complete(.laboratory, in: session)
+        validate("engine-ignition-coil", in: session)
+        validate("engine-cooling-valve", in: session)
+        validate("engine-cooling-restart", in: session)
+        validate("engine-reactor-link", in: session)
+        session.sharedStory.currentChapter = .engineFinal
+
+        let config = MapGeometryConfiguration.drawingSpaceDefault
+        let markers = TacticalMapMarkerFactory.make(
+            story: session.storySystem,
+            configuration: config,
+            visibilitySystem: StationVisibilitySystem(storySystem: session.storySystem, isDebugEnabled: false)
+        )
+
+        let corePosition = config.mainEngineCorePosition
+        let coreMarkers = markers.filter {
+            GameScene.mainEngineCoreInteractionIDs.contains($0.id.replacingOccurrences(of: "station-", with: ""))
+        }
+
+        for marker in coreMarkers {
+            #expect(marker.worldPosition == corePosition)
+        }
+    }
+
+    @Test("MainEngineControl accumulated Z is below candle overlay")
+    func mainEngineControlZOrdering() throws {
+        let session = makeSession()
+        session.beginGameplay()
+        let scene = makeScene(session: session)
+
+        let shipMap = try #require(scene.shipMapNode)
+        let mainEngine = try #require(scene.mainEngineControlNode)
+        let candleLight = try #require(scene.candleLight)
+
+        let objectWorldZ = shipMap.zPosition + shipMap.furnitureLayer.zPosition + mainEngine.zPosition
+        let candleWorldZ = scene.cameraNode.zPosition + candleLight.zPosition
+        let hudWorldZ = scene.cameraNode.zPosition + (scene.joystickBase?.zPosition ?? 0)
+
+        #expect(objectWorldZ < candleWorldZ)
+        #expect(candleWorldZ < hudWorldZ)
+    }
+
 
         for definition in StoryConfiguration.engineInitialChallenges.dropFirst().prefix(3) {
             validate(definition.id, in: session)

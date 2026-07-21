@@ -57,6 +57,7 @@ extension GameScene {
             guard definition.id != "lab-terminal-repair" else { continue }
             guard definition.id != Self.labMemoryRepairInteractionID else { continue }
             guard !Self.replacedEngineStationIDs.contains(definition.id) else { continue }
+            guard !Self.mainEngineCoreInteractionIDs.contains(definition.id) else { continue }
             let station = makeStationNode(id: definition.id, at: definition.worldPosition)
             attachInteractionSensor(to: station, id: definition.id)
             parent.addChild(station)
@@ -119,6 +120,24 @@ extension GameScene {
         engineMonitorNode = monitor
     }
 
+    func createEnginePipeControl() {
+        enginePipeControlNode?.removeFromParent()
+        let control = EnginePipeControlNode()
+        control.position = geometryStore.configuration.enginePipeControlPosition
+        control.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(control)
+        enginePipeControlNode = control
+    }
+
+    func createMainEngineControl() {
+        mainEngineControlNode?.removeFromParent()
+        let control = MainEngineControlNode()
+        control.position = geometryStore.configuration.mainEngineCorePosition
+        control.zPosition = 2
+        (shipMapNode?.furnitureLayer ?? self).addChild(control)
+        mainEngineControlNode = control
+    }
+
     func createRocketPowerOffSmoke() {
         rocketPowerOffSmokeNode?.removeFromParent()
         let smoke = RocketPowerOffSmokeNode()
@@ -179,7 +198,24 @@ extension GameScene {
         engineMonitorNode?.isHidden = !isEngineMonitorInteractable
         if engineMonitorNode?.isHidden == true {
             engineMonitorNode?.setProximityHighlighted(false, animated: false)
-            if Self.replacedEngineStationIDs.contains(activeStationID ?? "") {
+            if Self.engineMonitorStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        enginePipeControlNode?.isHidden = !isEnginePipeControlInteractable
+        if enginePipeControlNode?.isHidden == true {
+            enginePipeControlNode?.setProximityHighlighted(false, animated: false)
+            if activeStationID == Self.engineControlRelayInteractionID
+                || activeStationID == Self.engineCoolingValveInteractionID {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        mainEngineControlNode?.isHidden = !isMainEngineInteractable
+        if mainEngineControlNode?.isHidden == true {
+            mainEngineControlNode?.setProximityHighlighted(false, animated: false)
+            if Self.mainEngineCoreInteractionIDs.contains(activeStationID ?? "") {
                 activeStationID = nil
                 hideInteractionButton()
             }
@@ -225,7 +261,24 @@ extension GameScene {
         engineMonitorNode?.isHidden = !isEngineMonitorInteractable
         if engineMonitorNode?.isHidden == true {
             engineMonitorNode?.setProximityHighlighted(false, animated: false)
-            if Self.replacedEngineStationIDs.contains(activeStationID ?? "") {
+            if Self.engineMonitorStationIDs.contains(activeStationID ?? "") {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        enginePipeControlNode?.isHidden = !isEnginePipeControlInteractable
+        if enginePipeControlNode?.isHidden == true {
+            enginePipeControlNode?.setProximityHighlighted(false, animated: false)
+            if activeStationID == Self.engineControlRelayInteractionID
+                || activeStationID == Self.engineCoolingValveInteractionID {
+                activeStationID = nil
+                hideInteractionButton()
+            }
+        }
+        mainEngineControlNode?.isHidden = !isMainEngineInteractable
+        if mainEngineControlNode?.isHidden == true {
+            mainEngineControlNode?.setProximityHighlighted(false, animated: false)
+            if Self.mainEngineCoreInteractionIDs.contains(activeStationID ?? "") {
                 activeStationID = nil
                 hideInteractionButton()
             }
@@ -242,8 +295,28 @@ extension GameScene {
 
     private var isEngineMonitorInteractable: Bool {
         let objectives = sessionState.objectives
-        return Self.replacedEngineStationIDs.contains { engineID in
+        return Self.engineMonitorStationIDs.contains { engineID in
             guard let objective = objectives.first(where: { $0.id == engineID }) else { return false }
+            return objective.status == .available || objective.status == .active
+        }
+    }
+
+    private var isEnginePipeControlInteractable: Bool {
+        let objectives = sessionState.objectives
+        let pipeControlIDs: Set<String> = [
+            Self.engineControlRelayInteractionID,
+            Self.engineCoolingValveInteractionID
+        ]
+        return pipeControlIDs.contains { id in
+            guard let objective = objectives.first(where: { $0.id == id }) else { return false }
+            return objective.status == .available || objective.status == .active
+        }
+    }
+
+    private var isMainEngineInteractable: Bool {
+        let objectives = sessionState.objectives
+        return Self.mainEngineCoreInteractionIDs.contains { id in
+            guard let objective = objectives.first(where: { $0.id == id }) else { return false }
             return objective.status == .available || objective.status == .active
         }
     }

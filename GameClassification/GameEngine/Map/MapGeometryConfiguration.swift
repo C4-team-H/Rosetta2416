@@ -604,9 +604,25 @@ extension MapGeometryConfiguration {
         return CGPoint(x: anchor.position.x, y: anchor.position.y)
     }
 
+    /// Engine Pipe Control artwork anchored on the Engine Battery Bank object.
+    var enginePipeControlPosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-engine-battery-bank" }) else {
+            return spawnPoint(for: .engine) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+    }
+
     /// Power-off rocket smoke/fire effect anchor requested in world-space.
     var rocketPowerOffSmokePosition: CGPoint {
         CGPoint(x: 2750.33, y: 501.5)
+    }
+
+    /// Main engine core artwork sits on the Engine Core object.
+    var mainEngineCorePosition: CGPoint {
+        guard let anchor = objects.first(where: { $0.id == "object-engine-core" }) else {
+            return spawnPoint(for: .engine) ?? .zero
+        }
+        return CGPoint(x: anchor.position.x, y: anchor.position.y)
     }
 
     func spawnPoint(for roomID: RoomID) -> CGPoint? {

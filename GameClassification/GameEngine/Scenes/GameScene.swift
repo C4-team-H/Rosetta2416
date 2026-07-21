@@ -20,8 +20,28 @@ final class GameScene: SKScene {
     static let engineIgnitionCoilInteractionID = "engine-ignition-coil"
     static let enginePowerConnectorInteractionID = "engine-power-connector"
     static let engineReactorLinkInteractionID = "engine-reactor-link"
+    static let engineControlRelayInteractionID = "engine-control-relay"
+    static let engineCoolingValveInteractionID = "engine-cooling-valve"
+
+    static let mainEngineCoreInteractionIDs: Set<String> = [
+        "engine-calibration-port",
+        "engine-cooling-restart",
+        "engine-core-reconnect",
+        "engine-navigation-sync",
+        "engine-pressure-feed",
+        "engine-propulsion-calibration",
+        "engine-reactor-stabilizer"
+    ]
 
     static let replacedEngineStationIDs: Set<String> = [
+        engineIgnitionCoilInteractionID,
+        enginePowerConnectorInteractionID,
+        engineReactorLinkInteractionID,
+        engineControlRelayInteractionID,
+        engineCoolingValveInteractionID
+    ]
+
+    static let engineMonitorStationIDs: Set<String> = [
         engineIgnitionCoilInteractionID,
         enginePowerConnectorInteractionID,
         engineReactorLinkInteractionID
@@ -56,6 +76,8 @@ final class GameScene: SKScene {
     var labMonitor2Node: LabMonitor2Node?
     var labMonitor1Node: LabMonitor1Node?
     var engineMonitorNode: EngineMonitorNode?
+    var enginePipeControlNode: EnginePipeControlNode?
+    var mainEngineControlNode: MainEngineControlNode?
     var rocketPowerOffSmokeNode: RocketPowerOffSmokeNode?
     var activeStationID: String?
     var lastDeniedStationID: String?
@@ -166,6 +188,8 @@ final class GameScene: SKScene {
         createLabMonitor2()
         createLabMonitor1()
         createEngineMonitor()
+        createEnginePipeControl()
+        createMainEngineControl()
         createRocketPowerOffSmoke()
         enableCandleLight()
         refreshStoryVisuals()
@@ -242,6 +266,8 @@ final class GameScene: SKScene {
             labMonitor2Node?.setProximityHighlighted(false, animated: false)
             labMonitor1Node?.setProximityHighlighted(false, animated: false)
             engineMonitorNode?.setProximityHighlighted(false, animated: false)
+            enginePipeControlNode?.setProximityHighlighted(false, animated: false)
+            mainEngineControlNode?.setProximityHighlighted(false, animated: false)
         } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert {
             if !wasMapInputSuspended {
                 clearPencilTarget()
@@ -449,6 +475,8 @@ final class GameScene: SKScene {
             createLabMonitor2()
             createLabMonitor1()
             createEngineMonitor()
+            createEnginePipeControl()
+            createMainEngineControl()
             createRocketPowerOffSmoke()
         }
         if update.changeSet.isFullReplacement || changedCategories.contains(.object) {
@@ -527,6 +555,8 @@ final class GameScene: SKScene {
         createLabMonitor2()
         createLabMonitor1()
         createEngineMonitor()
+        createEnginePipeControl()
+        createMainEngineControl()
         createRocketPowerOffSmoke()
         refreshStoryVisuals()
         resetPlayerToDebugSpawnIfInvalid()

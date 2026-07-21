@@ -59,11 +59,15 @@ enum TacticalMapMarkerFactory {
             case .locked: continue
             }
             let isVisible = visibilitySystem?.shouldShowOnMap(interactionID: objectiveID) ?? true
+            // Engine-core missions share the MainEngineControlNode sprite position.
+            let markerPosition = GameScene.mainEngineCoreInteractionIDs.contains(objectiveID)
+                ? configuration.mainEngineCorePosition
+                : station.position.cgPoint
             markers.append(MapMarker(
                 id: station.id,
                 kind: .station,
                 status: markerStatus,
-                worldPosition: station.position.cgPoint,
+                worldPosition: markerPosition,
                 title: objective.definition.title,
                 isVisible: isVisible
             ))
