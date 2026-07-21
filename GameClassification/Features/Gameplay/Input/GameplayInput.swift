@@ -16,7 +16,8 @@ extension GameScene {
         guard sessionState.phase == .playing else { return }
         guard !debugSettings.isEditingGameplaySuspended else { return }
         guard !sessionState.showLowEnergyAlert else { return }
-        
+        guard sessionState.currentDialogue == nil else { return }
+
         for touch in touches {
             let touchLocation = touch.location(in: self)
             let cameraTouchLocation = self.convert(touchLocation, to: cameraNode)
@@ -64,7 +65,8 @@ extension GameScene {
         guard sessionState.phase == .playing else { return }
         guard !debugSettings.isEditingGameplaySuspended else { return }
         guard !sessionState.showLowEnergyAlert else { return }
-        
+        guard sessionState.currentDialogue == nil else { return }
+
         // Geser Apple Pencil -> Pindahkan titik koordinat target bergerak
         if let activePencil = pencilTouch, touches.contains(activePencil) {
             let loc = activePencil.location(in: self)
