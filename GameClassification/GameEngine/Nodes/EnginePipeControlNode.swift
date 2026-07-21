@@ -1,12 +1,12 @@
 import SpriteKit
 import UIKit
 
-final class AlbumBookNode: SKNode {
-    static let artworkScale: CGFloat = 1.6  //resize ukuran album book 
+final class EnginePipeControlNode: SKNode {
+    static let artworkScale: CGFloat = 0.7
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(2) //atur tebal tipis outline
+    static let outlineWidth = GameMapLayout.scaled(4)
 
-    private static let highlightActionKey = "album-book-highlight-transition"
+    private static let highlightActionKey = "engine-pipe-control-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18
 
     let artworkSprite: SKSpriteNode
@@ -16,8 +16,8 @@ final class AlbumBookNode: SKNode {
     private let highlightUniform: SKUniform
 
     init(
-        image: UIImage? = UIImage(named: "AlbumBook"),
-        outlineWidth: CGFloat = AlbumBookNode.outlineWidth
+        image: UIImage? = UIImage(named: "EnginePipeControl"),
+        outlineWidth: CGFloat = EnginePipeControlNode.outlineWidth
     ) {
         let sourceImage = image ?? UIImage()
         artworkSize = sourceImage.size
@@ -41,14 +41,14 @@ final class AlbumBookNode: SKNode {
         )
 
         artworkSprite = SKSpriteNode(texture: paddedTexture, size: paddedDisplaySize)
-        artworkSprite.name = "album-book-artwork"
+        artworkSprite.name = "engine-pipe-control-artwork"
         artworkSprite.shader = SKShader(
             source: Self.outlineShaderSource,
             uniforms: [highlightUniform, outlineStepUniform]
         )
 
         super.init()
-        name = "album-book"
+        name = "engine-pipe-control"
         addChild(artworkSprite)
     }
 

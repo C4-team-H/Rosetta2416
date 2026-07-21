@@ -236,7 +236,7 @@ enum GameMapLayout {
                   object.rotation.isFinite else { return nil }
             return ShipColliderDefinition(
                 id: object.id,
-                kind: .furniture,
+                kind: colliderKind(for: object),
                 shape: rotatedShape(for: object),
                 debugLabel: object.name
             )
@@ -364,6 +364,15 @@ enum GameMapLayout {
             center: object.position.cgPoint,
             rotation: object.rotation
         )
+    }
+
+    private static func colliderKind(for object: MapObjectDefinition) -> ShipColliderKind {
+        switch object.id {
+        case "object-left-side-wall-storage-room":
+            return .interiorWall
+        default:
+            return .furniture
+        }
     }
 
     private static func freeformShape(

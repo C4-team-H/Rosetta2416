@@ -35,14 +35,11 @@ struct GameplayHUDView: View {
             }
 
             if let line = session.currentDialogue, session.phase != .gameOver, session.phase != .victory {
-                AIDialogueOverlay(line: line)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
-                    .task(id: line.id) {
-                        try? await Task.sleep(for: .seconds(5))
-                        session.dismissDialogue()
-                    }
+                AIDialogueOverlay(line: line) {
+                    session.dismissDialogue()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .zIndex(5)
             }
 
             if let message = session.transientMessage, session.phase != .gameOver {
@@ -95,7 +92,7 @@ struct GameplayHUDView: View {
                 LowEnergyAlertOverlay(session: session) {
                     session.dismissLowEnergyAlert()
                 }
-                .zIndex(4)
+                .zIndex(6)
             }
         }
         .animation(overlayAnimation, value: viewModel.isMapPresented)

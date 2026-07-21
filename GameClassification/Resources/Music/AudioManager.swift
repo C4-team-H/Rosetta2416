@@ -102,7 +102,7 @@ class AudioManager {
         backgroundMusicPlayer?.pause()
     }
 
-    func playTypingSound() {
+    func playTypingSound(volume: Float = 0.8) {
         guard let url = Bundle.main.url(forResource: "Typing_sound", withExtension: "mp3") else {
             print("Typing sound file not found: Typing_sound.mp3")
             return
@@ -112,6 +112,7 @@ class AudioManager {
                 typingPlayer = try AVAudioPlayer(contentsOf: url)
                 typingPlayer?.numberOfLoops = -1
             }
+            typingPlayer?.volume = volume
             if typingPlayer?.isPlaying == false {
                 typingPlayer?.currentTime = 0
                 typingPlayer?.play()
