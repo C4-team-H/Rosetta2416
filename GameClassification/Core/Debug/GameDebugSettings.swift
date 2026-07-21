@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 enum DebugAvailability {
-    static let enableDebugMode = true
+    static let enableDebugMode = false
 
     static var isMapEditorAvailable: Bool {
         #if DEBUG
