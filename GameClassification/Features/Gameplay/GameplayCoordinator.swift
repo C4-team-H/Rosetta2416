@@ -198,7 +198,16 @@ final class GameplayCoordinator {
             )
             let result = await authority.execute(command)
             scene?.applyStoryEffects(result.effects)
-            return DrawingSubmissionOutcome(accepted: result.accepted, message: result.message, recognition: result.recognition)
+            let hasAlbumHint = result.effects.contains { effect in
+                if case .dialogue(.albumHint) = effect { return true }
+                return false
+            }
+            return DrawingSubmissionOutcome(
+                accepted: result.accepted,
+                message: result.message,
+                recognition: result.recognition,
+                hasAlbumHint: hasAlbumHint
+            )
         }
 
         controller.onSuccess = { [weak self, weak scene] in

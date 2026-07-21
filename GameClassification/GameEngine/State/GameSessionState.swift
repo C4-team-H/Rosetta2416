@@ -10,6 +10,7 @@ final class GameSessionState {
     private(set) var teammate: PlayerState?
     private(set) var teammateConnectionState: TeammateConnectionState = .disconnected
     private(set) var currentDialogue: AIDialogueLine?
+    private var dialogueQueue: [AIDialogueLine] = []
     private(set) var transientMessage: String?
     private(set) var checkpointNotice: CheckpointID?
     private(set) var stats = GameSessionStats()
@@ -186,7 +187,14 @@ final class GameSessionState {
     }
 
     func dismissDialogue() {
-        currentDialogue = nil
+        if !dialogueQueue.isEmpty {
+            let next = dialogueQueue.removeFirst()
+            currentDialogue = next
+            storySystem.markDialogueDelivered(id: next.id)
+            persistLatest()
+        } else {
+            currentDialogue = nil
+        }
     }
 
     func dismissLowEnergyAlert() {
@@ -237,6 +245,7 @@ final class GameSessionState {
         stats = checkpoint.stats
         phase = .playing
         currentDialogue = nil
+        dialogueQueue = []
         transientMessage = "Checkpoint restored"
         hasTriggeredLowEnergyAlert = false
         showLowEnergyAlert = false
@@ -254,14 +263,18 @@ final class GameSessionState {
         stats = GameSessionStats()
         phase = .playing
         currentDialogue = nil
+        dialogueQueue = []
         transientMessage = nil
         checkpointNotice = nil
         hasTriggeredLowEnergyAlert = false
         showLowEnergyAlert = false
 
-        if let line = dialogueManager.nextLine(for: .chapterEntered(.sleepingRoom), story: storySystem.state) {
-            currentDialogue = line
-            storySystem.markDialogueDelivered(id: line.id)
+        let initialLines = dialogueManager.lines(for: .chapterEntered(.sleepingRoom), story: storySystem.state)
+        if !initialLines.isEmpty {
+            dialogueQueue = Array(initialLines)
+            let next = dialogueQueue.removeFirst()
+            currentDialogue = next
+            storySystem.markDialogueDelivered(id: next.id)
         }
 
         checkpointSystem.record(makeSnapshot(safeSpawn: safeSpawn(for: .sleepingRoomStart)))
@@ -307,9 +320,16 @@ final class GameSessionState {
                 phase = .cutscene(cutscene)
 
             case let .dialogue(trigger):
-                if let line = dialogueManager.nextLine(for: trigger, story: storySystem.state) {
-                    currentDialogue = line
-                    storySystem.markDialogueDelivered(id: line.id)
+                let availableLines = dialogueManager.lines(for: trigger, story: storySystem.state)
+                for line in availableLines {
+                    if !dialogueQueue.contains(where: { $0.id == line.id }) && currentDialogue?.id != line.id {
+                        dialogueQueue.append(line)
+                    }
+                }
+                if currentDialogue == nil, !dialogueQueue.isEmpty {
+                    let next = dialogueQueue.removeFirst()
+                    currentDialogue = next
+                    storySystem.markDialogueDelivered(id: next.id)
                     shouldPersist = true
                 }
 

@@ -151,7 +151,13 @@ class DrawingChallengeViewController: UIViewController, PKCanvasViewDelegate {
                 showSuccessAlert()
             } else {
                 AudioManager.shared.playWrongSound()
-                showFailureAlert(message: outcome.message)
+                if outcome.hasAlbumHint {
+                    dismiss(animated: true) { [weak self] in
+                        self?.onCancel?()
+                    }
+                } else {
+                    showFailureAlert(message: outcome.message)
+                }
             }
         }
     }

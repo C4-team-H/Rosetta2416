@@ -82,7 +82,7 @@ struct PersistenceAndMapTests {
     @Test("Opening the Album makes its marker permanent and idempotent")
     func albumOpen() {
         let story = StoryProgressionSystem()
-        _ = story.handle(.drawingFailed)
+        _ = story.handle(.drawingFailed())
         #expect(story.markAlbumOpened().contains(.mapNeedsRefresh))
         #expect(story.state.albumBook.hasOpenedBook)
         #expect(story.state.albumBook.isMarkerPermanent)
@@ -167,7 +167,7 @@ struct PersistenceAndMapTests {
         ))
 
         let story = StoryProgressionSystem()
-        _ = story.handle(.drawingFailed)
+        _ = story.handle(.drawingFailed())
         let visibility = StationVisibilitySystem(storySystem: story, isDebugEnabled: false)
         let marker = TacticalMapMarkerFactory.make(
             story: story,

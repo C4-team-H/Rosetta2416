@@ -51,7 +51,7 @@ final class LocalStoryAuthority: StoryAuthority {
                     guard sessionState.storySystem.labelCatalog.contains(expectedLabel, in: .food),
                           normalize(recognition.label) == normalize(expectedLabel),
                           recognition.confidence >= 0.50 else {
-                        let effects = sessionState.handle(.drawingFailed)
+                        let effects = sessionState.handle(.drawingFailed(objectiveID: objectiveID))
                         return StoryAuthorityResult(accepted: false, message: "Food drawing not recognized. Try again.", effects: effects, recognition: recognition)
                     }
                     _ = sessionState.handle(.foodCompleted)

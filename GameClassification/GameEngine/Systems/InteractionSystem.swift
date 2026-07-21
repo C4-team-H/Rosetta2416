@@ -242,7 +242,7 @@ extension GameScene {
         let texture = SKTexture(imageNamed: imageName)
         let button = SKSpriteNode(texture: texture)
         button.size = CGSize(width: 150, height: 150)
-        button.position = CGPoint(x: size.width / 2 - 90, y: -size.height / 2 + joystickRadius + 70)
+        button.position = CGPoint(x: size.width / 2 - 150, y: -size.height / 2 + joystickRadius + 100)
         button.zPosition = 12
         button.name = name
 
