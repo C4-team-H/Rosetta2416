@@ -4,7 +4,7 @@ import UIKit
 final class KitchenTableNode: SKNode {
     static let artworkScale: CGFloat = 1.3
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(2)
+    static let outlineWidth = GameMapLayout.scaled(4)
 
     private static let highlightActionKey = "kitchen-table-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18

@@ -20,8 +20,57 @@ final class GameScene: SKScene {
     static let engineIgnitionCoilInteractionID = "engine-ignition-coil"
     static let enginePowerConnectorInteractionID = "engine-power-connector"
     static let engineReactorLinkInteractionID = "engine-reactor-link"
+    static let engineControlRelayInteractionID = "engine-control-relay"
+    static let engineCoolingValveInteractionID = "engine-cooling-valve"
+    static let storageRoboticArmInteractionID = "storage-robotic-arm"
+    static let storageDoorControllerInteractionID = "storage-door-controller"
+    static let storageToolTerminalInteractionID = "storage-tool-terminal"
+    static let storageCalibrationUnitInteractionID = "storage-calibration-unit"
+    static let cockpitFlightConsoleInteractionID = "cockpit-flight-console"
+    static let cockpitNavigationControlInteractionID = "cockpit-navigation-control"
+    static let cockpitCommunicationsInteractionID = "cockpit-communications"
+
+    static let mainEngineCoreInteractionIDs: Set<String> = [
+        "engine-calibration-port",
+        "engine-cooling-restart",
+        "engine-core-reconnect",
+        "engine-navigation-sync",
+        "engine-pressure-feed",
+        "engine-propulsion-calibration",
+        "engine-reactor-stabilizer"
+    ]
 
     static let replacedEngineStationIDs: Set<String> = [
+        engineIgnitionCoilInteractionID,
+        enginePowerConnectorInteractionID,
+        engineReactorLinkInteractionID,
+        engineControlRelayInteractionID,
+        engineCoolingValveInteractionID
+    ]
+
+    static let replacedStorageStationIDs: Set<String> = [
+        storageRoboticArmInteractionID,
+        storageDoorControllerInteractionID
+    ]
+
+    static let replacedStorageMachineryStationIDs: Set<String> = [
+        storageToolTerminalInteractionID
+    ]
+
+    static let replacedStorageCabinetStationIDs: Set<String> = [
+        storageCalibrationUnitInteractionID
+    ]
+
+    static let replacedCockpitPortMonitorStationIDs: Set<String> = [
+        cockpitFlightConsoleInteractionID
+    ]
+
+    static let replacedCockpitMainConsoleStationIDs: Set<String> = [
+        cockpitNavigationControlInteractionID,
+        cockpitCommunicationsInteractionID
+    ]
+
+    static let engineMonitorStationIDs: Set<String> = [
         engineIgnitionCoilInteractionID,
         enginePowerConnectorInteractionID,
         engineReactorLinkInteractionID
@@ -56,6 +105,13 @@ final class GameScene: SKScene {
     var labMonitor2Node: LabMonitor2Node?
     var labMonitor1Node: LabMonitor1Node?
     var engineMonitorNode: EngineMonitorNode?
+    var enginePipeControlNode: EnginePipeControlNode?
+    var mainEngineControlNode: MainEngineControlNode?
+    var storageMonitorNode: StorageMonitorNode?
+    var storageMachineryNode: StorageMachineryNode?
+    var storageCabinetNode: StorageCabinetNode?
+    var cockpitPortMonitorNode: CockpitPortMonitorNode?
+    var cockpitMainConsoleNode: CockpitMainConsoleNode?
     var rocketPowerOffSmokeNode: RocketPowerOffSmokeNode?
     var activeStationID: String?
     var lastDeniedStationID: String?
@@ -166,6 +222,13 @@ final class GameScene: SKScene {
         createLabMonitor2()
         createLabMonitor1()
         createEngineMonitor()
+createEnginePipeControl()
+        createMainEngineControl()
+        createStorageMonitor()
+        createStorageMachinery()
+        createStorageCabinet()
+        createCockpitPortMonitor()
+        createCockpitMainConsole()
         createRocketPowerOffSmoke()
         enableCandleLight()
         refreshStoryVisuals()
@@ -242,7 +305,14 @@ final class GameScene: SKScene {
             labMonitor2Node?.setProximityHighlighted(false, animated: false)
             labMonitor1Node?.setProximityHighlighted(false, animated: false)
             engineMonitorNode?.setProximityHighlighted(false, animated: false)
-        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert || sessionState.currentDialogue != nil {
+            enginePipeControlNode?.setProximityHighlighted(false, animated: false)
+            mainEngineControlNode?.setProximityHighlighted(false, animated: false)
+            storageMonitorNode?.setProximityHighlighted(false, animated: false)
+            storageMachineryNode?.setProximityHighlighted(false, animated: false)
+            storageCabinetNode?.setProximityHighlighted(false, animated: false)
+            cockpitPortMonitorNode?.setProximityHighlighted(false, animated: false)
+            cockpitMainConsoleNode?.setProximityHighlighted(false, animated: false)
+        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert {
             if !wasMapInputSuspended {
                 clearPencilTarget()
                 pencilTouch = nil
@@ -449,7 +519,14 @@ final class GameScene: SKScene {
             createLabTable()
             createLabMonitor2()
             createLabMonitor1()
-            createEngineMonitor()
+createEngineMonitor()
+            createEnginePipeControl()
+            createMainEngineControl()
+            createStorageMonitor()
+            createStorageMachinery()
+            createStorageCabinet()
+            createCockpitPortMonitor()
+            createCockpitMainConsole()
             createRocketPowerOffSmoke()
         }
         if update.changeSet.isFullReplacement || changedCategories.contains(.object) {
@@ -528,6 +605,13 @@ final class GameScene: SKScene {
         createLabMonitor2()
         createLabMonitor1()
         createEngineMonitor()
+        createEnginePipeControl()
+        createMainEngineControl()
+        createStorageMonitor()
+createStorageMachinery()
+        createStorageCabinet()
+        createCockpitPortMonitor()
+        createCockpitMainConsole()
         createRocketPowerOffSmoke()
         refreshStoryVisuals()
         resetPlayerToDebugSpawnIfInvalid()
