@@ -57,7 +57,7 @@ struct DrawingPrompt: Codable, Equatable, Sendable {
     let displayName: String
     let confidenceThreshold: Double
 
-    init(expectedLabel: String, displayName: String, confidenceThreshold: Double = 0.50) {
+    init(expectedLabel: String, displayName: String, confidenceThreshold: Double = 0.30) {
         self.expectedLabel = expectedLabel
         self.displayName = displayName
         self.confidenceThreshold = confidenceThreshold

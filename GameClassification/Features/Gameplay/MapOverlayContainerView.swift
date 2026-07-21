@@ -32,6 +32,10 @@ final class MapOverlayContainerView: UIView {
             return super.hitTest(point, with: event)
         }
 
+        if viewModel.sessionState.currentDialogue != nil || viewModel.sessionState.showLowEnergyAlert {
+            return super.hitTest(point, with: event)
+        }
+
         if viewModel.sessionState.phase == .gameOver || viewModel.sessionState.phase == .victory {
             return super.hitTest(point, with: event)
         }

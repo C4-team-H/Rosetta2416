@@ -120,7 +120,7 @@ final class GameSessionState {
     }
 
     func updateEnergy(deltaTime: TimeInterval, isMoving: Bool) {
-        guard phase == .playing || isDrawing else { return }
+        guard (phase == .playing || isDrawing), currentDialogue == nil else { return }
         stats.elapsedTime += max(0, deltaTime)
         if energySystem.update(deltaTime: deltaTime, isMoving: isMoving) {
             applyEffects(storySystem.handle(.energyDepleted))

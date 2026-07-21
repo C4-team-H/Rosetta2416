@@ -65,22 +65,125 @@ struct StoryProgressHUDView: View {
 
 struct AIDialogueOverlay: View {
     let line: AIDialogueLine
+    let onDismiss: () -> Void
+
+    @State private var displayedCount: Int = 0
+    @State private var isTyping: Bool = true
+    @State private var continuePulse: Bool = false
+    @State private var timer: Timer? = nil
+
+    private var currentText: String {
+        let text = line.text
+        guard displayedCount < text.count else { return text }
+        let index = text.index(text.startIndex, offsetBy: displayedCount)
+        return String(text[..<index])
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "waveform.circle.fill")
-                .font(GameFont.title2)
-                .foregroundStyle(.cyan)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("SHIP AI").font(GameFont.caption2Bold).foregroundStyle(.cyan)
-                Text(line.text).font(GameFont.callout).foregroundStyle(.white)
+        GeometryReader { geometry in
+            // Joystick berjarak 160 point dari bagian bawah layar (joystickRadius: 30 + offset: 100)
+            let joystickYFromBottom: CGFloat = 140
+            let joystickCenterY = geometry.size.height - joystickYFromBottom
+
+            let frameWidth = min(800, geometry.size.width * 0.65)
+            let frameHeight = max(180, frameWidth * (1080.0 / 1440.0)) // Rasio asli gambar DialogueFrame (1440x1080 = 0.75)
+            let textWidth = frameWidth * 0.74
+            let horizontalPadding = max(16, frameWidth * 0.06)
+            let verticalPadding = max(18, frameHeight * 0.11)
+            let bodyFontSize = max(11, min(15, frameWidth * 0.032))
+            let labelFontSize = max(8, min(12, frameWidth * 0.024))
+
+            ZStack {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        handleTap()
+                    }
+
+                VStack(alignment: .center, spacing: max(2, frameHeight * 0.015)) {
+                    Text(currentText)
+                        .font(GameFont.custom(size: bodyFontSize))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(max(2, bodyFontSize * 0.25))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !isTyping {
+                        Text("TAP TO CONTINUE")
+                            .font(GameFont.custom(size: labelFontSize, weight: 600))
+                            .foregroundStyle(.cyan.opacity(0.9))
+                            .opacity(continuePulse ? 0.3 : 1.0)
+                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: continuePulse)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 2)
+                            .onAppear { continuePulse = true }
+                    }
+                }
+                .frame(width: textWidth, alignment: .center)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, verticalPadding)
+                .frame(width: frameWidth)
+                .frame(minHeight: frameHeight)
+                .background {
+                    Image("DialogueFrame")
+                        .resizable()
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    handleTap()
+                }
+                .position(x: geometry.size.width / 2, y: joystickCenterY)
+            }
+            .ignoresSafeArea()
+        }
+        .task(id: line.id) {
+            startTyping()
+        }
+        .onDisappear {
+            stopTyping()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func startTyping() {
+        stopTyping()
+        displayedCount = 0
+        isTyping = true
+        continuePulse = false
+        AudioManager.shared.playTypingSound(volume: 0.8)
+
+        timer = Timer.scheduledTimer(withTimeInterval: 0.035, repeats: true) { _ in
+            Task { @MainActor in
+                if self.displayedCount < self.line.text.count {
+                    self.displayedCount += 1
+                } else {
+                    self.finishTyping()
+                }
             }
         }
-        .padding(14)
-        .frame(maxWidth: 520, alignment: .leading)
-        .background(.black.opacity(0.82), in: .rect(cornerRadius: 14))
-        .overlay { RoundedRectangle(cornerRadius: 14).stroke(.cyan.opacity(0.45)) }
-        .accessibilityElement(children: .combine)
+    }
+
+    private func finishTyping() {
+        timer?.invalidate()
+        timer = nil
+        displayedCount = line.text.count
+        isTyping = false
+        AudioManager.shared.stopTypingSound()
+    }
+
+    private func stopTyping() {
+        timer?.invalidate()
+        timer = nil
+        AudioManager.shared.stopTypingSound()
+    }
+
+    private func handleTap() {
+        if isTyping {
+            finishTyping()
+        } else {
+            onDismiss()
+        }
     }
 }
 
