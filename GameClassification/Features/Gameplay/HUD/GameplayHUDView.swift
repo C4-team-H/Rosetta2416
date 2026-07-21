@@ -30,8 +30,8 @@ struct GameplayHUDView: View {
                 MapButton(action: openMap)
                     .disabled(session.showLowEnergyAlert)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(.top, 80)
-                    .padding(.trailing, 16)
+                    .padding(.top, 40)
+                    .padding(.trailing, 40)
             }
 
             if let line = session.currentDialogue, session.phase == .playing {

@@ -22,14 +22,17 @@ struct StoryProgressHUDView: View {
                     tint: .yellow
                 )
             }
-
+            Divider()
+                .overlay(.white)
             if let mission = session.sharedStory.activeMission {
                 missionPanel(mission)
+                    .padding(.leading, 16)
             }
         }
         .padding(12)
         .frame(width: 300, alignment: .leading)
-//        .background(.black.opacity(0.62), in: .rect(cornerRadius: 12))
+        .background(.black.opacity(0.35), in: .rect(cornerRadius: 16))
+//        .glassEffect(color: .cyan, isActive: true)
 //        .overlay { RoundedRectangle(cornerRadius: 12).stroke(.cyan.opacity(0.22)) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Story progress")
@@ -59,7 +62,7 @@ struct StoryProgressHUDView: View {
                 HStack(spacing: 8) {
                     Text(title)
                         .font(GameFont.custom(size: 17, weight: 700))
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
                     Spacer(minLength: 6)
@@ -75,7 +78,7 @@ struct StoryProgressHUDView: View {
                         Capsule()
                             .fill(
                                 LinearGradient(
-                                    colors: [tint.opacity(0.78), tint],
+                                    colors: [tint, tint],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -84,32 +87,38 @@ struct StoryProgressHUDView: View {
                     }
                 }
                 .frame(height: 8)
-                .overlay { Capsule().stroke(.white.opacity(0.14), lineWidth: 1) }
+                .overlay { Capsule().stroke(.white.opacity(0.16), lineWidth: 1) }
             }
         }
     }
 
     private func missionPanel(_ mission: MissionState) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(mission.title, systemImage: "scope")
-                .font(GameFont.bodySemiBold)
-                .foregroundStyle(missionChromeColor)
-                .lineLimit(2)
-
-            if let objective = session.activeObjective {
-                Text(objective.definition.description)
-                    .font(GameFont.callout)
-                    .foregroundStyle(missionChromeColor.opacity(0.76))
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "scope")
+                .foregroundStyle(.red)
+                .font(.system(size: 22))
+                .frame(width: 20, height: 20)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(mission.title)
+                    .font(GameFont.bodySemiBold)
+                    .foregroundStyle(missionChromeColor)
                     .lineLimit(2)
+                if let objective = session.activeObjective {
+                    Text(objective.definition.description)
+                        .font(GameFont.callout)
+                        .foregroundStyle(missionChromeColor.opacity(0.9))
+                        .lineLimit(2)
+                }
             }
+            .padding(.leading, 10)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(.black.opacity(missionBackgroundOpacity), in: .rect(cornerRadius: 10))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(missionChromeColor.opacity(0.72), lineWidth: 1)
-        }
+//        .padding(.horizontal, 10)
+//        .padding(.vertical, 9)
+//        .background(.black.opacity(missionBackgroundOpacity), in: .rect(cornerRadius: 10))
+//        .overlay {
+//            RoundedRectangle(cornerRadius: 10)
+//                .stroke(missionChromeColor.opacity(0.72), lineWidth: 1)
+//        }
     }
 
     private var missionChromeColor: Color {
