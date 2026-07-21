@@ -24,8 +24,15 @@
     "id": "lab-entered-2",
     "chapter": "laboratory",
     "trigger": "chapter",
-    "text": "Astronout: This thing suffered from Semantic Aphasia, I should start fixing thing and watchout with my energy.",
+    "text": "Astronout: This thing suffered from Semantic Aphasia.\n(Semantic aphasia is a language disorder where the brain loses the connection between words and their meanings).",
     "priority": 90
+  },
+  {
+    "id": "lab-entered-3",
+    "chapter": "laboratory",
+    "trigger": "chapter",
+    "text": "Astronout: I should start fixing thing and watchout with my energy.",
+    "priority": 80
   },
   {
     "id": "lab-complete",
@@ -48,6 +55,13 @@
     "trigger": "power",
     "value": "disrupted",
     "text": "Robo: Power outage, you must touch something wrong in the engine. Let’s keep rolling!",
+    "priority": 100
+  },
+  {
+    "id": "storage-route",
+    "chapter": "storage",
+    "trigger": "chapter",
+    "text": "Robo: You need advance tools to continue fixing the engine, go to the Storage Room.",
     "priority": 100
   },
   {
@@ -104,7 +118,7 @@
     "chapter": "sleepingRoom",
     "trigger": "roomEntered",
     "value": "kitchen",
-    "text": "Robo: You can add your energy by draw food at the kitchen",
+    "text": "Robo: You can add energy by drawing food in the kitchen.",
     "priority": 100
   },
   {
