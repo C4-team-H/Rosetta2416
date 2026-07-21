@@ -71,16 +71,24 @@ private struct DialogueResourceLine: Decodable {
 
 enum StoryDialogueLoader {
     static func load(bundle: Bundle = .main) -> [AIDialogueLine] {
-        guard let url = bundle.url(forResource: "StoryDialogue", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let resources = try? JSONDecoder().decode([DialogueResourceLine].self, from: data) else {
-            return fallback
+        let possibleUrls = [
+            bundle.url(forResource: "StoryDialogue", withExtension: "json"),
+            bundle.url(forResource: "StoryDiaglogue", withExtension: "json"),
+            bundle.url(forResource: "StoryDialogue", withExtension: "json", subdirectory: "Dialogue"),
+            bundle.url(forResource: "StoryDiaglogue", withExtension: "json", subdirectory: "Dialogue")
+        ].compactMap { $0 }
+
+        for url in possibleUrls {
+            if let data = try? Data(contentsOf: url),
+               let resources = try? JSONDecoder().decode([DialogueResourceLine].self, from: data) {
+                return resources.compactMap(\.line)
+            }
         }
-        return resources.compactMap(\.line)
+        return fallback
     }
 
     static let fallback: [AIDialogueLine] = [
-        AIDialogueLine(id: "intro-1", chapter: .sleepingRoom, trigger: .chapterEntered(.sleepingRoom), text: "Sys... systems damaged.\nSolar... flare impact detected.\nFind... laboratory.", priority: 100),
+        AIDialogueLine(id: "intro-1", chapter: .sleepingRoom, trigger: .chapterEntered(.sleepingRoom), text: "Sys... systems damaged. Solar flare impact detected. Find laboratory.", priority: 100),
         AIDialogueLine(id: "lab-complete", chapter: .engineInitial, trigger: .chapterEntered(.engineInitial), text: "Communication restored.\nThe ship’s primary engine is offline.\nProceed to the Engine Room.", priority: 100),
         AIDialogueLine(id: "power-basic", chapter: .engineInitial, trigger: .powerChanged(.basicPower), text: "Primary lighting restored. Flashlight no longer required.", priority: 100),
         AIDialogueLine(id: "power-disrupted", chapter: .engineInitial, trigger: .powerChanged(.disrupted), text: "Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.", priority: 100),

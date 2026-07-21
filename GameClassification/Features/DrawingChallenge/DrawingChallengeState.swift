@@ -10,7 +10,7 @@ struct DrawingChallenge: Equatable, Sendable {
         label: String,
         displayName: String,
         category: DrawingCategory = .food,
-        confidenceThreshold: Double = 0.50
+        confidenceThreshold: Double = 0.30
     ) {
         self.id = id
         self.label = label

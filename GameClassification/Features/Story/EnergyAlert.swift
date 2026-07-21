@@ -33,7 +33,7 @@ struct LowEnergyAlertOverlay: View {
 
                 Divider().overlay(Color.red.opacity(0.4))
 
-                Text("Your energy is critically low at \(Int(session.energy))%! Get to the kitchen now and restore your energy before it's too late.")
+                Text("Your energy is critically low! Get to the kitchen now and restore your energy before it's too late.")
                     .font(GameFont.callout)
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
