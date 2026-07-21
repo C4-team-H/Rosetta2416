@@ -4,7 +4,7 @@ import UIKit
 final class LabMonitor1Node: SKNode {
     static let artworkScale: CGFloat = 1.0
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(2)
+    static let outlineWidth = GameMapLayout.scaled(4)
 
     private static let highlightActionKey = "lab-monitor-1-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18

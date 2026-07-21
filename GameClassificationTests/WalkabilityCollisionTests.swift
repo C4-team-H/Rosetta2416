@@ -112,6 +112,85 @@ struct WalkabilityCollisionTests {
         ) == .blocked(.obstacle))
     }
 
+    @Test("Storage left wall object is compiled as wall collision")
+    func storageLeftWallObjectUsesFootprintCollision() {
+        let collider = GameMapLayout.ship.colliders.first {
+            $0.id == "object-left-side-wall-storage-room"
+        }
+
+        #expect(collider?.kind == .interiorWall)
+    }
+
+    @Test("Wall collision uses footprint bounds instead of obstacle radius")
+    func wallCollisionIgnoresObstacleRadius() {
+        let footprint = CollisionFootprint(
+            centerOffset: .zero,
+            size: CGSize(width: 20, height: 20),
+            obstacleRadius: 120
+        )
+        let configuration = GameMapConfiguration(
+            authoredArtworkSize: CGSize(width: 300, height: 300),
+            worldSize: CGSize(width: 300, height: 300),
+            artworkScale: 1,
+            artworkOffset: .zero,
+            playerVisualRadius: 24,
+            playerFootprint: footprint,
+            wallThickness: 10,
+            walkabilityEpsilon: 0.1,
+            targetClampStep: 4,
+            targetClampMaximumRadius: 64
+        )
+        let wall = ShipColliderDefinition(
+            id: "test-wall",
+            kind: .interiorWall,
+            shape: .rectangle(CGRect(x: 160, y: 20, width: 20, height: 260)),
+            debugLabel: "Test Wall"
+        )
+        let furniture = ShipColliderDefinition(
+            id: "test-furniture",
+            kind: .furniture,
+            shape: wall.shape,
+            debugLabel: "Test Furniture"
+        )
+        let testPosition = CGPoint(x: 80, y: 150)
+        let room = RoomDefinition(
+            roomID: .sleepingRoom,
+            walkableFrame: CGRect(x: 20, y: 20, width: 260, height: 260),
+            triggerFrame: CGRect(x: 20, y: 20, width: 260, height: 260)
+        )
+        let wallMap = GameMap(
+            configuration: configuration,
+            rooms: [room],
+            corridors: [],
+            doorways: [],
+            wallSegments: [],
+            colliders: [wall],
+            stations: [],
+            foodStationPosition: .zero,
+            spawnPoints: []
+        )
+        let furnitureMap = GameMap(
+            configuration: configuration,
+            rooms: [room],
+            corridors: [],
+            doorways: [],
+            wallSegments: [],
+            colliders: [furniture],
+            stations: [],
+            foodStationPosition: .zero,
+            spawnPoints: []
+        )
+
+        #expect(WalkabilitySystem(map: wallMap).isWalkable(
+            position: testPosition,
+            footprint: footprint
+        ).isWalkable)
+        #expect(WalkabilitySystem(map: furnitureMap).isWalkable(
+            position: testPosition,
+            footprint: footprint
+        ) == .blocked(.obstacle))
+    }
+
     @Test("Closed and locked doors block the footprint while open doors do not")
     func dynamicDoorWalkability() {
         let doorway = GameMapLayout.ship.doorways.first(where: { $0.id == .engine })!

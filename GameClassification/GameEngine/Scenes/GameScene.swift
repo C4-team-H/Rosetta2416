@@ -28,6 +28,7 @@ final class GameScene: SKScene {
     static let storageCalibrationUnitInteractionID = "storage-calibration-unit"
     static let cockpitFlightConsoleInteractionID = "cockpit-flight-console"
     static let cockpitNavigationControlInteractionID = "cockpit-navigation-control"
+    static let cockpitCommunicationsInteractionID = "cockpit-communications"
 
     static let mainEngineCoreInteractionIDs: Set<String> = [
         "engine-calibration-port",
@@ -65,7 +66,8 @@ final class GameScene: SKScene {
     ]
 
     static let replacedCockpitMainConsoleStationIDs: Set<String> = [
-        cockpitNavigationControlInteractionID
+        cockpitNavigationControlInteractionID,
+        cockpitCommunicationsInteractionID
     ]
 
     static let engineMonitorStationIDs: Set<String> = [

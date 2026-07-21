@@ -138,10 +138,13 @@ extension GameScene {
         }
         let cockpitMainConsoleCandidate = cockpitMainConsoleNode.flatMap { node -> (id: String, distance: CGFloat, radius: CGFloat)? in
             guard !node.isHidden else { return nil }
-            guard let objective = sessionState.objectives.first(where: { $0.id == Self.cockpitNavigationControlInteractionID }),
-                  objective.status == .available || objective.status == .active else { return nil }
+            let eligibleID = Self.replacedCockpitMainConsoleStationIDs.first { id in
+                guard let objective = sessionState.objectives.first(where: { $0.id == id }) else { return false }
+                return objective.status == .available || objective.status == .active
+            }
+            guard let eligibleID else { return nil }
             return (
-                id: Self.cockpitNavigationControlInteractionID,
+                id: eligibleID,
                 distance: hypot(player.position.x - node.position.x, player.position.y - node.position.y),
                 radius: CockpitMainConsoleNode.interactionRadius
             )

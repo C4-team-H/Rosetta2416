@@ -4,7 +4,7 @@ import UIKit
 final class StorageCabinetNode: SKNode {
     static let artworkScale: CGFloat = 0.8
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(2)
+    static let outlineWidth = GameMapLayout.scaled(4)
 
     private static let highlightActionKey = "storage-cabinet-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18

@@ -4,7 +4,7 @@ import UIKit
 final class AlbumBookNode: SKNode {
     static let artworkScale: CGFloat = 1.6  //resize ukuran album book 
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(1.5) //atur tebal tipis outline
+    static let outlineWidth = GameMapLayout.scaled(2) //atur tebal tipis outline
 
     private static let highlightActionKey = "album-book-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18

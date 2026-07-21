@@ -77,7 +77,7 @@ final class WalkabilitySystem {
             return .blocked(bodyDoorBlock)
         }
 
-        if intersectsWall(center: center, radius: footprint.radius) {
+        if intersectsWall(footprintBounds: footprint.bounds(at: position)) {
             return .blocked(.wall)
         }
 
@@ -203,26 +203,39 @@ final class WalkabilitySystem {
         return nil
     }
 
-    private func intersectsWall(center: CGPoint, radius: CGFloat) -> Bool {
-        let effectiveRadius = radius + map.configuration.wallThickness / 2
-            - map.configuration.walkabilityEpsilon
+    private func intersectsWall(footprintBounds: CGRect) -> Bool {
+        let wallExpansion = max(
+            0,
+            map.configuration.wallThickness / 2 - map.configuration.walkabilityEpsilon
+        )
+        let segmentTestBounds = footprintBounds.insetBy(
+            dx: -wallExpansion,
+            dy: -wallExpansion
+        )
         let hasExplicitWallColliders = map.colliders.contains { $0.kind == .interiorWall }
         if !hasExplicitWallColliders, map.wallSegments.contains(where: {
-            squaredDistanceFromPoint(center, toSegmentFrom: $0.start, to: $0.end)
-                < effectiveRadius * effectiveRadius
+            rectangleIntersectsSegment(
+                segmentTestBounds,
+                start: $0.start,
+                end: $0.end,
+                epsilon: map.configuration.walkabilityEpsilon
+            )
         }) {
             return true
         }
 
-        return map.colliders.contains { collider in
-            guard collider.kind == .hull || collider.kind == .interiorWall else { return false }
-            return circleIntersects(
-                shape: collider.shape,
-                center: center,
-                radius: radius,
+        for collider in map.colliders {
+            guard collider.kind == .hull || collider.kind == .interiorWall else { continue }
+            if shapeIntersectsRectangle(
+                collider.shape,
+                rectangle: footprintBounds,
                 epsilon: map.configuration.walkabilityEpsilon
-            )
+            ) {
+                return true
+            }
         }
+
+        return false
     }
 
     private func intersectsObstacle(center: CGPoint, radius: CGFloat) -> Bool {
@@ -308,6 +321,98 @@ private func circleIntersectsRectangle(
     return squaredDistance(center, closest) < effectiveRadius * effectiveRadius
 }
 
+private func shapeIntersectsRectangle(
+    _ shape: ShipColliderShape,
+    rectangle: CGRect,
+    epsilon: CGFloat
+) -> Bool {
+    let footprint = rectangle.standardized
+    switch shape {
+    case let .rectangle(rectangle):
+        return rectangle.standardized.insetBy(dx: epsilon, dy: epsilon).intersects(footprint)
+
+    case let .polygon(points):
+        return polygonIntersectsRectangle(points, rectangle: footprint, epsilon: epsilon)
+
+    case let .edgeLoop(points):
+        guard points.count >= 2 else { return false }
+        return polygonEdges(points).contains { edge in
+            rectangleIntersectsSegment(
+                footprint,
+                start: edge.0,
+                end: edge.1,
+                epsilon: epsilon
+            )
+        }
+    }
+}
+
+private func polygonIntersectsRectangle(
+    _ points: [CGPoint],
+    rectangle: CGRect,
+    epsilon: CGFloat
+) -> Bool {
+    guard points.count >= 3 else { return false }
+    let expandedRectangle = rectangle.insetBy(dx: -epsilon, dy: -epsilon)
+    if points.contains(where: { expandedRectangle.contains($0) }) {
+        return true
+    }
+    let corners = rectangleCorners(rectangle)
+    if corners.contains(where: { polygonContains($0, points: points) }) {
+        return true
+    }
+    if polygonContains(CGPoint(x: rectangle.midX, y: rectangle.midY), points: points) {
+        return true
+    }
+    return polygonEdges(points).contains { polygonEdge in
+        rectangleEdges(rectangle).contains { rectangleEdge in
+            segmentsIntersect(
+                polygonEdge.0,
+                polygonEdge.1,
+                rectangleEdge.0,
+                rectangleEdge.1,
+                epsilon: epsilon
+            )
+        }
+    }
+}
+
+private func rectangleIntersectsSegment(
+    _ rectangle: CGRect,
+    start: CGPoint,
+    end: CGPoint,
+    epsilon: CGFloat
+) -> Bool {
+    let rect = rectangle.standardized
+    guard !rect.isNull, !rect.isEmpty else { return false }
+    if rect.contains(start) || rect.contains(end) {
+        return true
+    }
+    return rectangleEdges(rect).contains { edge in
+        segmentsIntersect(start, end, edge.0, edge.1, epsilon: epsilon)
+    }
+}
+
+private func rectangleCorners(_ rectangle: CGRect) -> [CGPoint] {
+    let rect = rectangle.standardized
+    return [
+        CGPoint(x: rect.minX, y: rect.minY),
+        CGPoint(x: rect.maxX, y: rect.minY),
+        CGPoint(x: rect.maxX, y: rect.maxY),
+        CGPoint(x: rect.minX, y: rect.maxY)
+    ]
+}
+
+private func rectangleEdges(_ rectangle: CGRect) -> [(CGPoint, CGPoint)] {
+    let corners = rectangleCorners(rectangle)
+    return [
+        (corners[0], corners[1]),
+        (corners[1], corners[2]),
+        (corners[2], corners[3]),
+        (corners[3], corners[0])
+    ]
+}
+
 private func polygonEdges(_ points: [CGPoint]) -> [(CGPoint, CGPoint)] {
     guard let first = points.first else { return [] }
     var edges: [(CGPoint, CGPoint)] = []
@@ -334,6 +439,57 @@ private func polygonContains(_ point: CGPoint, points: [CGPoint]) -> Bool {
         previous = current
     }
     return contains
+}
+
+private func segmentsIntersect(
+    _ firstStart: CGPoint,
+    _ firstEnd: CGPoint,
+    _ secondStart: CGPoint,
+    _ secondEnd: CGPoint,
+    epsilon: CGFloat
+) -> Bool {
+    let firstOrientation = crossProduct(firstStart, firstEnd, secondStart)
+    let secondOrientation = crossProduct(firstStart, firstEnd, secondEnd)
+    let thirdOrientation = crossProduct(secondStart, secondEnd, firstStart)
+    let fourthOrientation = crossProduct(secondStart, secondEnd, firstEnd)
+
+    if abs(firstOrientation) <= epsilon,
+       pointOnSegment(secondStart, segmentStart: firstStart, segmentEnd: firstEnd, epsilon: epsilon) {
+        return true
+    }
+    if abs(secondOrientation) <= epsilon,
+       pointOnSegment(secondEnd, segmentStart: firstStart, segmentEnd: firstEnd, epsilon: epsilon) {
+        return true
+    }
+    if abs(thirdOrientation) <= epsilon,
+       pointOnSegment(firstStart, segmentStart: secondStart, segmentEnd: secondEnd, epsilon: epsilon) {
+        return true
+    }
+    if abs(fourthOrientation) <= epsilon,
+       pointOnSegment(firstEnd, segmentStart: secondStart, segmentEnd: secondEnd, epsilon: epsilon) {
+        return true
+    }
+
+    return ((firstOrientation > epsilon && secondOrientation < -epsilon)
+        || (firstOrientation < -epsilon && secondOrientation > epsilon))
+        && ((thirdOrientation > epsilon && fourthOrientation < -epsilon)
+            || (thirdOrientation < -epsilon && fourthOrientation > epsilon))
+}
+
+private func crossProduct(_ start: CGPoint, _ end: CGPoint, _ point: CGPoint) -> CGFloat {
+    (end.x - start.x) * (point.y - start.y) - (end.y - start.y) * (point.x - start.x)
+}
+
+private func pointOnSegment(
+    _ point: CGPoint,
+    segmentStart: CGPoint,
+    segmentEnd: CGPoint,
+    epsilon: CGFloat
+) -> Bool {
+    point.x >= min(segmentStart.x, segmentEnd.x) - epsilon
+        && point.x <= max(segmentStart.x, segmentEnd.x) + epsilon
+        && point.y >= min(segmentStart.y, segmentEnd.y) - epsilon
+        && point.y <= max(segmentStart.y, segmentEnd.y) + epsilon
 }
 
 private func squaredDistanceFromPoint(

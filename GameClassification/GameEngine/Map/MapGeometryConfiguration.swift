@@ -625,7 +625,7 @@ extension MapGeometryConfiguration {
         guard let anchor = objects.first(where: { $0.id == "object-storage-machinery" }) else {
             return spawnPoint(for: .storage) ?? .zero
         }
-        return CGPoint(x: anchor.position.x, y: anchor.position.y)
+        return CGPoint(x: anchor.position.x+4, y: anchor.position.y)
     }
 
     /// Storage Cabinet artwork sits on the Storage Cabinets object.
@@ -654,7 +654,7 @@ extension MapGeometryConfiguration {
 
     /// Power-off rocket smoke/fire effect anchor requested in world-space.
     var rocketPowerOffSmokePosition: CGPoint {
-        CGPoint(x: 2750.33, y: 501.5)
+        CGPoint(x: 2750.33, y: 481.5)
     }
 
     /// Main engine core artwork sits on the Engine Core object.
@@ -749,7 +749,7 @@ extension MapGeometryConfiguration {
             MapWallDefinition(id: "wall-sleeping-right-upper", name: "Sleeping Right Upper", frame: CodableRect(x: 1873.63, y: 2441.9, width: 70.97, height: 605.98), rotation: -0.05, isEnabled: true, isRequired: false, vertices: nil),
             MapWallDefinition(id: "wall-sleeping-top", name: "Sleeping Top", frame: CodableRect(x: 1238.89, y: 3219.42, width: 912.22, height: 61.16), rotation: 0.7, isEnabled: true, isRequired: false, vertices: nil),
             MapWallDefinition(id: "wall-storage-bottom", name: "Storage Bottom", frame: CodableRect(x: 3492.89, y: 687.42, width: 1682.44, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: nil),
-            MapWallDefinition(id: "wall-storage-left-lower", name: "Storage Left Lower", frame: CodableRect(x: 3454.19, y: 675.02, width: 195.81, height: 984.98), rotation: -0.12, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3454.19, y: 684.7), CodablePoint(x: 3536.16, y: 675.02), CodablePoint(x: 3650, y: 1660), CodablePoint(x: 3560, y: 1660)]),
+            MapWallDefinition(id: "wall-storage-left-lower", name: "Storage Left Lower", frame: CodableRect(x: 3454.19, y: 675.02, width: 195.81, height: 964.98), rotation: -0.12, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3454.19, y: 684.7), CodablePoint(x: 3536.16, y: 675.02), CodablePoint(x: 3650, y: 1660), CodablePoint(x: 3560, y: 1660)]),
             MapWallDefinition(id: "wall-storage-left-upper", name: "Storage Left Upper", frame: CodableRect(x: 3572.32, y: 1785.96, width: 81.14, height: 368.26), rotation: -0.03, isEnabled: true, isRequired: false, vertices: nil),
             MapWallDefinition(id: "wall-storage-right", name: "Storage Right", frame: CodableRect(x: 4824.76, y: 638, width: 61.16, height: 1564.22), rotation: 0.38, isEnabled: true, isRequired: false, vertices: nil),
             MapWallDefinition(id: "wall-storage-top", name: "Storage Top", frame: CodableRect(x: 3592.89, y: 2091.64, width: 1002.44, height: 61.16), rotation: 0, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3592.89, y: 2091.64), CodablePoint(x: 4595.33, y: 2091.64), CodablePoint(x: 4595.33, y: 2152.8), CodablePoint(x: 4032.61, y: 2150), CodablePoint(x: 3592.89, y: 2152.8)])
@@ -760,7 +760,7 @@ extension MapGeometryConfiguration {
             MapDoorwayDefinition(id: "door-kitchen", name: "Kitchen Door", doorID: .kitchen, roomID: .kitchen, frame: CodableRect(x: 3572, y: 2436.89, width: 80, height: 142.22), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-laboratory", name: "Lab Room Door", doorID: .laboratory, roomID: .laboratory, frame: CodableRect(x: 1886.71, y: 1180.67, width: 68.8, height: 145.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-sleeping", name: "Sleeping Room Door", doorID: .sleepingRoom, roomID: .sleepingRoom, frame: CodableRect(x: 1853.71, y: 2316.89, width: 61.8, height: 115.78), defaultState: .open, isEnabled: true, isRequired: true, vertices: nil),
-            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3576.49, y: 1665.67, width: 65.8, height: 112.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil),
+            MapDoorwayDefinition(id: "door-storage", name: "Storage Room Door", doorID: .storage, roomID: .storage, frame: CodableRect(x: 3576.49, y: 1655.67, width: 65.8, height: 132.78), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil),
             MapDoorwayDefinition(id: "door-engine-back", name: "Engine Room Back Door", doorID: .engineBackDoor, roomID: .engine, frame: CodableRect(x: 2350, y: 1481, width: 130, height: 50), defaultState: .locked, isEnabled: true, isRequired: true, vertices: nil)
             ],
             blockedAreas: [
@@ -771,7 +771,7 @@ extension MapGeometryConfiguration {
             MapObjectDefinition(id: "object-side-wall-sleeping-room", name: "Side Wall Sleeping Room", type: .obstacle, position: CodablePoint(x: 1250.64, y: 2555), size: CodableSize(width: 361.28, height: 810), rotation: -0.35, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 1070, y: 2150), CodablePoint(x: 1160, y: 2150), CodablePoint(x: 1431.28, y: 2914.51), CodablePoint(x: 1400, y: 2960)]),
             MapObjectDefinition(id: "object-front-wall-storage-room", name: "Front Wall Storage Room", type: .obstacle, position: CodablePoint(x: 4095, y: 1955), size: CodableSize(width: 870, height: 270), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: nil),
             MapObjectDefinition(id: "object-right-side-wall-storage-room", name: "Right Side Wall Storage Room", type: .obstacle, position: CodablePoint(x: 4800, y: 1430), size: CodableSize(width: 580, height: 1360), rotation: 0.35, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4930, y: 750), CodablePoint(x: 5090, y: 750), CodablePoint(x: 4530, y: 2110), CodablePoint(x: 4510, y: 1890)]),
-            MapObjectDefinition(id: "object-left-side-wall-storage-room", name: "Left Side Wall Storage Room", type: .obstacle, position: CodablePoint(x: 3600, y: 1215), size: CodableSize(width: 100, height: 910), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3550, y: 760), CodablePoint(x: 3600, y: 760), CodablePoint(x: 3650, y: 1550), CodablePoint(x: 3650, y: 1670)]),
+            MapObjectDefinition(id: "object-left-side-wall-storage-room", name: "Left Side Wall Storage Room", type: .obstacle, position: CodablePoint(x: 3600, y: 1215), size: CodableSize(width: 100, height: 900), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3550, y: 760), CodablePoint(x: 3600, y: 750), CodablePoint(x: 3650, y: 1550), CodablePoint(x: 3650, y: 1670)]),
             MapObjectDefinition(id: "object-upper-left-wall-kitchen-room", name: "Upper Left Wall Kitchen Room", type: .obstacle, position: CodablePoint(x: 3835, y: 3141), size: CodableSize(width: 570, height: 680), rotation: -0.7, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3590, y: 3241), CodablePoint(x: 4120, y: 2801), CodablePoint(x: 4120, y: 2951), CodablePoint(x: 3550, y: 3481)]),
             MapObjectDefinition(id: "object-side-wall-kitchen", name: "Side Wall Kitchen", type: .obstacle, position: CodablePoint(x: 4265, y: 2545), size: CodableSize(width: 310, height: 790), rotation: 0.35, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 4350, y: 2150), CodablePoint(x: 4420, y: 2150), CodablePoint(x: 4120, y: 2940), CodablePoint(x: 4110, y: 2800)]),
             MapObjectDefinition(id: "object-kitchen-chair", name: "Kitchen Chair", type: .obstacle, position: CodablePoint(x: 3925, y: 2575), size: CodableSize(width: 110, height: 150), rotation: 0, interactionID: nil, isEnabled: true, isRequired: false, vertices: [CodablePoint(x: 3900, y: 2510), CodablePoint(x: 3920, y: 2500), CodablePoint(x: 3950, y: 2500), CodablePoint(x: 3970, y: 2510), CodablePoint(x: 3970, y: 2530), CodablePoint(x: 3950, y: 2540), CodablePoint(x: 3940, y: 2570), CodablePoint(x: 3980, y: 2590), CodablePoint(x: 3980, y: 2640), CodablePoint(x: 3940, y: 2650), CodablePoint(x: 3900, y: 2650), CodablePoint(x: 3870, y: 2640), CodablePoint(x: 3870, y: 2590), CodablePoint(x: 3920, y: 2570), CodablePoint(x: 3920, y: 2530), CodablePoint(x: 3910, y: 2530)]),

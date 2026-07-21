@@ -481,10 +481,11 @@ extension GameScene {
     }
 
     private var isCockpitMainConsoleInteractable: Bool {
-        guard let objective = sessionState.objectives.first(where: { $0.id == Self.cockpitNavigationControlInteractionID }) else {
-            return false
+        let objectives = sessionState.objectives
+        return Self.replacedCockpitMainConsoleStationIDs.contains { id in
+            guard let objective = objectives.first(where: { $0.id == id }) else { return false }
+            return objective.status == .available || objective.status == .active
         }
-        return objective.status == .available || objective.status == .active
     }
 
     private var shouldShowRocketPowerOffSmoke: Bool {

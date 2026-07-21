@@ -4,7 +4,7 @@ import UIKit
 final class MainEngineControlNode: SKNode {
     static let artworkScale: CGFloat = 0.69
     static let interactionRadius = GameMapLayout.scaled(76)
-    static let outlineWidth = GameMapLayout.scaled(3)
+    static let outlineWidth = GameMapLayout.scaled(4)
 
     private static let highlightActionKey = "main-engine-control-highlight-transition"
     private static let highlightTransitionDuration: TimeInterval = 0.18
