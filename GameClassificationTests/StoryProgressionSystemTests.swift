@@ -93,24 +93,32 @@ struct StoryProgressionSystemTests {
         #expect(system.state.completedMissionIDs.count == 6)
     }
 
-    @Test("Wrong and low-confidence recognition fail once without progress or repeated hints")
+    @Test("Album hint triggers on 3 consecutive drawing failures for the same challenge")
     func recognitionValidationAndAlbumHint() throws {
         let system = StoryProgressionSystem()
         _ = system.handle(.roomEntered(.laboratory))
         let id = try #require(system.activeObjective?.id)
         let prompt = try #require(system.currentPrompt(for: id))
 
-        let wrong = system.handle(.drawingValidated(
+        let fail1 = system.handle(.drawingValidated(
             objectiveID: id,
             result: RecognitionResult(label: "invalid-label", confidence: 1, alternatives: [])
         ))
-        let uncertain = system.handle(.drawingValidated(
-            objectiveID: id,
-            result: RecognitionResult(label: prompt.expectedLabel, confidence: 0.49, alternatives: [])
-        ))
+        #expect(!fail1.contains(.dialogue(.albumHint)))
+        #expect(!system.state.albumBook.hasFailedDrawingBefore)
 
-        #expect(wrong.contains(.dialogue(.albumHint)))
-        #expect(!uncertain.contains(.dialogue(.albumHint)))
+        let fail2 = system.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: prompt.expectedLabel, confidence: 0.20, alternatives: [])
+        ))
+        #expect(!fail2.contains(.dialogue(.albumHint)))
+        #expect(!system.state.albumBook.hasFailedDrawingBefore)
+
+        let fail3 = system.handle(.drawingValidated(
+            objectiveID: id,
+            result: RecognitionResult(label: "invalid-label", confidence: 1, alternatives: [])
+        ))
+        #expect(fail3.contains(.dialogue(.albumHint)))
         #expect(system.state.albumBook.hasFailedDrawingBefore)
         #expect(system.state.albumBook.hasReceivedHint)
         #expect(system.state.albumBook.isMarkerVisible)

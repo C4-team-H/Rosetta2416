@@ -34,7 +34,7 @@ struct GameplayHUDView: View {
                     .padding(.trailing, 16)
             }
 
-            if let line = session.currentDialogue, session.phase != .gameOver, session.phase != .victory {
+            if let line = session.currentDialogue, session.phase == .playing {
                 AIDialogueOverlay(line: line) {
                     session.dismissDialogue()
                 }
