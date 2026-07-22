@@ -48,4 +48,12 @@ struct DrawingSubmissionOutcome: Sendable {
     let accepted: Bool
     let message: String
     let recognition: RecognitionResult?
+    let hasAlbumHint: Bool
+
+    init(accepted: Bool, message: String, recognition: RecognitionResult?, hasAlbumHint: Bool = false) {
+        self.accepted = accepted
+        self.message = message
+        self.recognition = recognition
+        self.hasAlbumHint = hasAlbumHint
+    }
 }

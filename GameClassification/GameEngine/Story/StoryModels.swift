@@ -38,6 +38,7 @@ enum ObjectivePriority: String, Codable, Sendable {
 
 enum DialogueTrigger: Codable, Equatable, Sendable {
     case chapterEntered(StoryChapter)
+    case roomEntered(RoomID)
     case objectiveCompleted(String)
     case powerChanged(ShipPowerState)
     case roomDenied(RoomID)

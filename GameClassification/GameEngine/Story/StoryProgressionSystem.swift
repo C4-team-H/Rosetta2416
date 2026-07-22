@@ -105,8 +105,8 @@ final class StoryProgressionSystem: StoryProgressionManaging {
         case let .drawingValidated(challengeID, result):
             return validateDrawing(challengeID: challengeID, result: result)
 
-        case .drawingFailed:
-            return recordDrawingFailure(reason: "Drawing not recognized. Try again.")
+        case let .drawingFailed(objectiveID):
+            return recordDrawingFailure(challengeID: objectiveID, reason: "Drawing not recognized. Try again.")
 
         case .energyDepleted:
             return [.gameOver]
@@ -157,15 +157,18 @@ final class StoryProgressionSystem: StoryProgressionManaging {
 
         switch challengeSystem.validate(result, for: definition, expectedLabel: expectedLabel) {
         case .accepted:
+            albumBookSystem.recordDrawingSuccess(challengeID: challengeID, in: &state.albumBook)
             return completeChallenge(definition)
         case let .rejected(reason):
-            return recordDrawingFailure(reason: reason)
+            return recordDrawingFailure(challengeID: challengeID, reason: reason)
         }
     }
 
-    private func recordDrawingFailure(reason: String) -> [StoryEffect] {
+    private func recordDrawingFailure(challengeID: String? = nil, reason: String) -> [StoryEffect] {
         var effects: [StoryEffect] = [.interactionDenied(reason)]
-        if albumBookSystem.recordFirstDrawingFailure(in: &state.albumBook) {
+        let targetID = challengeID ?? state.activeMission?.activeChallengeID ?? "default"
+        if albumBookSystem.recordDrawingFailure(challengeID: targetID, in: &state.albumBook) {
+            state.deliveredDialogueIDs.remove("album-hint")
             effects += [.dialogue(.albumHint), .mapNeedsRefresh]
         }
         return effects
@@ -217,13 +220,19 @@ final class StoryProgressionSystem: StoryProgressionManaging {
             if state.engineProgress >= 10, markMilestone("engine10") {
                 state.powerState = .basicPower
                 state.latestCheckpoint = .engine10
-                effects += [.powerChanged(.basicPower), .checkpointReached(.engine10), .mapNeedsRefresh]
+                effects += [
+                    .powerChanged(.basicPower),
+                    .dialogue(.powerChanged(.basicPower)),
+                    .checkpointReached(.engine10),
+                    .mapNeedsRefresh
+                ]
             }
             if state.engineProgress >= 40, markMilestone("engine40") {
                 state.powerState = .disrupted
                 state.latestCheckpoint = .engine40
                 effects += [
                     .powerChanged(.disrupted),
+                    .dialogue(.powerChanged(.disrupted)),
                     .cutscene(.electricalDisruption),
                     .checkpointReached(.engine40),
                     .mapNeedsRefresh
@@ -302,28 +311,30 @@ final class StoryProgressionSystem: StoryProgressionManaging {
             return [.dialogue(.roomDenied(room)), .interactionDenied("Access denied.")]
         }
 
+        var effects: [StoryEffect] = []
+
         if room == .laboratory, state.currentChapter == .sleepingRoom {
             state.completedMissionIDs.insert(.findLaboratory)
             state.currentChapter = .laboratory
             prepareCurrentChapter()
             refreshActiveMission()
             state.latestCheckpoint = .laboratoryEntered
-            return [
+            effects += [
                 .chapterChanged(.laboratory),
                 .checkpointReached(.laboratoryEntered),
                 .dialogue(.chapterEntered(.laboratory)),
                 .mapNeedsRefresh
             ]
-        }
-
-        if room == .cockpit,
+        } else if room == .cockpit,
            state.currentChapter == .cockpit,
            markMilestone("cockpitEntered") {
             state.latestCheckpoint = .cockpitEntered
-            return [.checkpointReached(.cockpitEntered)]
+            effects += [.checkpointReached(.cockpitEntered)]
         }
 
-        return []
+        effects.append(.dialogue(.roomEntered(room)))
+
+        return effects
     }
 
     private func prepareCurrentChapter() {

@@ -312,7 +312,7 @@ createEnginePipeControl()
             storageCabinetNode?.setProximityHighlighted(false, animated: false)
             cockpitPortMonitorNode?.setProximityHighlighted(false, animated: false)
             cockpitMainConsoleNode?.setProximityHighlighted(false, animated: false)
-        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert {
+        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert || sessionState.currentDialogue != nil {
             if !wasMapInputSuspended {
                 clearPencilTarget()
                 pencilTouch = nil
@@ -353,6 +353,7 @@ createEnginePipeControl()
             checkProximityToLabMonitor2()
         }
 
+        player?.updateEnergyBar(value: sessionState.energy)
         updateStationVisibility()
 
         if debugSettings.isMapDebugEnabled {
@@ -439,6 +440,7 @@ createEnginePipeControl()
         didNotifyGameOver = false
         resetContactTracking()
         player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
+        player.updateEnergyBar(value: sessionState.energy)
         lastValidPlayerPosition = player.position
         lastMovementResult = .stationary(at: player.position)
         stopPlayerMovement()

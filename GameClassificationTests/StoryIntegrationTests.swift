@@ -58,6 +58,18 @@ struct StoryIntegrationTests {
             == Set(StoryConfiguration.laboratoryChallenges.map(\.id)))
     }
 
+    @Test("Entering Kitchen triggers Robo dialogue regarding energy restoration")
+    func kitchenEntryDialogue() async {
+        let session = makeSession()
+        session.beginGameplay()
+        while session.currentDialogue != nil {
+            session.dismissDialogue()
+        }
+        _ = session.handle(.roomEntered(.kitchen))
+        #expect(session.currentDialogue?.id == "kitchen-entered")
+        #expect(session.currentDialogue?.text == "Robo: You can add your energy by draw food at the kitchen")
+    }
+
     @Test("Kitchen restores exactly 50, clamps at 100, and never mutates story")
     func foodIsolationAndRepeatability() async {
         let session = makeSession()
