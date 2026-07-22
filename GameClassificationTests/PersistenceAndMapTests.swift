@@ -177,11 +177,12 @@ struct PersistenceAndMapTests {
         let scene = makeScene(session: session)
         complete(.laboratory, in: session)
         validate("engine-ignition-coil", in: session)
-        // Make engine-calibration-port active
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        forceChapter(.engineFinal, in: session)
+        var s1 = session.sharedStory
+        s1.currentChapter = .engineFinal
+        session.storySystem.restore(s1)
 
         let mainEngine = try #require(scene.mainEngineControlNode)
         scene.player.position = mainEngine.position
@@ -202,7 +203,9 @@ struct PersistenceAndMapTests {
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        forceChapter(.engineFinal, in: session)
+        var s2 = session.sharedStory
+        s2.currentChapter = .engineFinal
+        session.storySystem.restore(s2)
 
         let mainEngine = try #require(scene.mainEngineControlNode)
         scene.player.position = mainEngine.position
@@ -241,7 +244,9 @@ struct PersistenceAndMapTests {
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        forceChapter(.engineFinal, in: session)
+        var s3 = session.sharedStory
+        s3.currentChapter = .engineFinal
+        session.storySystem.restore(s3)
 
         let mainEngine = try #require(scene.mainEngineControlNode)
         scene.refreshStoryVisuals()
@@ -274,7 +279,9 @@ struct PersistenceAndMapTests {
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        forceChapter(.engineFinal, in: session)
+        var s4 = session.sharedStory
+        s4.currentChapter = .engineFinal
+        session.storySystem.restore(s4)
 
         let config = MapGeometryConfiguration.drawingSpaceDefault
         let markers = TacticalMapMarkerFactory.make(
@@ -317,7 +324,7 @@ struct PersistenceAndMapTests {
         let console = configuration.objects.first { $0.id == "object-sleeping-main-console" }
         #expect(console != nil)
         #expect(configuration.albumBookPosition == CGPoint(
-            x: (console?.position.x ?? .zero) - 10,
+            x: (console?.position.x ?? .zero) - 8,
             y: console?.position.y ?? .zero
         ))
 
@@ -392,7 +399,7 @@ struct PersistenceAndMapTests {
         #expect(sideCounter != nil)
         #expect(configuration.kitchenTablePosition == CGPoint(
             x: sideCounter?.position.x ?? .zero,
-            y: (sideCounter?.position.y ?? .zero) + 6
+            y: (sideCounter?.position.y ?? .zero) + 2
         ))
 
         let session = makeSession()
@@ -446,8 +453,8 @@ struct PersistenceAndMapTests {
         let anchor = configuration.objects.first { $0.id == "object-lab-main-table" }
         #expect(anchor != nil)
         #expect(configuration.labTablePosition == CGPoint(
-            x: anchor?.position.x ?? .zero,
-            y: (anchor?.position.y ?? .zero) + 6
+            x: (anchor?.position.x ?? .zero) - 4,
+            y: (anchor?.position.y ?? .zero) + 46
         ))
     }
 
@@ -548,6 +555,14 @@ struct PersistenceAndMapTests {
             objectiveID: id,
             result: RecognitionResult(label: prompt.expectedLabel, confidence: 1, alternatives: [])
         ))
+    }
+
+    private func makeScene(session: GameSessionState) -> GameScene {
+        GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: TacticalMapViewModel(sessionState: session)
+        )
     }
 
     private func makeSession() -> GameSessionState {

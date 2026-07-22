@@ -170,6 +170,7 @@ struct StoryState: Codable, Equatable, Sendable {
 
     static var initial: StoryState {
         var generator = SystemRandomNumberGenerator()
+        let initialChallengeID = StoryConfiguration.laboratoryChallenges.first?.id
         return StoryState(
             currentChapter: .sleepingRoom,
             intelligence: 10,

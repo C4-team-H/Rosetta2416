@@ -149,6 +149,16 @@ struct AIDialogueOverlay: View {
     @State private var continuePulse: Bool = false
     @State private var timer: Timer? = nil
 
+    private var dialogueFrameImageName: String {
+        let lowerText = line.text.lowercased()
+        if lowerText.contains("astro:") {
+            return "AstroDialogueFrame"
+        } else if lowerText.contains("robo:") {
+            return "RoboDialogueFrame"
+        }
+        return "AstroDialogueFrame"
+    }
+
     private var currentText: String {
         let text = line.text
         guard displayedCount < text.count else { return text }
@@ -158,17 +168,16 @@ struct AIDialogueOverlay: View {
 
     var body: some View {
         GeometryReader { geometry in
-            // Joystick berjarak 160 point dari bagian bawah layar (joystickRadius: 30 + offset: 100)
-            let joystickYFromBottom: CGFloat = 140
-            let joystickCenterY = geometry.size.height - joystickYFromBottom
+            let frameYFromBottom: CGFloat = max(140, geometry.size.height * 0.1)
+            let frameCenterY = geometry.size.height - frameYFromBottom
 
-            let frameWidth = min(800, geometry.size.width * 0.65)
-            let frameHeight = max(180, frameWidth * (1080.0 / 1440.0)) // Rasio asli gambar DialogueFrame (1440x1080 = 0.75)
-            let textWidth = frameWidth * 0.74
-            let horizontalPadding = max(16, frameWidth * 0.06)
-            let verticalPadding = max(18, frameHeight * 0.11)
-            let bodyFontSize = max(11, min(15, frameWidth * 0.032))
-            let labelFontSize = max(8, min(12, frameWidth * 0.024))
+            let frameWidth = geometry.size.width * 0.6 // Ukuran frame terhadap widht device
+            let frameHeight = frameWidth * (232.0 / 1254.0) // Rasio gambar AstroDialogueFrame & RoboDialogueFrame (1254x232)
+            let textWidth = frameWidth * 0.7
+            let horizontalPadding = max(16, frameWidth * 0.04)
+            let verticalPadding = max(10, frameHeight * 0.10)
+            let bodyFontSize = max(11, min(16, frameWidth * 0.026))
+            let labelFontSize = max(8, min(12, frameWidth * 0.020))
 
             ZStack {
                 Color.clear
@@ -200,17 +209,18 @@ struct AIDialogueOverlay: View {
                 .frame(width: textWidth, alignment: .center)
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, verticalPadding)
+                .offset(y: -6)
                 .frame(width: frameWidth)
                 .frame(minHeight: frameHeight)
                 .background {
-                    Image("DialogueFrame")
+                    Image(dialogueFrameImageName)
                         .resizable()
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
                     handleTap()
                 }
-                .position(x: geometry.size.width / 2, y: joystickCenterY)
+                .position(x: geometry.size.width / 2 + 30, y: frameCenterY)
             }
             .ignoresSafeArea()
         }
@@ -273,45 +283,105 @@ struct StoryTerminalOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.84).ignoresSafeArea()
-            VStack(spacing: 18) {
-                Image(systemName: session.phase == .victory ? "sparkles" : "bolt.slash.fill")
-                    .font(GameFont.custom(size: 54))
-                    .foregroundStyle(session.phase == .victory ? .green : .red)
-                Text(session.phase == .victory ? "SHIP RESTORED" : "GAME OVER")
-                    .font(GameFont.largeTitleBold)
-                    .foregroundStyle(.white)
 
-                if session.phase == .victory {
-                    Grid(horizontalSpacing: 24, verticalSpacing: 8) {
-                        GridRow { Text("Elapsed time"); Text(session.stats.elapsedTime.formattedDuration) }
-                        GridRow { Text("Missions"); Text("\(session.sharedStory.completedMissionIDs.count)/6") }
-                        GridRow { Text("Drawing attempts"); Text("\(session.stats.drawingAttempts)") }
-                        GridRow { Text("Kitchen restores"); Text("\(session.stats.kitchenRestores)") }
-                        GridRow { Text("Final energy"); Text("\(Int(session.energy))%") }
-                        GridRow { Text("Final intelligence"); Text("\(Int(session.sharedStory.intelligence))%") }
-                        GridRow { Text("Final engine"); Text("\(Int(session.sharedStory.engineProgress))%") }
+            // Original: if session.phase == .victory {
+            // DEBUG: if true {
+            if session.phase == .gameOver || session.phase == .victory { // TEMPORARY DEBUG PREVIEW
+                ZStack(alignment: .top) {
+                    Image("VictoryPopUp")
+                        .resizable()
+                        .scaledToFit()
+
+                    VStack(spacing: 12) {
+                        Grid(horizontalSpacing: 24, verticalSpacing: 6) {
+                            GridRow {
+                                Text("Elapsed time")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(session.stats.elapsedTime.formattedDuration)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Missions")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(session.sharedStory.completedMissionIDs.count)/6")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Drawing attempts")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(session.stats.drawingAttempts)")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Kitchen restores")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(session.stats.kitchenRestores)")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Final energy")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(Int(session.energy))%")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                        }
+                        .font(GameFont.callout)
+                        .foregroundStyle(.white)
+
+                        VStack {
+                            Button(action: {
+                                AudioManager.shared.playButtonSound()
+                                onMainMenu()
+                            }) {
+                                Text("MAIN MENU")
+                                    .font(GameFont.bodyBold)
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Color.green.opacity(0.4),
+                                        in: .rect(cornerRadius: 10)
+                                    )
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.top, 6)
                     }
-                    .font(GameFont.callout)
-                    .foregroundStyle(.white.opacity(0.8))
-                } else {
+                    .padding(.horizontal, 40)
+                    .padding(.top, 170)
+                    .padding(.bottom, 16)
+                }
+                .frame(width: 500)
+                .onTapGesture {
+                    // Prevent tap on card from passing through
+                }
+            } else {
+                VStack(spacing: 18) {
+                    Image(systemName: "bolt.slash.fill")
+                        .font(GameFont.custom(size: 54))
+                        .foregroundStyle(.red)
+                    Text("GAME OVER")
+                        .font(GameFont.largeTitleBold)
+                        .foregroundStyle(.white)
+
                     Text("Energy reached zero. Restore the latest safe checkpoint to continue.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.white.opacity(0.75))
-                }
 
-                HStack(spacing: 12) {
-                    if session.phase == .gameOver {
+                    HStack(spacing: 12) {
                         Button("RETRY CHECKPOINT", action: onRetry).buttonStyle(.borderedProminent)
-                    } else {
-                        Button("PLAY AGAIN", action: onPlayAgain).buttonStyle(.borderedProminent)
+                        Button("MAIN MENU", action: onMainMenu).buttonStyle(.bordered)
                     }
-                    Button("MAIN MENU", action: onMainMenu).buttonStyle(.bordered)
+                    .controlSize(.large)
                 }
-                .controlSize(.large)
+                .padding(28)
+                .background(.ultraThinMaterial, in: .rect(cornerRadius: 24))
+                .padding(24)
             }
-            .padding(28)
-            .background(.ultraThinMaterial, in: .rect(cornerRadius: 24))
-            .padding(24)
         }
     }
 }

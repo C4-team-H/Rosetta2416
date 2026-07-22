@@ -4,8 +4,8 @@ struct AlbumBookState: Codable, Equatable, Sendable {
     var hasFailedDrawingBefore = false
     var hasReceivedHint = false
     var hasOpenedBook = false
-    var isMarkerVisible = false
-    var isMarkerPermanent = false
+    var isMarkerVisible = true
+    var isMarkerPermanent = true
     var consecutiveFailuresByChallenge: [String: Int] = [:]
 
     enum CodingKeys: String, CodingKey {
@@ -21,8 +21,8 @@ struct AlbumBookState: Codable, Equatable, Sendable {
         hasFailedDrawingBefore: Bool = false,
         hasReceivedHint: Bool = false,
         hasOpenedBook: Bool = false,
-        isMarkerVisible: Bool = false,
-        isMarkerPermanent: Bool = false,
+        isMarkerVisible: Bool = true,
+        isMarkerPermanent: Bool = true,
         consecutiveFailuresByChallenge: [String: Int] = [:]
     ) {
         self.hasFailedDrawingBefore = hasFailedDrawingBefore
@@ -38,8 +38,8 @@ struct AlbumBookState: Codable, Equatable, Sendable {
         hasFailedDrawingBefore = try container.decodeIfPresent(Bool.self, forKey: .hasFailedDrawingBefore) ?? false
         hasReceivedHint = try container.decodeIfPresent(Bool.self, forKey: .hasReceivedHint) ?? false
         hasOpenedBook = try container.decodeIfPresent(Bool.self, forKey: .hasOpenedBook) ?? false
-        isMarkerVisible = try container.decodeIfPresent(Bool.self, forKey: .isMarkerVisible) ?? false
-        isMarkerPermanent = try container.decodeIfPresent(Bool.self, forKey: .isMarkerPermanent) ?? false
+        isMarkerVisible = try container.decodeIfPresent(Bool.self, forKey: .isMarkerVisible) ?? true
+        isMarkerPermanent = try container.decodeIfPresent(Bool.self, forKey: .isMarkerPermanent) ?? true
         consecutiveFailuresByChallenge = try container.decodeIfPresent([String: Int].self, forKey: .consecutiveFailuresByChallenge) ?? [:]
     }
 }
