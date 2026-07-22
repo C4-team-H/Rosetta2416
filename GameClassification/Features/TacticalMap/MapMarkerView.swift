@@ -9,19 +9,27 @@ struct MapMarkerView: View {
     var body: some View {
         ZStack {
             if marker.status == .active {
-                RoundedRectangle(cornerRadius: 7)
-                    .stroke(markerColor.opacity(0.7), lineWidth: 2)
-                    .frame(width: 27, height: 27)
-                    .scaleEffect(isPulsing ? 1.45 : 0.85)
+                Circle()
+                    .stroke(MapDesignTokens.ink, lineWidth: 4)
+                    .overlay { Circle().stroke(markerColor, lineWidth: 2) }
+                    .frame(width: 30, height: 30)
+                    .scaleEffect(isPulsing ? 1.5 : 0.82)
                     .opacity(isPulsing ? 0 : 1)
             }
 
             Image(systemName: markerSymbol)
-                .font(GameFont.custom(size: 10, weight: 700))
-                .foregroundStyle(.black)
-                .frame(width: 21, height: 21)
-                .background(markerColor, in: .rect(cornerRadius: 6))
-                .overlay { RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.72), lineWidth: 1) }
+                .font(GameFont.custom(size: 10, weight: 800))
+                .foregroundStyle(MapDesignTokens.ink)
+                .frame(width: 23, height: 23)
+                .background(markerColor, in: .circle)
+                .overlay { Circle().stroke(MapDesignTokens.ink, lineWidth: 3) }
+                .overlay(alignment: .topLeading) {
+                    Circle()
+                        .fill(.white.opacity(0.48))
+                        .frame(width: 4, height: 4)
+                        .padding(5)
+                }
+                .shadow(color: MapDesignTokens.ink.opacity(0.8), radius: 0, y: 2)
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 1.2).repeatForever(autoreverses: false), value: isPulsing)
         .onAppear(perform: updatePulseAnimation)
@@ -53,11 +61,11 @@ struct MapMarkerView: View {
 
     private var markerColor: Color {
         switch marker.status {
-        case .active: .yellow
-        case .completed: .green
-        case .locked: .gray
-        case .unlocked: .cyan
-        case .blocked: .red
+        case .active: MapDesignTokens.activeMarker
+        case .completed: MapDesignTokens.completedMarker
+        case .locked: MapDesignTokens.lockedMarker
+        case .unlocked: MapDesignTokens.unlockedMarker
+        case .blocked: MapDesignTokens.blockedMarker
         }
     }
 
