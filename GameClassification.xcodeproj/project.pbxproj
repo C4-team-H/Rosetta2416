@@ -25,6 +25,7 @@
 		B67D122D300D3FD8007D67A6 /* Exceptions for "GameClassification" folder in "GameClassificationTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"Resources/Font/Chewy-Regular.ttf",
 				"Resources/Font/GeistPixel-Regular-VariableFont_ELSH.ttf",
 				Resources/Music/Background_Music_Rosetta.mp3,
 				Resources/Music/Gameplay_until_prologue.mp3,

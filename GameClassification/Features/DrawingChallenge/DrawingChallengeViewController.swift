@@ -413,47 +413,26 @@ private struct DrawingChallengeResultOverlay: View {
                     .contentShape(Rectangle())
                     .onTapGesture { }
 
-                VStack(spacing: 0) {
-                    DrawingChallengeResultChrome(metrics: metrics)
-
-                    resultContent(metrics: metrics)
-                        .padding(.horizontal, metrics.contentHorizontalPadding)
-                        .padding(.top, metrics.contentTopPadding)
-                        .padding(.bottom, metrics.contentBottomPadding)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(resultBackground)
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: metrics.innerCornerRadius,
-                                style: .continuous
-                            )
+                resultContent(metrics: metrics)
+                    .padding(.horizontal, metrics.contentHorizontalPadding)
+                    .padding(.top, metrics.contentTopPadding)
+                    .padding(.bottom, metrics.contentBottomPadding)
+                    .frame(width: metrics.cardWidth)
+                    .background(resultBackground)
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: metrics.cardCornerRadius,
+                            style: .continuous
                         )
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: metrics.innerCornerRadius,
-                                style: .continuous
-                            )
-                            .stroke(Color.black.opacity(0.78), lineWidth: metrics.innerStrokeWidth)
-                        }
-                        .padding(.horizontal, metrics.chromeInset)
-                        .padding(.bottom, metrics.chromeInset)
-                }
-                .frame(width: metrics.cardWidth, height: metrics.cardHeight)
-                .background(
-                    RoundedRectangle(cornerRadius: metrics.outerCornerRadius, style: .continuous)
-                        .fill(DrawingChallengeResultPalette.chrome)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: metrics.outerCornerRadius, style: .continuous)
-                        .stroke(Color.black.opacity(0.92), lineWidth: metrics.outerStrokeWidth)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: metrics.outerCornerRadius - 3, style: .continuous)
-                                .stroke(Color.white.opacity(0.72), lineWidth: 2)
-                                .padding(metrics.outerStrokeWidth + 1)
-                        }
-                }
-                .shadow(color: .black.opacity(0.72), radius: 0, x: 10, y: 12)
-                .padding(metrics.screenPadding)
+                    )
+                    .overlay {
+                        RoundedRectangle(
+                            cornerRadius: metrics.cardCornerRadius,
+                            style: .continuous
+                        )
+                        .stroke(Color.black.opacity(0.78), lineWidth: metrics.cardStrokeWidth)
+                    }
+                    .padding(metrics.screenPadding)
             }
             .accessibilityAddTraits(.isModal)
         }
@@ -482,7 +461,7 @@ private struct DrawingChallengeResultOverlay: View {
                     .shadow(color: .black, radius: 0, x: 3, y: 3)
 
                 Text(presentation.title)
-                    .font(GameFont.custom(size: metrics.titleFontSize, weight: 800))
+                    .font(.custom(DrawingChallengeResultFont.chewy, size: metrics.titleFontSize))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -509,8 +488,6 @@ private struct DrawingChallengeResultOverlay: View {
                 .shadow(color: .black.opacity(0.76), radius: 1, y: 2)
                 .frame(maxWidth: metrics.messageMaxWidth)
 
-            Spacer(minLength: 0)
-
             Text(presentation.detail)
                 .font(GameFont.custom(size: metrics.detailFontSize, weight: 800))
                 .foregroundStyle(.white)
@@ -523,18 +500,22 @@ private struct DrawingChallengeResultOverlay: View {
             Button(action: action) {
                 HStack(spacing: 10) {
                     Text(presentation.actionTitle)
+                        .font(.custom(DrawingChallengeResultFont.chewy, size: metrics.buttonFontSize))
                     Image(systemName: "arrow.right")
+                        .font(.system(size: metrics.buttonFontSize * 0.78, weight: .black))
                 }
-                .font(GameFont.custom(size: metrics.buttonFontSize, weight: 800))
-                .foregroundStyle(DrawingChallengeResultPalette.buttonText)
+                .foregroundStyle(presentation.kind.buttonForegroundColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, metrics.buttonHorizontalPadding)
+                .padding(.vertical, metrics.buttonVerticalPadding)
+                .frame(minWidth: metrics.buttonMinWidth)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(DrawingChallengeResultButtonStyle())
-            .frame(width: metrics.buttonWidth, height: metrics.buttonHeight)
+            .buttonStyle(DrawingChallengeResultButtonStyle(kind: presentation.kind))
+            .padding(.top, metrics.buttonOuterTopPadding)
         }
+        .padding(metrics.OuterBoxPadding)
     }
 
     private var resultBackground: some View {
@@ -560,42 +541,42 @@ private struct DrawingChallengeResultOverlay: View {
     }
 }
 
-private struct DrawingChallengeResultChrome: View {
-    let metrics: DrawingChallengeResultMetrics
-
-    var body: some View {
-        HStack(spacing: metrics.chromeGap) {
-            Capsule()
-                .fill(Color.white.opacity(0.96))
-                .frame(height: metrics.chromeIndicatorHeight)
-
-            Circle()
-                .fill(Color.white.opacity(0.96))
-                .frame(width: metrics.chromeIndicatorHeight, height: metrics.chromeIndicatorHeight)
-        }
-        .padding(.horizontal, metrics.chromeHorizontalPadding)
-        .frame(height: metrics.chromeHeight)
-    }
-}
-
 private struct DrawingChallengeResultButtonStyle: ButtonStyle {
+    let kind: DrawingChallengeResultKind
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(DrawingChallengeResultPalette.button)
+            .background(
+                kind.buttonBackgroundColor
+                    .opacity(configuration.isPressed ? 0.78 : 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(Color.black.opacity(0.88), lineWidth: 3)
+                    .stroke(
+                        Color.black.opacity(configuration.isPressed ? 1 : 0.88),
+                        lineWidth: configuration.isPressed ? 4 : 3
+                    )
             }
-            .shadow(
-                color: .black.opacity(configuration.isPressed ? 0.45 : 0.82),
-                radius: 0,
-                x: configuration.isPressed ? 2 : 6,
-                y: configuration.isPressed ? 2 : 6
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(Color.white.opacity(0.42))
+                    .frame(height: 2)
+                    .padding(.horizontal, 13)
+                    .padding(.top, 4)
+                    .opacity(configuration.isPressed ? 0 : 1)
+            }
+            .scaleEffect(
+                x: configuration.isPressed ? 0.93 : 1,
+                y: configuration.isPressed ? 0.86 : 1,
+                anchor: .center
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .offset(y: configuration.isPressed ? 3 : 0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.64), value: configuration.isPressed)
+            .offset(y: configuration.isPressed ? 4 : 0)
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .animation(
+                .spring(response: 0.17, dampingFraction: 0.5),
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -604,43 +585,36 @@ private struct DrawingChallengeResultMetrics {
 
     private var isCompactHeight: Bool { size.height < 520 }
 
-    var screenPadding: CGFloat { isCompactHeight ? 16 : 24 }
-    var cardWidth: CGFloat { min(size.width - screenPadding * 2, 720) }
-    var cardHeight: CGFloat { min(size.height - screenPadding * 2, isCompactHeight ? 430 : 560) }
-    var chromeHeight: CGFloat { isCompactHeight ? 40 : 52 }
-    var chromeInset: CGFloat { isCompactHeight ? 10 : 14 }
-    var chromeGap: CGFloat { isCompactHeight ? 10 : 14 }
-    var chromeIndicatorHeight: CGFloat { isCompactHeight ? 10 : 13 }
-    var chromeHorizontalPadding: CGFloat { isCompactHeight ? 20 : 28 }
-    var outerCornerRadius: CGFloat { isCompactHeight ? 14 : 20 }
-    var innerCornerRadius: CGFloat { isCompactHeight ? 9 : 13 }
-    var outerStrokeWidth: CGFloat { isCompactHeight ? 4 : 6 }
-    var innerStrokeWidth: CGFloat { isCompactHeight ? 3 : 5 }
-    var contentHorizontalPadding: CGFloat { isCompactHeight ? 24 : 48 }
-    var contentTopPadding: CGFloat { isCompactHeight ? 12 : 22 }
-    var contentBottomPadding: CGFloat { isCompactHeight ? 16 : 28 }
-    var contentSpacing: CGFloat { isCompactHeight ? 8 : 14 }
-    var statusFontSize: CGFloat { isCompactHeight ? 11 : 14 }
-    var statusTracking: CGFloat { isCompactHeight ? 1 : 1.5 }
-    var badgeHorizontalPadding: CGFloat { isCompactHeight ? 11 : 16 }
-    var badgeVerticalPadding: CGFloat { isCompactHeight ? 4 : 6 }
-    var titleSpacing: CGFloat { isCompactHeight ? 12 : 18 }
-    var titleFontSize: CGFloat { isCompactHeight ? 29 : 43 }
-    var symbolSize: CGFloat { isCompactHeight ? 28 : 42 }
-    var messageFontSize: CGFloat { isCompactHeight ? 14 : 18 }
+    var screenPadding: CGFloat { isCompactHeight ? 28 : 36 }
+    var cardWidth: CGFloat { min(size.width - screenPadding * 2, isCompactHeight ? 460 : 500) }
+    var cardCornerRadius: CGFloat { isCompactHeight ? 8 : 11 }
+    var cardStrokeWidth: CGFloat { isCompactHeight ? 3 : 4 }
+    var contentHorizontalPadding: CGFloat { isCompactHeight ? 16 : 26 }
+    var contentTopPadding: CGFloat { isCompactHeight ? 8 : 12 }
+    var contentBottomPadding: CGFloat { isCompactHeight ? 10 : 14 }
+    var contentSpacing: CGFloat { isCompactHeight ? 5 : 7 }
+    var statusFontSize: CGFloat { isCompactHeight ? 10 : 12 }
+    var statusTracking: CGFloat { isCompactHeight ? 0.8 : 1.2 }
+    var badgeHorizontalPadding: CGFloat { isCompactHeight ? 10 : 14 }
+    var badgeVerticalPadding: CGFloat { isCompactHeight ? 3 : 5 }
+    var titleSpacing: CGFloat { isCompactHeight ? 10 : 14 }
+    var titleFontSize: CGFloat { isCompactHeight ? 26 : 36 }
+    var symbolSize: CGFloat { isCompactHeight ? 25 : 34 }
+    var messageFontSize: CGFloat { isCompactHeight ? 13 : 16 }
     var messageLineLimit: Int { isCompactHeight ? 2 : 3 }
-    var messageMaxWidth: CGFloat { min(cardWidth * 0.76, 520) }
-    var detailFontSize: CGFloat { isCompactHeight ? 11 : 14 }
-    var detailVerticalPadding: CGFloat { isCompactHeight ? 5 : 7 }
-    var buttonFontSize: CGFloat { isCompactHeight ? 16 : 19 }
-    var buttonWidth: CGFloat { min(cardWidth * 0.54, 330) }
-    var buttonHeight: CGFloat { isCompactHeight ? 43 : 54 }
+    var messageMaxWidth: CGFloat { min(cardWidth * 0.78, 430) }
+    var detailFontSize: CGFloat { isCompactHeight ? 10 : 12 }
+    var detailVerticalPadding: CGFloat { isCompactHeight ? 4 : 6 }
+    var buttonFontSize: CGFloat { isCompactHeight ? 20 : 24 }
+    var buttonHorizontalPadding: CGFloat { isCompactHeight ? 26 : 34 }
+    var buttonVerticalPadding: CGFloat { isCompactHeight ? 4 : 6 }
+    var buttonMinWidth: CGFloat { isCompactHeight ? 200 : 230 }
+    var buttonOuterTopPadding: CGFloat { isCompactHeight ? 20 : 24 }
+    var OuterBoxPadding: CGFloat { isCompactHeight ? 12 : 16 }
 }
 
-private enum DrawingChallengeResultPalette {
-    static let chrome = Color(red: 0.58, green: 0.69, blue: 0.75)
-    static let button = Color(red: 0.93, green: 0.96, blue: 0.95)
-    static let buttonText = Color(red: 0.03, green: 0.11, blue: 0.12)
+private enum DrawingChallengeResultFont {
+    static let chewy = "Chewy-Regular"
 }
 
 private extension DrawingChallengeResultKind {
@@ -669,6 +643,28 @@ private extension DrawingChallengeResultKind {
                 Color(red: 0.62, green: 0.35, blue: 0.02),
                 Color(red: 0.36, green: 0.16, blue: 0.01)
             ]
+        }
+    }
+
+    var buttonBackgroundColor: Color {
+        switch self {
+        case .success:
+            Color(red: 0.62, green: 0.93, blue: 0.72)
+        case .failure:
+            Color(red: 0.94, green: 0.32, blue: 0.39)
+        case .warning:
+            Color(red: 1.00, green: 0.76, blue: 0.22)
+        }
+    }
+
+    var buttonForegroundColor: Color {
+        switch self {
+        case .success:
+            Color(red: 0.02, green: 0.24, blue: 0.13)
+        case .failure:
+            .white
+        case .warning:
+            Color(red: 0.25, green: 0.12, blue: 0.01)
         }
     }
 }
