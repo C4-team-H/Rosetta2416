@@ -11,6 +11,7 @@ final class MainMenuScene: SKScene {
 
     private var titleLabel: SKLabelNode!
     private var backgroundNode: SKSpriteNode!
+    private let starFieldNode = SKNode()
     private var startButton: SKSpriteNode?
     private var newGameButton: SKSpriteNode!
     private weak var pressedButton: SKSpriteNode?
@@ -21,6 +22,7 @@ final class MainMenuScene: SKScene {
     private static let buttonPressAnimationKey = "mainMenuButtonPressAnimation"
     private static let pressedButtonScale: CGFloat = 0.96
     private static let pressedButtonShade: CGFloat = 0.18
+    private static let starSizeMultipliers: [CGFloat] = [0.65, 1.0, 1.45, 1.9]
 
     init(size: CGSize, coordinator: GameplayCoordinator) {
         self.coordinator = coordinator
@@ -40,6 +42,8 @@ final class MainMenuScene: SKScene {
         backgroundNode.zPosition = -10
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
+
+        setupStarField()
         
         if coordinator.hasSavedProgress {
             let continueButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
@@ -63,6 +67,7 @@ final class MainMenuScene: SKScene {
         newGameButton?.size = buttonSize
         
         positionMenuNodes()
+        rebuildStarField()
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -234,5 +239,77 @@ final class MainMenuScene: SKScene {
 
         let scale = max(size.width / textureSize.width, size.height / textureSize.height)
         backgroundNode.size = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
+    }
+
+    private func setupStarField() {
+        starFieldNode.name = "mainMenuStarField"
+        starFieldNode.zPosition = -5
+        starFieldNode.isUserInteractionEnabled = false
+        if starFieldNode.parent == nil {
+            addChild(starFieldNode)
+        }
+        rebuildStarField()
+    }
+
+    private func rebuildStarField() {
+        guard starFieldNode.parent != nil, size.width > 0, size.height > 0 else { return }
+
+        starFieldNode.removeAllChildren()
+
+        let texture = SKTexture(imageNamed: "BlinkStar")
+        texture.filteringMode = .linear
+        let textureSize = texture.size()
+        let aspectRatio = textureSize.height / max(textureSize.width, 1)
+        let sceneArea = size.width * size.height
+        let starCount = max(18, min(34, Int(sceneArea / 28_000)))
+        let baseWidth = max(10, min(size.width, size.height) * 0.02)
+
+        for index in 0..<starCount {
+            let star = SKSpriteNode(texture: texture)
+            let sizeMultiplier = Self.starSizeMultipliers[index % Self.starSizeMultipliers.count]
+            let starWidth = baseWidth * sizeMultiplier * CGFloat.random(in: 0.88...1.12)
+            let horizontalMargin = starWidth
+            let verticalMargin = starWidth * aspectRatio
+
+            star.name = "twinklingStar"
+            star.size = CGSize(width: starWidth, height: starWidth * aspectRatio)
+            star.position = CGPoint(
+                x: CGFloat.random(in: horizontalMargin...max(horizontalMargin, size.width - horizontalMargin)),
+                y: CGFloat.random(in: verticalMargin...max(verticalMargin, size.height - verticalMargin))
+            )
+            star.zRotation = CGFloat.random(in: -0.14...0.14)
+            star.alpha = CGFloat.random(in: 0.08...0.28)
+            star.setScale(CGFloat.random(in: 0.72...0.86))
+            starFieldNode.addChild(star)
+            runTwinkleAnimation(on: star)
+        }
+    }
+
+    private func runTwinkleAnimation(on star: SKSpriteNode) {
+        let initialDelay = SKAction.wait(forDuration: TimeInterval.random(in: 0...1.8))
+        let brightenDuration = TimeInterval.random(in: 0.38...0.82)
+        let dimDuration = TimeInterval.random(in: 0.42...0.9)
+        let brightAlpha = CGFloat.random(in: 0.68...1.0)
+        let dimAlpha = CGFloat.random(in: 0.06...0.24)
+
+        let brighten = SKAction.group([
+            .fadeAlpha(to: brightAlpha, duration: brightenDuration),
+            .scale(to: CGFloat.random(in: 0.96...1.08), duration: brightenDuration)
+        ])
+        brighten.timingMode = .easeInEaseOut
+
+        let dim = SKAction.group([
+            .fadeAlpha(to: dimAlpha, duration: dimDuration),
+            .scale(to: CGFloat.random(in: 0.72...0.86), duration: dimDuration)
+        ])
+        dim.timingMode = .easeInEaseOut
+
+        let twinkle = SKAction.sequence([
+            brighten,
+            .wait(forDuration: TimeInterval.random(in: 0.08...0.26)),
+            dim,
+            .wait(forDuration: TimeInterval.random(in: 0.35...1.35))
+        ])
+        star.run(.sequence([initialDelay, .repeatForever(twinkle)]))
     }
 }
