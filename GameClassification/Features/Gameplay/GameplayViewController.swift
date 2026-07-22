@@ -23,15 +23,18 @@ class GameViewController: UIViewController {
             return
         }
 
-        let scene = coordinator.makeMainMenuScene(size: spriteView.bounds.size)
-        scene.scaleMode = .resizeFill
-        spriteView.presentScene(scene)
         spriteView.ignoresSiblingOrder = true
         spriteView.showsFPS = false
         spriteView.showsNodeCount = false
 
         installGameplayOverlay()
-        Task { await coordinator.loadProgress() }
+        Task { [weak self, weak spriteView] in
+            guard let self, let spriteView else { return }
+            await coordinator.loadProgress()
+            let scene = coordinator.makeMainMenuScene(size: spriteView.bounds.size)
+            scene.scaleMode = .resizeFill
+            spriteView.presentScene(scene)
+        }
     }
 
     private func installGameplayOverlay() {

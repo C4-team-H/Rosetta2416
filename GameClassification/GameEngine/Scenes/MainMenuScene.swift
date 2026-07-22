@@ -11,7 +11,7 @@ final class MainMenuScene: SKScene {
 
     private var titleLabel: SKLabelNode!
     private var backgroundNode: SKSpriteNode!
-    private var startButton: SKSpriteNode!
+    private var startButton: SKSpriteNode?
     private var newGameButton: SKSpriteNode!
     private weak var pressedButton: SKSpriteNode?
     private var isPressedFeedbackActive = false
@@ -41,11 +41,14 @@ final class MainMenuScene: SKScene {
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
         
-        startButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
+        if coordinator.sessionState.hasSavedProgress {
+            let continueButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
+            startButton = continueButton
+            addChild(continueButton)
+        }
         newGameButton = makeImageButton(name: "newGameButton", imageName: "NewGameButton")
         positionMenuNodes()
-        self.addChild(startButton)
-        self.addChild(newGameButton)
+        addChild(newGameButton)
     }
     
     override func didChangeSize(_ oldSize: CGSize) {
@@ -196,7 +199,8 @@ final class MainMenuScene: SKScene {
         positionBackgroundNode()
         titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
         startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
-        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.14)
+        let newGameY = startButton == nil ? size.height * 0.19 : size.height * 0.14
+        newGameButton?.position = CGPoint(x: size.width / 2, y: newGameY)
     }
 
     private func positionBackgroundNode() {

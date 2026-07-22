@@ -6,6 +6,7 @@ import Observation
 @Observable
 final class GameSessionState {
     private(set) var phase: GamePhase = .preparing
+    private(set) var hasSavedProgress = false
     private(set) var localPlayer: PlayerState
     private(set) var teammate: PlayerState?
     private(set) var teammateConnectionState: TeammateConnectionState = .disconnected
@@ -223,8 +224,13 @@ final class GameSessionState {
     func loadProgress() async {
         let revisionAtLoadStart = sessionRevision
         do {
-            guard let persisted = try await repository.load() else { return }
+            guard let persisted = try await repository.load() else {
+                guard revisionAtLoadStart == sessionRevision else { return }
+                hasSavedProgress = false
+                return
+            }
             guard revisionAtLoadStart == sessionRevision else { return }
+            hasSavedProgress = true
             storySystem.restore(persisted.latest.sharedStory)
             energySystem.restore(persisted.latest.localSurvival)
             localPlayer.worldPosition = persisted.latest.safeSpawn.isFinite
@@ -236,6 +242,8 @@ final class GameSessionState {
             updateLowEnergyState()
             AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
         } catch {
+            guard revisionAtLoadStart == sessionRevision else { return }
+            hasSavedProgress = false
             transientMessage = "Saved progress could not be restored. A new session was started."
         }
     }
@@ -262,6 +270,7 @@ final class GameSessionState {
 
     func startNewSession(clearSavedProgress: Bool = true) {
         sessionRevision += 1
+        hasSavedProgress = true
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
         localPlayer.worldPosition = safeSpawn(for: .sleepingRoomStart)
