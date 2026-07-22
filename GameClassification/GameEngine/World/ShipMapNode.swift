@@ -6,7 +6,7 @@ final class ShipDoorNode: SKShapeNode {
         static let glowName = "lockedDoorGlow"
         static let panelName = "lockedDoorInnerPanel"
         static let lockName = "lockedDoorLockGlyph"
-        static let pulseActionKey = "lockedDoorPulse"
+        static let activationActionKey = "lockedDoorPop"
         static let indicatorActionKey = "lockedDoorIndicatorBlink"
     }
 
@@ -115,8 +115,8 @@ final class ShipDoorNode: SKShapeNode {
             physicsBody?.categoryBitMask = PhysicsCategory.closedDoor
             physicsBody?.collisionBitMask = PhysicsCategory.player
             physicsBody?.contactTestBitMask = PhysicsCategory.playerSensor
-            fillColor = SKColor(red: 0.22, green: 0.015, blue: 0.025, alpha: 0.96)
-            strokeColor = SKColor(red: 1, green: 0.34, blue: 0.22, alpha: 1)
+            fillColor = SKColor(red: 0.78, green: 0.08, blue: 0.10, alpha: 1)
+            strokeColor = SKColor(red: 0.035, green: 0.06, blue: 0.09, alpha: 1)
             alpha = 1
             setLockedVisualsActive(true)
         }
@@ -126,8 +126,9 @@ final class ShipDoorNode: SKShapeNode {
         let shortSide = max(1, min(localBounds.width, localBounds.height))
         let longSide = max(localBounds.width, localBounds.height)
         let isHorizontal = localBounds.width >= localBounds.height
-        let accent = SKColor(red: 1, green: 0.24, blue: 0.14, alpha: 1)
-        let warning = SKColor(red: 1, green: 0.66, blue: 0.12, alpha: 1)
+        let ink = SKColor(red: 0.035, green: 0.06, blue: 0.09, alpha: 1)
+        let panelRed = SKColor(red: 0.91, green: 0.12, blue: 0.13, alpha: 1)
+        let warning = SKColor(red: 1, green: 0.77, blue: 0.08, alpha: 1)
 
         lockedVisualRoot.name = LockedVisual.rootName
         lockedVisualRoot.zPosition = 1
@@ -137,9 +138,11 @@ final class ShipDoorNode: SKShapeNode {
         lockedGlow.name = LockedVisual.glowName
         lockedGlow.path = closedPath
         lockedGlow.fillColor = .clear
-        lockedGlow.strokeColor = accent.withAlphaComponent(0.82)
-        lockedGlow.lineWidth = max(2, shortSide * 0.08)
-        lockedGlow.glowWidth = max(3, shortSide * 0.18)
+        lockedGlow.strokeColor = ink
+        lockedGlow.lineWidth = max(3, shortSide * 0.16)
+        lockedGlow.glowWidth = 0
+        lockedGlow.position.y = -shortSide * 0.07
+        lockedGlow.alpha = 0.72
         lockedGlow.zPosition = 0
         lockedVisualRoot.addChild(lockedGlow)
 
@@ -152,21 +155,33 @@ final class ShipDoorNode: SKShapeNode {
         clippedDetails.maskNode = mask
         lockedVisualRoot.addChild(clippedDetails)
 
-        let innerPanel = SKShapeNode(path: closedPath)
+        let panelInset = shortSide * 0.13
+        let panelBounds = localBounds.insetBy(dx: panelInset, dy: panelInset)
+        let innerPanel = SKShapeNode(
+            rect: panelBounds,
+            cornerRadius: shortSide * 0.18
+        )
         innerPanel.name = LockedVisual.panelName
-        innerPanel.setScale(0.82)
-        innerPanel.fillColor = SKColor(red: 0.055, green: 0.015, blue: 0.025, alpha: 0.94)
-        innerPanel.strokeColor = accent.withAlphaComponent(0.88)
-        innerPanel.lineWidth = max(1.5, shortSide * 0.055)
+        innerPanel.fillColor = panelRed
+        innerPanel.strokeColor = ink
+        innerPanel.lineWidth = max(2.5, shortSide * 0.10)
         innerPanel.zPosition = 1
         clippedDetails.addChild(innerPanel)
+
+        addCartoonPanelShading(
+            to: clippedDetails,
+            bounds: panelBounds,
+            shortSide: shortSide,
+            ink: ink
+        )
 
         addHazardStripes(
             to: clippedDetails,
             bounds: localBounds,
             isHorizontal: isHorizontal,
             shortSide: shortSide,
-            color: warning
+            warning: warning,
+            ink: ink
         )
 
         let centerSeam = SKShapeNode()
@@ -180,13 +195,13 @@ final class ShipDoorNode: SKShapeNode {
             seamPath.addLine(to: CGPoint(x: localBounds.maxX - shortSide * 0.12, y: 0))
         }
         centerSeam.path = seamPath
-        centerSeam.strokeColor = accent.withAlphaComponent(0.9)
-        centerSeam.lineWidth = max(1, shortSide * 0.045)
-        centerSeam.glowWidth = max(1, shortSide * 0.08)
+        centerSeam.strokeColor = ink.withAlphaComponent(0.88)
+        centerSeam.lineWidth = max(2, shortSide * 0.07)
+        centerSeam.glowWidth = 0
         centerSeam.zPosition = 3
         clippedDetails.addChild(centerSeam)
 
-        let lockBadge = makeLockBadge(size: shortSide * 0.68, accent: accent)
+        let lockBadge = makeLockBadge(size: shortSide * 0.76, ink: ink, warning: warning)
         lockBadge.name = LockedVisual.lockName
         lockBadge.zPosition = 5
         clippedDetails.addChild(lockBadge)
@@ -202,13 +217,74 @@ final class ShipDoorNode: SKShapeNode {
             light.position = isHorizontal
                 ? CGPoint(x: indicatorOffset * direction, y: 0)
                 : CGPoint(x: 0, y: indicatorOffset * direction)
-            light.fillColor = warning
-            light.strokeColor = .white.withAlphaComponent(0.8)
-            light.lineWidth = max(0.75, shortSide * 0.025)
-            light.glowWidth = max(2, shortSide * 0.12)
+            light.fillColor = SKColor(red: 0.61, green: 0.91, blue: 0.92, alpha: 1)
+            light.strokeColor = ink
+            light.lineWidth = max(1.5, shortSide * 0.055)
+            light.glowWidth = 0
             lockedStatusLights.addChild(light)
         }
         clippedDetails.addChild(lockedStatusLights)
+    }
+
+    private func addCartoonPanelShading(
+        to parent: SKNode,
+        bounds: CGRect,
+        shortSide: CGFloat,
+        ink: SKColor
+    ) {
+        let horizontalInset = shortSide * 0.24
+
+        let highlightPath = CGMutablePath()
+        highlightPath.move(to: CGPoint(
+            x: bounds.minX + horizontalInset,
+            y: bounds.maxY - shortSide * 0.14
+        ))
+        highlightPath.addLine(to: CGPoint(
+            x: bounds.maxX - horizontalInset,
+            y: bounds.maxY - shortSide * 0.14
+        ))
+        let highlight = SKShapeNode(path: highlightPath)
+        highlight.name = "lockedDoorPanelHighlight"
+        highlight.strokeColor = .white.withAlphaComponent(0.34)
+        highlight.lineWidth = max(1.5, shortSide * 0.065)
+        highlight.lineCap = .round
+        highlight.zPosition = 2
+        parent.addChild(highlight)
+
+        let shadowPath = CGMutablePath()
+        shadowPath.move(to: CGPoint(
+            x: bounds.minX + horizontalInset,
+            y: bounds.minY + shortSide * 0.12
+        ))
+        shadowPath.addLine(to: CGPoint(
+            x: bounds.maxX - horizontalInset,
+            y: bounds.minY + shortSide * 0.12
+        ))
+        let shadow = SKShapeNode(path: shadowPath)
+        shadow.name = "lockedDoorPanelShadow"
+        shadow.strokeColor = ink.withAlphaComponent(0.52)
+        shadow.lineWidth = max(2, shortSide * 0.08)
+        shadow.lineCap = .round
+        shadow.zPosition = 2
+        parent.addChild(shadow)
+
+        let rivetInset = shortSide * 0.22
+        let rivetPositions = [
+            CGPoint(x: bounds.minX + rivetInset, y: bounds.minY + rivetInset),
+            CGPoint(x: bounds.maxX - rivetInset, y: bounds.minY + rivetInset),
+            CGPoint(x: bounds.minX + rivetInset, y: bounds.maxY - rivetInset),
+            CGPoint(x: bounds.maxX - rivetInset, y: bounds.maxY - rivetInset)
+        ]
+        for (index, position) in rivetPositions.enumerated() {
+            let rivet = SKShapeNode(circleOfRadius: max(1.1, shortSide * 0.045))
+            rivet.name = "lockedDoorRivet-\(index)"
+            rivet.position = position
+            rivet.fillColor = SKColor(red: 0.74, green: 0.80, blue: 0.81, alpha: 1)
+            rivet.strokeColor = ink
+            rivet.lineWidth = max(0.75, shortSide * 0.025)
+            rivet.zPosition = 4
+            parent.addChild(rivet)
+        }
     }
 
     private func addHazardStripes(
@@ -216,9 +292,10 @@ final class ShipDoorNode: SKShapeNode {
         bounds: CGRect,
         isHorizontal: Bool,
         shortSide: CGFloat,
-        color: SKColor
+        warning: SKColor,
+        ink: SKColor
     ) {
-        let stripeCount = 7
+        let stripeCount = 9
         let longMinimum = isHorizontal ? bounds.minX : bounds.minY
         let longMaximum = isHorizontal ? bounds.maxX : bounds.maxY
         let inset = shortSide * 0.22
@@ -238,21 +315,33 @@ final class ShipDoorNode: SKShapeNode {
 
             let stripe = SKShapeNode(path: stripePath)
             stripe.name = "lockedDoorHazardStripe-\(index)"
-            stripe.strokeColor = color.withAlphaComponent(index.isMultiple(of: 2) ? 0.44 : 0.20)
-            stripe.lineWidth = max(1.5, shortSide * 0.085)
-            stripe.zPosition = 2
+            stripe.strokeColor = index.isMultiple(of: 2) ? warning : ink
+            stripe.lineWidth = max(2.5, shortSide * 0.16)
+            stripe.zPosition = 0
             parent.addChild(stripe)
         }
     }
 
-    private func makeLockBadge(size: CGFloat, accent: SKColor) -> SKNode {
+    private func makeLockBadge(size: CGFloat, ink: SKColor, warning: SKColor) -> SKNode {
         let badge = SKNode()
 
-        let background = SKShapeNode(circleOfRadius: size / 2)
-        background.fillColor = SKColor(red: 0.08, green: 0.01, blue: 0.018, alpha: 0.98)
-        background.strokeColor = accent
-        background.lineWidth = max(1, size * 0.07)
-        background.glowWidth = max(1.5, size * 0.08)
+        let badgeSize = CGSize(width: size * 1.02, height: size * 0.76)
+        let backgroundShadow = SKShapeNode(
+            rectOf: badgeSize,
+            cornerRadius: size * 0.18
+        )
+        backgroundShadow.position.y = -size * 0.07
+        backgroundShadow.fillColor = ink.withAlphaComponent(0.76)
+        backgroundShadow.strokeColor = .clear
+        badge.addChild(backgroundShadow)
+
+        let background = SKShapeNode(
+            rectOf: badgeSize,
+            cornerRadius: size * 0.18
+        )
+        background.fillColor = SKColor(red: 0.72, green: 0.80, blue: 0.82, alpha: 1)
+        background.strokeColor = ink
+        background.lineWidth = max(1.5, size * 0.08)
         badge.addChild(background)
 
         let shacklePath = CGMutablePath()
@@ -265,8 +354,8 @@ final class ShipDoorNode: SKShapeNode {
         )
         shacklePath.addLine(to: CGPoint(x: size * 0.16, y: size * 0.03))
         let shackle = SKShapeNode(path: shacklePath)
-        shackle.strokeColor = .white.withAlphaComponent(0.92)
-        shackle.lineWidth = max(1.25, size * 0.10)
+        shackle.strokeColor = ink
+        shackle.lineWidth = max(1.75, size * 0.12)
         shackle.lineCap = .round
         badge.addChild(shackle)
 
@@ -275,46 +364,64 @@ final class ShipDoorNode: SKShapeNode {
             cornerRadius: size * 0.08
         )
         lockBody.position.y = -size * 0.11
-        lockBody.fillColor = accent
-        lockBody.strokeColor = .white.withAlphaComponent(0.88)
-        lockBody.lineWidth = max(1, size * 0.045)
+        lockBody.fillColor = warning
+        lockBody.strokeColor = ink
+        lockBody.lineWidth = max(1.25, size * 0.07)
         badge.addChild(lockBody)
 
         let keyhole = SKShapeNode(circleOfRadius: max(0.8, size * 0.055))
         keyhole.position.y = -size * 0.08
-        keyhole.fillColor = SKColor(red: 0.13, green: 0.01, blue: 0.02, alpha: 1)
+        keyhole.fillColor = ink
         keyhole.strokeColor = .clear
         badge.addChild(keyhole)
+
+        for direction in [-1.0, 1.0] as [CGFloat] {
+            let screw = SKShapeNode(circleOfRadius: max(0.8, size * 0.04))
+            screw.position = CGPoint(x: direction * size * 0.37, y: 0)
+            screw.fillColor = .white.withAlphaComponent(0.72)
+            screw.strokeColor = ink
+            screw.lineWidth = max(0.5, size * 0.025)
+            badge.addChild(screw)
+        }
 
         return badge
     }
 
     private func setLockedVisualsActive(_ isActive: Bool) {
+        let wasHidden = lockedVisualRoot.isHidden
         lockedVisualRoot.isHidden = !isActive
         guard isActive else {
-            lockedGlow.removeAction(forKey: LockedVisual.pulseActionKey)
+            lockedVisualRoot.removeAction(forKey: LockedVisual.activationActionKey)
             lockedStatusLights.removeAction(forKey: LockedVisual.indicatorActionKey)
-            lockedGlow.alpha = 1
+            lockedVisualRoot.setScale(1)
             lockedStatusLights.alpha = 1
+            lockedStatusLights.setScale(1)
             return
         }
 
-        if lockedGlow.action(forKey: LockedVisual.pulseActionKey) == nil {
-            let dim = SKAction.fadeAlpha(to: 0.42, duration: 0.72)
-            dim.timingMode = .easeInEaseOut
-            let brighten = SKAction.fadeAlpha(to: 1, duration: 0.72)
-            brighten.timingMode = .easeInEaseOut
-            lockedGlow.run(
-                .repeatForever(.sequence([dim, brighten])),
-                withKey: LockedVisual.pulseActionKey
+        if wasHidden {
+            lockedVisualRoot.setScale(0.86)
+            let overshoot = SKAction.scale(to: 1.08, duration: 0.10)
+            overshoot.timingMode = .easeOut
+            let settle = SKAction.scale(to: 1, duration: 0.08)
+            settle.timingMode = .easeInEaseOut
+            lockedVisualRoot.run(
+                .sequence([overshoot, settle]),
+                withKey: LockedVisual.activationActionKey
             )
         }
 
         if lockedStatusLights.action(forKey: LockedVisual.indicatorActionKey) == nil {
             let blink = SKAction.sequence([
-                .fadeAlpha(to: 0.25, duration: 0.16),
-                .fadeAlpha(to: 1, duration: 0.12),
-                .wait(forDuration: 0.82)
+                .group([
+                    .fadeAlpha(to: 0.30, duration: 0.12),
+                    .scale(to: 0.72, duration: 0.12)
+                ]),
+                .group([
+                    .fadeAlpha(to: 1, duration: 0.10),
+                    .scale(to: 1, duration: 0.10)
+                ]),
+                .wait(forDuration: 0.88)
             ])
             lockedStatusLights.run(
                 .repeatForever(blink),
