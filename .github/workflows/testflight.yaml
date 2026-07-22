@@ -312,8 +312,8 @@ jobs:
 
           xcodebuild \
             -resolvePackageDependencies \
-            -project GameClassification.xcodeproj \
-            -scheme GameClassification \
+            -project Rosetta.xcodeproj \
+            -scheme Rosetta \
             -configuration Release
 
       # ---------------------------------------------------------
@@ -329,8 +329,8 @@ jobs:
           echo "Profile team: $PROFILE_TEAM_ID"
 
           xcodebuild \
-            -project GameClassification.xcodeproj \
-            -scheme GameClassification \
+            -project Rosetta.xcodeproj \
+            -scheme Rosetta \
             -configuration Release \
             -showBuildSettings \
             DEVELOPMENT_TEAM="$PROFILE_TEAM_ID" \
