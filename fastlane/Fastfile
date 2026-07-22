@@ -45,7 +45,7 @@ platform :ios do
     # number so every uploaded build is unique
     # ---------------------------------------------------------
     increment_build_number(
-      xcodeproj: "GameClassification.xcodeproj",
+      xcodeproj: "Rosetta.xcodeproj",
       build_number: github_run_number
     )
 
@@ -53,8 +53,8 @@ platform :ios do
     # Build and archive the application using manual signing
     # ---------------------------------------------------------
     build_app(
-      project: "GameClassification.xcodeproj",
-      scheme: "GameClassification",
+      project: "Rosetta.xcodeproj",
+      scheme: "Rosetta",
       configuration: "Release",
       clean: true,
 

@@ -1,6 +1,6 @@
 ---
 name: add-spritekit-map-object
-description: Add or replace interactive SpriteKit artwork and mission-station visuals in the GameClassification map in /Users/neuhendra/Developer/cobaGameC4. Use when a user supplies a PNG or asset and asks to place it at an existing map object or centralized coordinate, replace a legacy station rectangle, resize or offset it, gate visibility and interaction by mission status, register proximity interaction, add or tune a smooth white outline, make it follow the candle darkness overlay, connect an action or Tactical Map marker, or repeat the Album Book/Lab Monitor integration patterns without duplicating gameplay, lighting, or story systems.
+description: Add or replace interactive SpriteKit artwork and mission-station visuals in the Rosetta map in /Users/neuhendra/Developer/cobaGameC4. Use when a user supplies a PNG or asset and asks to place it at an existing map object or centralized coordinate, replace a legacy station rectangle, resize or offset it, gate visibility and interaction by mission status, register proximity interaction, add or tune a smooth white outline, make it follow the candle darkness overlay, connect an action or Tactical Map marker, or repeat the Album Book/Lab Monitor integration patterns without duplicating gameplay, lighting, or story systems.
 ---
 
 # Add SpriteKit Map Object
@@ -28,7 +28,7 @@ Infer naming and purely visual defaults from nearby code. Ask only when an unspe
 
 1. Read [references/cobagamec4-integration.md](references/cobagamec4-integration.md) before patching this repository.
 2. Inspect local instructions, `git status --short`, the supplied image, and current owners with `rg`. Preserve unrelated user changes.
-3. Add the image to `GameClassification/Resources/Assets.xcassets/<Asset>.imageset`. Keep the original transparent pixels and use a valid `Contents.json`.
+3. Add the image to `Rosetta/Resources/Assets.xcassets/<Asset>.imageset`. Keep the original transparent pixels and use a valid `Contents.json`.
 4. Add one computed position to the canonical `MapGeometryConfiguration`. Derive it from the configured anchor object or existing geometry plus the requested map-space offset. Keep this artwork anchor separate from the station's runtime interaction/objective ID, and do not create a second coordinate store.
 5. Create the visual node from [assets/InteractiveMapObjectNode.swift.template](assets/InteractiveMapObjectNode.swift.template). Replace every `__TOKEN__` and adapt names, size, radius, and outline width.
 6. Keep exactly one `SKSpriteNode` for the artwork. Expand its texture with transparent padding, apply the outline in one shader, and animate one highlight uniform. Set rendered dimensions through `SKSpriteNode.size`; keep `xScale` and `yScale` at `1` unless the request explicitly requires mirroring.
@@ -69,4 +69,4 @@ Then run the smallest relevant iOS Simulator test with an installed destination 
 - Do not move physical map collision merely to align decorative artwork unless explicitly requested.
 - Do not change unrelated story progression, station behavior, movement, collision, or map geometry.
 - Do not overwrite source assets or unrelated dirty worktree files.
-- Do not edit `GameClassification.xcodeproj/project.pbxproj` for ordinary source or asset additions; the project uses filesystem-synchronized groups.
+- Do not edit `Rosetta.xcodeproj/project.pbxproj` for ordinary source or asset additions; the project uses filesystem-synchronized groups.
