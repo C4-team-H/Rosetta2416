@@ -399,7 +399,9 @@ createEnginePipeControl()
         physicsWorld.contactDelegate = nil
         tacticalMapViewModel.closeMap()
         mapCoordinateConverter.detach(scene: self)
-        sessionState.endGameplay()
+        if !(view.scene is GameScene) {
+            sessionState.endGameplay()
+        }
         super.willMove(from: view)
     }
 
