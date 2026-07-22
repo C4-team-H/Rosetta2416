@@ -51,10 +51,7 @@ struct FullMapView: View {
                     .position(converter.mapPosition(from: viewModel.localPlayer.worldPosition, edgeInset: 28))
 
                 if let teammate = viewModel.teammate {
-                    MapPlayerMarkerView(
-                        player: teammate,
-                        connectionState: viewModel.teammateConnectionState
-                    )
+                    MapPlayerMarkerView(player: teammate)
                     .position(converter.mapPosition(from: teammate.worldPosition, edgeInset: 28))
                     .animation(
                         reduceMotion ? nil : .linear(duration: 0.16),

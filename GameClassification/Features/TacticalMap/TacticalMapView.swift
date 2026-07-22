@@ -17,10 +17,7 @@ struct TacticalMapView: View {
                 FullMapView(viewModel: viewModel)
                     .layoutPriority(1)
 
-                MapLegendView(
-                    showsTeammate: viewModel.showsTeammateOnMap,
-                    teammateConnectionState: viewModel.teammateConnectionState
-                )
+                MapLegendView()
             }
             .foregroundStyle(.white)
             .padding(MapDesignTokens.panelPadding)

@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct MapLegendView: View {
-    let showsTeammate: Bool
-    let teammateConnectionState: TeammateConnectionState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -26,9 +24,9 @@ struct MapLegendView: View {
                         MapLegendItem(
                             title: "You",
                             systemImage: "person.crop.circle.fill",
+                            assetImage: "YouIcon",
                             color: MapDesignTokens.localCrew
                         )
-                        teammateLegend
                     }
                     GridRow {
                         MapLegendItem(
@@ -39,7 +37,7 @@ struct MapLegendView: View {
                         MapLegendItem(
                             title: "Door",
                             systemImage: "door.left.hand.open",
-                            color: MapDesignTokens.doorway
+                            color: MapDesignTokens.unlockedMarker
                         )
                     }
                     GridRow {
@@ -67,9 +65,9 @@ struct MapLegendView: View {
         MapLegendItem(
             title: "You",
             systemImage: "person.crop.circle.fill",
+            assetImage: "YouIcon",
             color: MapDesignTokens.localCrew
         )
-        teammateLegend
         MapLegendItem(
             title: "Mission",
             systemImage: "exclamationmark",
@@ -78,7 +76,7 @@ struct MapLegendView: View {
         MapLegendItem(
             title: "Door",
             systemImage: "door.left.hand.open",
-            color: MapDesignTokens.doorway
+            color: MapDesignTokens.unlockedMarker
         )
         MapLegendItem(
             title: "Locked",
@@ -87,27 +85,4 @@ struct MapLegendView: View {
         )
     }
 
-    private var teammateLegend: some View {
-        MapLegendItem(
-            title: teammateTitle,
-            systemImage: teammateConnectionState == .connected ? "person.fill" : "wifi.slash",
-            color: teammateConnectionState == .connected
-                ? MapDesignTokens.teammateCrew
-                : MapDesignTokens.blockedMarker
-        )
-        .opacity(showsTeammate ? 1 : 0.45)
-    }
-
-    private var teammateTitle: String {
-        guard showsTeammate else { return "Crew hidden" }
-
-        return switch teammateConnectionState {
-        case .connected:
-            "Crew"
-        case .reconnecting:
-            "Crew reconnecting"
-        case .disconnected:
-            "Crew offline"
-        }
-    }
 }
