@@ -80,6 +80,14 @@ struct MainMenuAndPauseTests {
         #expect(menuScene.childNode(withName: "startButton") == nil)
         #expect(menuScene.childNode(withName: "newGameButton") != nil)
 
+        let starField = menuScene.childNode(withName: "mainMenuStarField")
+        #expect(starField != nil)
+        let stars = starField?.children.compactMap { $0 as? SKSpriteNode } ?? []
+        #expect(stars.count >= 18)
+        #expect(stars.allSatisfy { $0.name == "twinklingStar" })
+        #expect((stars.map(\.size.width).max() ?? 0) > (stars.map(\.size.width).min() ?? 0) * 2)
+        #expect(stars.allSatisfy { $0.hasActions() })
+
         let singleButtonY = (menuScene.childNode(withName: "newGameButton") as? SKSpriteNode)?.position.y ?? 0
         #expect(abs(singleButtonY - sceneSize.height * 0.24) < 0.001)
 
