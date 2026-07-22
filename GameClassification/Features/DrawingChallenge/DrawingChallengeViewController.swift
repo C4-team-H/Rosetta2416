@@ -359,7 +359,6 @@ private struct DrawingMissionInfoStrip: View {
             .padding(.horizontal, 16)
             .frame(height: max(42, fontSize * 2.5))
             .background(DrawingMissionPalette.sidebarBlock)
-            .shadow(color: .black.opacity(0.72), radius: 0, x: 6, y: 6)
     }
 }
 
@@ -387,7 +386,6 @@ private struct DrawingMissionTargetPanel: View {
         .frame(maxWidth: .infinity)
         .frame(height: metrics.targetPanelHeight)
         .background(DrawingMissionPalette.sidebarBlock)
-        .shadow(color: .black.opacity(0.72), radius: 0, x: 6, y: 6)
     }
 }
 
@@ -425,7 +423,6 @@ private struct DrawingMissionInstructionPanel: View {
                 endPoint: .bottom
             )
         )
-        .shadow(color: .black.opacity(0.72), radius: 0, x: 6, y: 6)
     }
 }
 

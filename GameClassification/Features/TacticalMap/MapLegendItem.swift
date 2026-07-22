@@ -6,9 +6,28 @@ struct MapLegendItem: View {
     let color: Color
 
     var body: some View {
-        Label(title, systemImage: systemImage)
-            .foregroundStyle(color)
-            .font(GameFont.caption1Bold)
-            .lineLimit(1)
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(GameFont.custom(size: 9, weight: 800))
+                .foregroundStyle(MapDesignTokens.ink)
+                .frame(width: 20, height: 20)
+                .background(color, in: .rect(cornerRadius: 6))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6)
+                        .strokeBorder(MapDesignTokens.ink, lineWidth: 2)
+                }
+
+            Text(title)
+                .font(GameFont.custom(size: 10, weight: 700))
+                .foregroundStyle(.white.opacity(0.88))
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 32)
+        .background(MapDesignTokens.mapBezel.opacity(0.72), in: .rect(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        }
+        .lineLimit(1)
     }
 }
