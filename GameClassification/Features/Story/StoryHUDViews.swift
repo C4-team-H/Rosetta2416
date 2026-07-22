@@ -5,8 +5,9 @@ struct StoryProgressHUDView: View {
     let session: GameSessionState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-//            chapterHeader
+        VStack(alignment: .leading, spacing: 10) {
+
+            VStack(alignment: .leading, spacing: 8) {
                 resourceBar(
                     title: "Robo Intelligence",
                     value: session.progress.intelligence,
@@ -29,8 +30,6 @@ struct StoryProgressHUDView: View {
         .padding(16)
         .frame(width: 300, alignment: .center)
         .background(.black.opacity(0.35), in: .rect(cornerRadius: 16))
-//        .glassEffect(color: .cyan, isActive: true)
-        .overlay { RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.50)) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Story progress")
     }
@@ -51,8 +50,7 @@ struct StoryProgressHUDView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 40, height: 40)
-//                .background(tint.opacity(0.14), in: .rect(cornerRadius: 6))
-//                .overlay { RoundedRectangle(cornerRadius: 6).stroke(tint.opacity(0.35)) }
+                .padding(4)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
@@ -113,13 +111,6 @@ struct StoryProgressHUDView: View {
             }
             .padding(.leading, 10)
         }
-//        .padding(.horizontal, 10)
-//        .padding(.vertical, 9)
-//        .background(.black.opacity(missionBackgroundOpacity), in: .rect(cornerRadius: 10))
-//        .overlay {
-//            RoundedRectangle(cornerRadius: 10)
-//                .stroke(missionChromeColor.opacity(0.72), lineWidth: 1)
-//        }
     }
 
     private var missionChromeColor: Color {
@@ -284,107 +275,151 @@ struct StoryTerminalOverlay: View {
         ZStack {
             Color.black.opacity(0.84).ignoresSafeArea()
 
-            // Original: if session.phase == .victory {
-            // DEBUG: if true {
-            if session.phase == .gameOver || session.phase == .victory { // TEMPORARY DEBUG PREVIEW
-                ZStack(alignment: .top) {
-                    Image("VictoryPopUp")
-                        .resizable()
-                        .scaledToFit()
-
-                    VStack(spacing: 12) {
-                        Grid(horizontalSpacing: 24, verticalSpacing: 6) {
-                            GridRow {
-                                Text("Elapsed time")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text(session.stats.elapsedTime.formattedDuration)
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                            GridRow {
-                                Text("Missions")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("\(session.sharedStory.completedMissionIDs.count)/6")
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                            GridRow {
-                                Text("Drawing attempts")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("\(session.stats.drawingAttempts)")
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                            GridRow {
-                                Text("Kitchen restores")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("\(session.stats.kitchenRestores)")
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                            GridRow {
-                                Text("Final energy")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                Text("\(Int(session.energy))%")
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                        }
-                        .font(GameFont.callout)
-                        .foregroundStyle(.white)
-
-                        VStack {
-                            Button(action: {
-                                AudioManager.shared.playButtonSound()
-                                onMainMenu()
-                            }) {
-                                Text("MAIN MENU")
-                                    .font(GameFont.bodyBold)
-                                    .foregroundStyle(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        Color.green.opacity(0.4),
-                                        in: .rect(cornerRadius: 10)
-                                    )
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                                    }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.top, 6)
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 170)
-                    .padding(.bottom, 16)
-                }
-                .frame(width: 500)
-                .onTapGesture {
-                    // Prevent tap on card from passing through
-                }
+            if session.phase == .gameOver {
+                GameOverPanel(onRetry: onRetry, onMainMenu: onMainMenu)
             } else {
-                VStack(spacing: 18) {
-                    Image(systemName: "bolt.slash.fill")
-                        .font(GameFont.custom(size: 54))
-                        .foregroundStyle(.red)
-                    Text("GAME OVER")
-                        .font(GameFont.largeTitleBold)
-                        .foregroundStyle(.white)
-
-                    Text("Energy reached zero. Restore the latest safe checkpoint to continue.")
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.white.opacity(0.75))
-
-                    HStack(spacing: 12) {
-                        Button("RETRY CHECKPOINT", action: onRetry).buttonStyle(.borderedProminent)
-                        Button("MAIN MENU", action: onMainMenu).buttonStyle(.bordered)
-                    }
-                    .controlSize(.large)
-                }
-                .padding(28)
-                .background(.ultraThinMaterial, in: .rect(cornerRadius: 24))
-                .padding(24)
+                victoryPanel
             }
         }
     }
+
+    private var victoryPanel: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "sparkles")
+                .font(GameFont.custom(size: 54))
+                .foregroundStyle(.green)
+            Text("SHIP RESTORED")
+                .font(GameFont.largeTitleBold)
+                .foregroundStyle(.white)
+
+            Grid(horizontalSpacing: 24, verticalSpacing: 8) {
+                GridRow { Text("Elapsed time"); Text(session.stats.elapsedTime.formattedDuration) }
+                GridRow { Text("Missions"); Text("\(session.sharedStory.completedMissionIDs.count)/6") }
+                GridRow { Text("Drawing attempts"); Text("\(session.stats.drawingAttempts)") }
+                GridRow { Text("Kitchen restores"); Text("\(session.stats.kitchenRestores)") }
+                GridRow { Text("Final energy"); Text("\(Int(session.energy))%") }
+                GridRow { Text("Final intelligence"); Text("\(Int(session.sharedStory.intelligence))%") }
+                GridRow { Text("Final engine"); Text("\(Int(session.sharedStory.engineProgress))%") }
+            }
+            .font(GameFont.callout)
+            .foregroundStyle(.white.opacity(0.8))
+
+            HStack(spacing: 12) {
+                Button("PLAY AGAIN", action: onPlayAgain).buttonStyle(.borderedProminent)
+                Button("MAIN MENU", action: onMainMenu).buttonStyle(.bordered)
+            }
+            .controlSize(.large)
+        }
+        .padding(28)
+        .background(.ultraThinMaterial, in: .rect(cornerRadius: 24))
+        .padding(24)
+    }
 }
+
+private struct GameOverPanel: View {
+    let onRetry: () -> Void
+    let onMainMenu: () -> Void
+
+    var body: some View {
+        Image("GameOver")
+            .resizable()
+            .scaledToFit()
+            .accessibilityLabel("Game over")
+            .overlay {
+                GeometryReader { geometry in
+                    VStack(spacing: max(10, geometry.size.height * 0.035)) {
+                        Text("Energy reached zero. Restore the latest safe checkpoint to continue.")
+                            .font(GameFont.custom(size: 16, weight: 700))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+                            .shadow(color: .black.opacity(0.8), radius: 2, y: 1)
+
+                        HStack(spacing: max(10, geometry.size.width * 0.025)) {
+                            Button("RETRY CHECKPOINT", action: onRetry)
+                                .buttonStyle(GameOverActionButtonStyle(isPrimary: true))
+
+                            Button("MAIN MENU", action: onMainMenu)
+                                .buttonStyle(GameOverActionButtonStyle(isPrimary: false))
+                        }
+                    }
+                    .frame(width: geometry.size.width * 0.76)
+                    .position(
+                        x: geometry.size.width / 2,
+                        y: geometry.size.height * 0.68
+                    )
+                }
+            }
+            .aspectRatio(618.0 / 412.0, contentMode: .fit)
+            .frame(maxWidth: 720)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+    }
+}
+
+private struct GameOverActionButtonStyle: ButtonStyle {
+    let isPrimary: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(GameFont.custom(size: 15, weight: 800))
+            .foregroundStyle(isPrimary ? Color.black : Color.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(
+                isPrimary
+                    ? Color(red: 0.88, green: 0.91, blue: 0.91)
+                    : Color(red: 0.24, green: 0.03, blue: 0.10).opacity(0.88),
+                in: .rect(cornerRadius: 10)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isPrimary ? Color.black : Color.white.opacity(0.9), lineWidth: 2)
+            }
+            .shadow(color: .black.opacity(0.45), radius: 3, y: 2)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.86 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+#if DEBUG
+@MainActor
+private struct GameOverOverlayPreview: View {
+    private let session: GameSessionState
+
+    init() {
+        let session = GameSessionState(
+            localPlayer: PlayerState(
+                id: "preview-player",
+                name: "Preview",
+                worldPosition: GameMapLayout.playerSpawnPosition,
+                isConnected: true
+            )
+        )
+        session.beginGameplay()
+        session.updateEnergy(deltaTime: 10_000, isMoving: true)
+        self.session = session
+    }
+
+    var body: some View {
+        StoryTerminalOverlay(
+            session: session,
+            onRetry: {},
+            onPlayAgain: {},
+            onMainMenu: {}
+        )
+        .background(.black)
+    }
+}
+
+#Preview("Game Over", traits: .landscapeLeft) {
+    GameOverOverlayPreview()
+}
+#endif
 
 private extension StoryChapter {
     var displayName: String {
