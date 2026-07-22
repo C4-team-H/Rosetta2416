@@ -43,9 +43,9 @@ final class MainMenuScene: SKScene {
         
         startButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
         newGameButton = makeImageButton(name: "newGameButton", imageName: "NewGameButton")
-        positionMenuNodes()
-        self.addChild(startButton)
         self.addChild(newGameButton)
+
+        updateMenuButtons()
     }
     
     override func didChangeSize(_ oldSize: CGSize) {
@@ -192,11 +192,31 @@ final class MainMenuScene: SKScene {
         return button
     }
 
+    func updateMenuButtons() {
+        let hasSave = coordinator.hasSavedProgress
+        if hasSave {
+            if startButton == nil {
+                startButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
+            }
+            if startButton.parent == nil {
+                addChild(startButton)
+            }
+        } else {
+            startButton?.removeFromParent()
+        }
+        positionMenuNodes()
+    }
+
     private func positionMenuNodes() {
         positionBackgroundNode()
         titleLabel?.position = CGPoint(x: size.width / 2, y: size.height * 0.68)
-        startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
-        newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.14)
+        let hasSave = coordinator.hasSavedProgress
+        if hasSave {
+            startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
+            newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.14)
+        } else {
+            newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.19)
+        }
     }
 
     private func positionBackgroundNode() {

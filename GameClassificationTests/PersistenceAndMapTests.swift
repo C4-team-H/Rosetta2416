@@ -557,14 +557,6 @@ struct PersistenceAndMapTests {
         ))
     }
 
-    private func makeScene(session: GameSessionState) -> GameScene {
-        GameScene(
-            size: CGSize(width: 1_024, height: 768),
-            sessionState: session,
-            tacticalMapViewModel: TacticalMapViewModel(sessionState: session)
-        )
-    }
-
     private func makeSession() -> GameSessionState {
         GameSessionState(localPlayer: PlayerState(
             id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true

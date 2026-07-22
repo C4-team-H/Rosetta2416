@@ -94,6 +94,10 @@ final class GameplayCoordinator {
         #endif
     }
 
+    var hasSavedProgress: Bool {
+        sessionState.hasSavedProgress
+    }
+
     func loadProgress() async {
         await sessionState.loadProgress()
     }
@@ -164,6 +168,11 @@ final class GameplayCoordinator {
     func returnToMainMenu() {
         AudioManager.shared.playButtonSound()
         presentingViewController?.dismiss(animated: true)
+        if sessionState.phase == .victory || sessionState.sharedStory.currentChapter == .victory {
+            sessionState.clearSavedProgress()
+        } else if sessionState.phase == .playing {
+            sessionState.saveCurrentProgress()
+        }
         guard let (view, size) = activePresentationContext() else { return }
         isVictoryCutscenePending = false
         isVictoryCutscenePresented = false

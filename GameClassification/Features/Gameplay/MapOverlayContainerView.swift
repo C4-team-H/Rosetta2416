@@ -36,7 +36,7 @@ final class MapOverlayContainerView: UIView {
             return super.hitTest(point, with: event)
         }
 
-        if viewModel.sessionState.phase == .gameOver || viewModel.sessionState.phase == .victory {
+        if viewModel.sessionState.phase == .gameOver || viewModel.sessionState.phase == .victory || viewModel.sessionState.isPaused {
             return super.hitTest(point, with: event)
         }
 
@@ -45,12 +45,13 @@ final class MapOverlayContainerView: UIView {
     }
 
     private var mapButtonHitArea: CGRect {
-        let hitSize: CGFloat = 84
+        let hitWidth: CGFloat = 165
+        let hitHeight: CGFloat = 84
         return CGRect(
-            x: bounds.maxX - safeAreaInsets.right - hitSize,
+            x: bounds.maxX - safeAreaInsets.right - hitWidth,
             y: safeAreaInsets.top + 68,
-            width: hitSize,
-            height: hitSize
+            width: hitWidth,
+            height: hitHeight
         )
     }
 
