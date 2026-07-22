@@ -1,4 +1,7 @@
 import SpriteKit
+#if DEBUG
+import SwiftUI
+#endif
 
 final class VictoryLaunchScene: SKScene {
     static let backgroundNodeName = "victoryLaunchBackground"
@@ -12,6 +15,13 @@ final class VictoryLaunchScene: SKScene {
         static let background = "VictoryLaunchBackground"
         static let ship = "RosettaShip"
         static let jetFireFrames = (1...4).map { "JetFire\($0)" }
+    }
+
+    private enum Layout {
+        static let maximumShipWidthRatio: CGFloat = 0.58
+        static let maximumShipHeightRatio: CGFloat = 0.46
+        static let jetFireWidthToShipRatio: CGFloat = 0.22
+        static let jetFireVerticalInsetToShipHeightRatio: CGFloat = 0.15
     }
 
     /// Normalized alpha bounds of the supplied 2752 x 2064 artwork. Cropping at
@@ -44,6 +54,9 @@ final class VictoryLaunchScene: SKScene {
     private lazy var jetFireNode = SKSpriteNode(texture: jetFireTextures.first)
     private var didBuildScene = false
     private var didCompleteCutscene = false
+    #if DEBUG
+    private var usesStaticPreviewLayout = false
+    #endif
 
     init(size: CGSize, onCompletion: @escaping () -> Void) {
         self.onCompletion = onCompletion
@@ -60,6 +73,12 @@ final class VictoryLaunchScene: SKScene {
         guard !didBuildScene else { return }
         didBuildScene = true
         buildScene()
+        #if DEBUG
+        if usesStaticPreviewLayout {
+            shipAssembly.position = CGPoint(x: size.width / 2, y: size.height * 0.65)
+            return
+        }
+        #endif
         startLaunchAnimation()
     }
 
@@ -84,7 +103,7 @@ final class VictoryLaunchScene: SKScene {
 
         jetFireNode.name = Self.jetFireNodeName
         jetFireNode.anchorPoint = CGPoint(x: 0.5, y: 1)
-        jetFireNode.zPosition = 0
+        jetFireNode.zPosition = 2
         shipAssembly.addChild(jetFireNode)
 
         layoutBackground()
@@ -111,16 +130,22 @@ final class VictoryLaunchScene: SKScene {
 
         let shipTextureSize = shipTexture.size()
         let shipAspectRatio = shipTextureSize.width / shipTextureSize.height
-        let shipWidth = min(size.width * 0.78, size.height * 0.62 * shipAspectRatio)
+        let shipWidth = min(
+            size.width * Layout.maximumShipWidthRatio,
+            size.height * Layout.maximumShipHeightRatio * shipAspectRatio
+        )
         let shipHeight = shipWidth / shipAspectRatio
         shipNode.size = CGSize(width: shipWidth, height: shipHeight)
 
         let fireTextureSize = fireTexture.size()
         let fireAspectRatio = fireTextureSize.width / fireTextureSize.height
-        let fireWidth = shipWidth * 0.28
+        let fireWidth = shipWidth * Layout.jetFireWidthToShipRatio
         let fireHeight = fireWidth / fireAspectRatio
         jetFireNode.size = CGSize(width: fireWidth, height: fireHeight)
-        jetFireNode.position = CGPoint(x: 0, y: -shipHeight / 2 + shipHeight * 0.025)
+        jetFireNode.position = CGPoint(
+            x: 0,
+            y: -shipHeight / 2 + shipHeight * Layout.jetFireVerticalInsetToShipHeightRatio
+        )
 
         shipAssembly.position = CGPoint(
             x: size.width / 2,
@@ -175,4 +200,66 @@ final class VictoryLaunchScene: SKScene {
         cropped.filteringMode = .linear
         return cropped
     }
+
+    #if DEBUG
+    func prepareStaticPreview() {
+        usesStaticPreviewLayout = true
+    }
+    #endif
 }
+
+#if DEBUG
+@MainActor
+private struct VictoryLaunchScenePreview: View {
+    enum Mode {
+        case liveAnimation
+        case staticLayout
+    }
+
+    private let mode: Mode
+    @State private var scene: VictoryLaunchScene
+
+    init(mode: Mode) {
+        self.mode = mode
+        _scene = State(initialValue: Self.makeScene(mode: mode))
+    }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            SpriteView(
+                scene: scene,
+                options: [.ignoresSiblingOrder],
+                debugOptions: mode == .liveAnimation ? [.showsFPS, .showsNodeCount] : []
+            )
+            .ignoresSafeArea()
+
+            if mode == .liveAnimation {
+                Button("REPLAY") {
+                    scene = Self.makeScene(mode: .liveAnimation)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.black.opacity(0.72))
+                .padding(20)
+            }
+        }
+        .background(.black)
+    }
+
+    private static func makeScene(mode: Mode) -> VictoryLaunchScene {
+        let scene = VictoryLaunchScene(size: CGSize(width: 1_024, height: 768)) {}
+        scene.scaleMode = .resizeFill
+        if mode == .staticLayout {
+            scene.prepareStaticPreview()
+        }
+        return scene
+    }
+}
+
+#Preview("Victory Launch • Live", traits: .landscapeLeft) {
+    VictoryLaunchScenePreview(mode: .liveAnimation)
+}
+
+#Preview("Victory Launch • Layout", traits: .landscapeLeft) {
+    VictoryLaunchScenePreview(mode: .staticLayout)
+}
+#endif

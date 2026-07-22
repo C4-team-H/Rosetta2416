@@ -43,7 +43,9 @@ final class PlayerAnimationController {
         facingDirection = initialFacingDirection
 
         idleTexture = Self.makeTexture(named: configuration.idleFrameName)
-        let walkTextures = configuration.walkFrameNames.map(Self.makeTexture(named:))
+        let walkTextures = configuration.walkFrameNames.map { frameName in
+            Self.makeTexture(named: frameName)
+        }
         walkAction = .repeatForever(
             .animate(
                 with: walkTextures,
