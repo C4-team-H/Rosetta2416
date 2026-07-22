@@ -6,16 +6,16 @@ struct MapOverlayHeader: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "map.fill")
-                .font(GameFont.custom(size: 21, weight: 800))
-                .foregroundStyle(MapDesignTokens.ink)
+            Image(.mapIcon)
+                .resizable()
+                .scaledToFit()
                 .frame(width: 48, height: 48)
+                .padding(13)
                 .background(MapDesignTokens.accent, in: .rect(cornerRadius: 14))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(MapDesignTokens.ink, lineWidth: 3)
                 }
-                .rotationEffect(.degrees(-3))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("TACTICAL MAP")
@@ -61,12 +61,6 @@ struct MapOverlayHeader: View {
                             .frame(width: 26, height: 3)
                             .padding(.top, 7)
                     }
-//                    .overlay(alignment: .bottom) {
-//                        Capsule()
-//                            .fill(MapDesignTokens.ink.opacity(0.34))
-//                            .frame(width: 30, height: 3)
-//                            .padding(.bottom, 6)
-//                    }
             }
             .accessibilityLabel("Close map")
             .accessibilityHint("Returns to gameplay")

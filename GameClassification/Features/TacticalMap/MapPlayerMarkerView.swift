@@ -2,7 +2,6 @@ import SwiftUI
 
 struct MapPlayerMarkerView: View {
     let player: MapPlayerPosition
-    var connectionState: TeammateConnectionState?
 
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -21,9 +20,8 @@ struct MapPlayerMarkerView: View {
                     .opacity(isPulsing ? 0 : 1)
             }
 
-            MapCrewmateGlyph(suitColor: markerColor)
-                .frame(width: 28, height: 30)
-            
+            markerGlyph
+
             if differentiateWithoutColor && player.isLocalPlayer {
                 Image(systemName: "star.fill")
                     .font(GameFont.custom(size: 7, weight: 800))
@@ -31,15 +29,6 @@ struct MapPlayerMarkerView: View {
                     .padding(3)
                     .background(MapDesignTokens.ink, in: .circle)
                     .offset(x: -14, y: -13)
-            }
-
-            if let connectionState, connectionState != .connected {
-                Image(systemName: connectionSymbol(for: connectionState))
-                    .font(GameFont.custom(size: 8, weight: 700))
-                    .foregroundStyle(.white)
-                    .padding(4)
-                    .background(connectionColor(for: connectionState), in: Circle())
-                    .offset(x: 14, y: -14)
             }
 
             Text(player.isLocalPlayer ? "YOU" : "CREW")
@@ -70,22 +59,26 @@ struct MapPlayerMarkerView: View {
         player.isLocalPlayer ? MapDesignTokens.localCrew : MapDesignTokens.teammateCrew
     }
 
-    private var accessibilityLabel: String {
+    @ViewBuilder
+    private var markerGlyph: some View {
         if player.isLocalPlayer {
-            "Your position"
-        } else if let connectionState {
-            "\(player.name) position, \(connectionState.accessibilityDescription)"
+            Image("YouIcon")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 24, height: 24)
         } else {
-            "\(player.name) position"
+            MapCrewmateGlyph(suitColor: markerColor)
+                .frame(width: 20, height: 20)
         }
     }
 
-    private func connectionSymbol(for state: TeammateConnectionState) -> String {
-        state == .reconnecting ? "arrow.trianglehead.2.clockwise.rotate.90" : "wifi.slash"
-    }
-
-    private func connectionColor(for state: TeammateConnectionState) -> Color {
-        state == .reconnecting ? MapDesignTokens.doorway : MapDesignTokens.blockedMarker
+    private var accessibilityLabel: String {
+        if player.isLocalPlayer {
+            "Your position"
+        } else {
+            "\(player.name) position"
+        }
     }
 
     private func updatePulseAnimation() {

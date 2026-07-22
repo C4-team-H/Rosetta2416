@@ -3,13 +3,12 @@ import SwiftUI
 struct MapLegendItem: View {
     let title: String
     let systemImage: String
+    var assetImage: String?
     let color: Color
 
     var body: some View {
         HStack(spacing: 7) {
-            Image(systemName: systemImage)
-                .font(GameFont.custom(size: 9, weight: 800))
-                .foregroundStyle(MapDesignTokens.ink)
+            legendIcon
                 .frame(width: 20, height: 20)
                 .background(color, in: .rect(cornerRadius: 6))
                 .overlay {
@@ -29,5 +28,20 @@ struct MapLegendItem: View {
                 .strokeBorder(.white.opacity(0.1), lineWidth: 1)
         }
         .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private var legendIcon: some View {
+        if let assetImage {
+            Image(assetImage)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .padding(4)
+        } else {
+            Image(systemName: systemImage)
+                .font(GameFont.custom(size: 9, weight: 800))
+                .foregroundStyle(MapDesignTokens.ink)
+        }
     }
 }
