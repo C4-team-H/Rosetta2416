@@ -1,6 +1,6 @@
 <p align="center">
   <img
-    src="GameClassification/Resources/Assets.xcassets/MainMenuBackground.imageset/MainMenuScreen.jpeg"
+    src="Rosetta/Resources/Assets.xcassets/MainMenuBackground.imageset/MainMenuScreen.jpeg"
     alt="Rosetta 2416 — a hand-drawn spacecraft crossing the stars"
     width="100%"
   />
@@ -73,7 +73,7 @@ The complete story contains **six major missions** and **19 repair drawing chall
 
 <p align="center">
   <img
-    src="GameClassification/Resources/Assets.xcassets/ShipMap.imageset/ShipMap.jpg"
+    src="Rosetta/Resources/Assets.xcassets/ShipMap.imageset/ShipMap.jpg"
     alt="Illustrated overview of the Rosetta spacecraft interior"
     width="88%"
   />
@@ -201,7 +201,7 @@ flowchart TB
 ## Project Structure
 
 ```text
-GameClassification/
+Rosetta/
 ├── App/                         # App and scene lifecycle
 ├── Core/                        # Shared debug configuration and utilities
 ├── Data/
@@ -228,7 +228,7 @@ GameClassification/
 │   └── World/                   # Runtime world construction and ship rendering
 └── Resources/                   # Art, audio, fonts, story data, and Core ML model
 
-GameClassificationTests/        # 100+ focused tests across the game systems
+RosettaTests/        # 100+ focused tests across the game systems
 ```
 
 ## Getting Started
@@ -244,12 +244,12 @@ GameClassificationTests/        # 100+ focused tests across the game systems
 ```bash
 git clone https://github.com/C4-team-H/JoystickAndCanvas.git
 cd JoystickAndCanvas
-open GameClassification.xcodeproj
+open Rosetta.xcodeproj
 ```
 
 Then:
 
-1. Select the `GameClassification` scheme.
+1. Select the `Rosetta` scheme.
 2. Choose an iPhone or iPad simulator, or a connected device.
 3. Build and run with <kbd>⌘R</kbd>.
 4. Choose **NEW GAME** to begin the prologue, or **CONTINUE GAME** when a saved session is available.
@@ -264,8 +264,8 @@ Run the full test target from Xcode with <kbd>⌘U</kbd>, or use the command lin
 
 ```bash
 xcodebuild test \
-  -project GameClassification.xcodeproj \
-  -scheme GameClassification \
+  -project Rosetta.xcodeproj \
+  -scheme Rosetta \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   CODE_SIGNING_ALLOWED=NO
 ```

@@ -19,18 +19,18 @@ Read this file before implementing an interactive artwork object in `/Users/neuh
 
 | Concern | Canonical owner | Contract |
 | --- | --- | --- |
-| Authored objects and derived positions | `GameClassification/GameEngine/Map/MapGeometryConfiguration.swift` | Keep the coordinate derived from live configured geometry. |
-| Runtime object creation | `GameClassification/GameEngine/World/GameWorldBuilder.swift` | Remove the prior node, construct once, and add it to the furniture layer. |
-| Legacy station visual suppression | `GameClassification/GameEngine/World/GameWorldBuilder.swift:createInteractiveStations()` | Exclude a replaced station by its runtime interaction ID so its shape and sprite are never both rendered. |
-| Scene-held state and update lifecycle | `GameClassification/GameEngine/Scenes/GameScene.swift` | Store the node, run proximity from the existing update loop, and rebuild after relevant geometry changes. |
-| Proximity and action UI | `GameClassification/GameEngine/Systems/InteractionSystem.swift` | Use the player's world position, node radius, highlight setter, and existing button/action flow. |
-| Candle darkness and render order | `GameClassification/GameEngine/Scenes/GameScene.swift`, `GameClassification/GameEngine/Nodes/Effects/CandleLightNode.swift`, `GameClassification/GameEngine/Systems/LightingSystem.swift` | Keep world objects below the shared candle overlay and camera HUD above it. |
-| Input dispatch | `GameClassification/Features/Gameplay/Input/GameplayInput.swift` | Route an existing or explicitly requested button name to the object action. |
-| Story visibility | `GameClassification/GameEngine/Missions/StationVisibilitySystem.swift` | Add an interaction ID only when visibility is story-dependent. |
-| Tactical Map marker | `GameClassification/Features/TacticalMap/MapMarker.swift` | Reuse the same centralized position and visibility decision as the world object. |
-| Artwork | `GameClassification/Resources/Assets.xcassets` | Use one imageset per supplied asset. |
-| Focused regression tests | `GameClassificationTests/PersistenceAndMapTests.swift` or the nearest focused suite | Test coordinate ownership, node structure, proximity entry, and proximity exit. |
-| Lighting regression tests | `GameClassificationTests/LightingSystemTests.swift` | Test accumulated Z ordering and existing power/debug lighting behavior. |
+| Authored objects and derived positions | `Rosetta/GameEngine/Map/MapGeometryConfiguration.swift` | Keep the coordinate derived from live configured geometry. |
+| Runtime object creation | `Rosetta/GameEngine/World/GameWorldBuilder.swift` | Remove the prior node, construct once, and add it to the furniture layer. |
+| Legacy station visual suppression | `Rosetta/GameEngine/World/GameWorldBuilder.swift:createInteractiveStations()` | Exclude a replaced station by its runtime interaction ID so its shape and sprite are never both rendered. |
+| Scene-held state and update lifecycle | `Rosetta/GameEngine/Scenes/GameScene.swift` | Store the node, run proximity from the existing update loop, and rebuild after relevant geometry changes. |
+| Proximity and action UI | `Rosetta/GameEngine/Systems/InteractionSystem.swift` | Use the player's world position, node radius, highlight setter, and existing button/action flow. |
+| Candle darkness and render order | `Rosetta/GameEngine/Scenes/GameScene.swift`, `Rosetta/GameEngine/Nodes/Effects/CandleLightNode.swift`, `Rosetta/GameEngine/Systems/LightingSystem.swift` | Keep world objects below the shared candle overlay and camera HUD above it. |
+| Input dispatch | `Rosetta/Features/Gameplay/Input/GameplayInput.swift` | Route an existing or explicitly requested button name to the object action. |
+| Story visibility | `Rosetta/GameEngine/Missions/StationVisibilitySystem.swift` | Add an interaction ID only when visibility is story-dependent. |
+| Tactical Map marker | `Rosetta/Features/TacticalMap/MapMarker.swift` | Reuse the same centralized position and visibility decision as the world object. |
+| Artwork | `Rosetta/Resources/Assets.xcassets` | Use one imageset per supplied asset. |
+| Focused regression tests | `RosettaTests/PersistenceAndMapTests.swift` or the nearest focused suite | Test coordinate ownership, node structure, proximity entry, and proximity exit. |
+| Lighting regression tests | `RosettaTests/LightingSystemTests.swift` | Test accumulated Z ordering and existing power/debug lighting behavior. |
 
 The current runtime map pipeline is `MapGeometryConfiguration.drawingSpaceDefault -> GameMapLayout.makeRuntimeMap -> WorldLoader -> ShipMapNode`. `ShipMapNode` owns floors, object collision, and doors. A decorative interactive sprite belongs in the builder's furniture layer and must not recreate those systems.
 
@@ -54,7 +54,7 @@ Use `anchor.position` when the request targets the configured object coordinate.
 
 ## Asset-catalog pattern
 
-Create `GameClassification/Resources/Assets.xcassets/<Asset>.imageset/Contents.json` and copy the supplied image into it. A single source file can be registered as universal `1x` when that matches the supplied asset:
+Create `Rosetta/Resources/Assets.xcassets/<Asset>.imageset/Contents.json` and copy the supplied image into it. A single source file can be registered as universal `1x` when that matches the supplied asset:
 
 ```json
 {
@@ -211,9 +211,9 @@ Do not hard-code padding assumptions independently from `outlineWidth`; derive e
 Use an installed simulator, currently typically `iPhone 17,OS=26.5` or `iPhone 17 Pro,OS=26.5`:
 
 ```bash
-rtk xcodebuild test -scheme GameClassification \
+rtk xcodebuild test -scheme Rosetta \
   -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
-  -only-testing:GameClassificationTests/<Suite>/<testName>
+  -only-testing:RosettaTests/<Suite>/<testName>
 rtk git diff --check
 rtk git status --short
 ```

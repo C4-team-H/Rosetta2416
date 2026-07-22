@@ -1432,7 +1432,7 @@ Perubahan state bergerak satu arah sehingga mudah diperiksa dan diuji.
 ## 4. Struktur Folder
 
 ```text
-GameClassification/
+Rosetta/
 ├── App/
 │   ├── AppDelegate.swift
 │   ├── SceneDelegate.swift
@@ -1477,7 +1477,7 @@ GameClassification/
     ├── SpriteKit/
     └── Storyboards/
 
-GameClassificationTests/
+RosettaTests/
 ├── StoryProgressionSystemTests.swift
 ├── StoryIntegrationTests.swift
 ├── EnergySystemTests.swift

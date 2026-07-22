@@ -16,7 +16,7 @@ The following 7 missions now use the `MainEngineControlNode` sprite instead of i
 ## Implementation Details
 
 ### Asset Integration
-- **Asset**: `GameClassification/Resources/Assets.xcassets/MainEngine.imageset/MainEngine.png`
+- **Asset**: `Rosetta/Resources/Assets.xcassets/MainEngine.imageset/MainEngine.png`
 - **Source**: `/users/neuhendra/downloads/rosetta/MainEngine.png`
 - **Contents.json**: Created with universal 1x scale configuration
 
@@ -81,15 +81,15 @@ Added 9 focused tests in `PersistenceAndMapTests`:
 9. ✅ Accumulated Z-ordering (object < candle < HUD)
 
 ## Files Modified
-1. `GameClassification/Resources/Assets.xcassets/MainEngine.imageset/Contents.json`
-2. `GameClassification/Resources/Assets.xcassets/MainEngine.imageset/MainEngine.png`
-3. `GameClassification/GameEngine/Map/MapGeometryConfiguration.swift`
-4. `GameClassification/GameEngine/Nodes/MainEngineControlNode.swift` (new)
-5. `GameClassification/GameEngine/Scenes/GameScene.swift`
-6. `GameClassification/GameEngine/World/GameWorldBuilder.swift`
-7. `GameClassification/GameEngine/Systems/InteractionSystem.swift`
-8. `GameClassification/Features/TacticalMap/MapMarker.swift`
-9. `GameClassificationTests/PersistenceAndMapTests.swift`
+1. `Rosetta/Resources/Assets.xcassets/MainEngine.imageset/Contents.json`
+2. `Rosetta/Resources/Assets.xcassets/MainEngine.imageset/MainEngine.png`
+3. `Rosetta/GameEngine/Map/MapGeometryConfiguration.swift`
+4. `Rosetta/GameEngine/Nodes/MainEngineControlNode.swift` (new)
+5. `Rosetta/GameEngine/Scenes/GameScene.swift`
+6. `Rosetta/GameEngine/World/GameWorldBuilder.swift`
+7. `Rosetta/GameEngine/Systems/InteractionSystem.swift`
+8. `Rosetta/Features/TacticalMap/MapMarker.swift`
+9. `RosettaTests/PersistenceAndMapTests.swift`
 
 ## Architectural Compliance
 - ✅ Follows `docs/object-integration-SKILL.md` pattern
