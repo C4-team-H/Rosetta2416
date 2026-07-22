@@ -21,9 +21,9 @@ struct StoryProgressHUDView: View {
                     tint: .yellow
                 )
             }
-            Divider()
-                .overlay(.white)
             if let mission = session.sharedStory.activeMission {
+                Divider()
+                    .overlay(.white)
                 missionPanel(mission)
                     .padding(.leading, 12)
             }
@@ -108,9 +108,24 @@ struct StoryProgressHUDView: View {
                         .font(GameFont.body)
                         .foregroundStyle(missionChromeColor.opacity(0.9))
                         .lineLimit(2)
+                } else {
+                    Text(taskTitle(for: mission))
+                        .font(GameFont.title3Bold)
+                        .foregroundStyle(missionChromeColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                 }
             }
             .padding(.leading, 10)
+        }
+    }
+
+    private func taskTitle(for mission: MissionState) -> String {
+        switch mission.id {
+        case .findLaboratory:
+            "Find the laboratory."
+        default:
+            mission.title
         }
     }
 
