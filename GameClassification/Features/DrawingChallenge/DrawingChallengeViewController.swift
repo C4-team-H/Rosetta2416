@@ -504,15 +504,18 @@ private struct DrawingChallengeResultOverlay: View {
                     Image(systemName: "arrow.right")
                         .font(.system(size: metrics.buttonFontSize * 0.78, weight: .black))
                 }
-                .foregroundStyle(DrawingChallengeResultPalette.buttonText)
+                .foregroundStyle(presentation.kind.buttonForegroundColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, metrics.buttonHorizontalPadding)
+                .padding(.vertical, metrics.buttonVerticalPadding)
+                .frame(minWidth: metrics.buttonMinWidth)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(DrawingChallengeResultButtonStyle())
-            .frame(width: metrics.buttonWidth, height: metrics.buttonHeight)
+            .buttonStyle(DrawingChallengeResultButtonStyle(kind: presentation.kind))
+            .padding(.top, metrics.buttonOuterTopPadding)
         }
+        .padding(metrics.OuterBoxPadding)
     }
 
     private var resultBackground: some View {
@@ -539,23 +542,41 @@ private struct DrawingChallengeResultOverlay: View {
 }
 
 private struct DrawingChallengeResultButtonStyle: ButtonStyle {
+    let kind: DrawingChallengeResultKind
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(DrawingChallengeResultPalette.button)
+            .background(
+                kind.buttonBackgroundColor
+                    .opacity(configuration.isPressed ? 0.78 : 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(Color.black.opacity(0.88), lineWidth: 3)
+                    .stroke(
+                        Color.black.opacity(configuration.isPressed ? 1 : 0.88),
+                        lineWidth: configuration.isPressed ? 4 : 3
+                    )
             }
-            .shadow(
-                color: .black.opacity(configuration.isPressed ? 0.45 : 0.82),
-                radius: 0,
-                x: configuration.isPressed ? 2 : 6,
-                y: configuration.isPressed ? 2 : 6
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(Color.white.opacity(0.42))
+                    .frame(height: 2)
+                    .padding(.horizontal, 13)
+                    .padding(.top, 4)
+                    .opacity(configuration.isPressed ? 0 : 1)
+            }
+            .scaleEffect(
+                x: configuration.isPressed ? 0.93 : 1,
+                y: configuration.isPressed ? 0.86 : 1,
+                anchor: .center
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .offset(y: configuration.isPressed ? 3 : 0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.64), value: configuration.isPressed)
+            .offset(y: configuration.isPressed ? 4 : 0)
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .animation(
+                .spring(response: 0.17, dampingFraction: 0.5),
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -584,14 +605,12 @@ private struct DrawingChallengeResultMetrics {
     var messageMaxWidth: CGFloat { min(cardWidth * 0.78, 430) }
     var detailFontSize: CGFloat { isCompactHeight ? 10 : 12 }
     var detailVerticalPadding: CGFloat { isCompactHeight ? 4 : 6 }
-    var buttonFontSize: CGFloat { isCompactHeight ? 15 : 17 }
-    var buttonWidth: CGFloat { min(cardWidth * 0.54, 280) }
-    var buttonHeight: CGFloat { isCompactHeight ? 39 : 48 }
-}
-
-private enum DrawingChallengeResultPalette {
-    static let button = Color(red: 0.93, green: 0.96, blue: 0.95)
-    static let buttonText = Color(red: 0.03, green: 0.11, blue: 0.12)
+    var buttonFontSize: CGFloat { isCompactHeight ? 20 : 24 }
+    var buttonHorizontalPadding: CGFloat { isCompactHeight ? 26 : 34 }
+    var buttonVerticalPadding: CGFloat { isCompactHeight ? 4 : 6 }
+    var buttonMinWidth: CGFloat { isCompactHeight ? 200 : 230 }
+    var buttonOuterTopPadding: CGFloat { isCompactHeight ? 20 : 24 }
+    var OuterBoxPadding: CGFloat { isCompactHeight ? 12 : 16 }
 }
 
 private enum DrawingChallengeResultFont {
@@ -624,6 +643,28 @@ private extension DrawingChallengeResultKind {
                 Color(red: 0.62, green: 0.35, blue: 0.02),
                 Color(red: 0.36, green: 0.16, blue: 0.01)
             ]
+        }
+    }
+
+    var buttonBackgroundColor: Color {
+        switch self {
+        case .success:
+            Color(red: 0.62, green: 0.93, blue: 0.72)
+        case .failure:
+            Color(red: 0.94, green: 0.32, blue: 0.39)
+        case .warning:
+            Color(red: 1.00, green: 0.76, blue: 0.22)
+        }
+    }
+
+    var buttonForegroundColor: Color {
+        switch self {
+        case .success:
+            Color(red: 0.02, green: 0.24, blue: 0.13)
+        case .failure:
+            .white
+        case .warning:
+            Color(red: 0.25, green: 0.12, blue: 0.01)
         }
     }
 }

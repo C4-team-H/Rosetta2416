@@ -53,6 +53,7 @@ extension GameScene {
             if joystickBase.contains(cameraTouchLocation) {
                 isJoystickActive = true
                 joystickActiveTouch = touch
+                setJoystickActiveAppearance(true)
                 updateJoystickKnob(touchLocation: cameraTouchLocation)
                 break
             }
@@ -149,7 +150,23 @@ extension GameScene {
         joystickVector = CGPoint.zero
         
         let moveBack = SKAction.move(to: CGPoint.zero, duration: 0.1)
+        moveBack.timingMode = .easeOut
         joystickKnob.run(moveBack)
+        setJoystickActiveAppearance(false)
+    }
+
+    func setJoystickActiveAppearance(_ isActive: Bool) {
+        let ringAlpha = isActive ? 0.92 : 0.2
+        let ringFade = SKAction.fadeAlpha(to: ringAlpha, duration: 0.08)
+        ringFade.timingMode = .easeOut
+        joystickBase.childNode(withName: "joystick-active-ring")?.run(
+            ringFade,
+            withKey: "joystick-ring-feedback"
+        )
+
+        let knobScale = SKAction.scale(to: isActive ? 1.08 : 1, duration: 0.08)
+        knobScale.timingMode = .easeOut
+        joystickKnob.run(knobScale, withKey: "joystick-knob-feedback")
     }
     
     func setPencilTarget(_ requestedLocation: CGPoint) {

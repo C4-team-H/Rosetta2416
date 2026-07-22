@@ -34,19 +34,91 @@ extension GameScene {
     }
 
     func createJoystick() {
+        joystickBase?.removeFromParent()
+
         joystickBase = SKShapeNode(circleOfRadius: joystickRadius)
-        joystickBase.position = CGPoint(x: -size.width / 2 + joystickRadius + 80, y: -size.height / 2 + joystickRadius + 100)
-        joystickBase.fillColor = .black.withAlphaComponent(0.2)
-        joystickBase.strokeColor = .white.withAlphaComponent(0.6)
-        joystickBase.lineWidth = 3
+        joystickBase.name = "joystick-base"
+        joystickBase.position = joystickHUDPosition
+        joystickBase.fillColor = SKColor(red: 0.08, green: 0.13, blue: 0.19, alpha: 0.92)
+        joystickBase.strokeColor = SKColor(red: 0.02, green: 0.04, blue: 0.07, alpha: 0.96)
+        joystickBase.lineWidth = 8
         joystickBase.zPosition = 10
         cameraNode.addChild(joystickBase)
 
-        joystickKnob = SKShapeNode(circleOfRadius: 25)
-        joystickKnob.fillColor = .white.withAlphaComponent(0.8)
-        joystickKnob.strokeColor = .clear
-        joystickKnob.zPosition = 11
+        let shadow = SKShapeNode(circleOfRadius: joystickRadius + 5)
+        shadow.name = "joystick-shadow"
+        shadow.position = CGPoint(x: 0, y: -7)
+        shadow.fillColor = .black.withAlphaComponent(0.38)
+        shadow.strokeColor = .clear
+        shadow.zPosition = -2
+        joystickBase.addChild(shadow)
+
+        let innerPlate = SKShapeNode(circleOfRadius: joystickRadius - 11)
+        innerPlate.name = "joystick-inner-plate"
+        innerPlate.fillColor = SKColor(red: 0.14, green: 0.24, blue: 0.31, alpha: 0.96)
+        innerPlate.strokeColor = SKColor(red: 0.27, green: 0.67, blue: 0.76, alpha: 0.72)
+        innerPlate.lineWidth = 4
+        innerPlate.zPosition = 0.1
+        joystickBase.addChild(innerPlate)
+
+        let activeRing = SKShapeNode(circleOfRadius: joystickRadius - 17)
+        activeRing.name = "joystick-active-ring"
+        activeRing.fillColor = .clear
+        activeRing.strokeColor = SKColor(red: 0.40, green: 0.91, blue: 0.96, alpha: 1)
+        activeRing.lineWidth = 3
+        activeRing.glowWidth = 5
+        activeRing.alpha = 0.2
+        activeRing.zPosition = 0.2
+        joystickBase.addChild(activeRing)
+
+        for angle in stride(from: CGFloat.zero, to: .pi * 2, by: .pi / 2) {
+            let directionTick = SKShapeNode(
+                rectOf: CGSize(width: 17, height: 6),
+                cornerRadius: 3
+            )
+            directionTick.name = "joystick-direction-tick"
+            directionTick.position = CGPoint(
+                x: cos(angle) * (joystickRadius - 24),
+                y: sin(angle) * (joystickRadius - 24)
+            )
+            directionTick.zRotation = angle
+            directionTick.fillColor = .white.withAlphaComponent(0.45)
+            directionTick.strokeColor = .clear
+            directionTick.zPosition = 0.3
+            joystickBase.addChild(directionTick)
+        }
+
+        joystickKnob = SKShapeNode(circleOfRadius: joystickKnobRadius)
+        joystickKnob.name = "joystick-knob"
+        joystickKnob.fillColor = SKColor(red: 0.18, green: 0.55, blue: 0.64, alpha: 1)
+        joystickKnob.strokeColor = SKColor(red: 0.02, green: 0.06, blue: 0.09, alpha: 1)
+        joystickKnob.lineWidth = 7
+        joystickKnob.zPosition = 2
         joystickBase.addChild(joystickKnob)
+
+        let knobShadow = SKShapeNode(circleOfRadius: joystickKnobRadius - 3)
+        knobShadow.name = "joystick-knob-shadow"
+        knobShadow.position = CGPoint(x: 0, y: -5)
+        knobShadow.fillColor = .black.withAlphaComponent(0.28)
+        knobShadow.strokeColor = .clear
+        knobShadow.zPosition = -0.2
+        joystickKnob.addChild(knobShadow)
+
+        let knobFace = SKShapeNode(circleOfRadius: joystickKnobRadius - 8)
+        knobFace.name = "joystick-knob-face"
+        knobFace.fillColor = SKColor(red: 0.35, green: 0.78, blue: 0.84, alpha: 1)
+        knobFace.strokeColor = .white.withAlphaComponent(0.38)
+        knobFace.lineWidth = 2
+        knobFace.zPosition = 0.1
+        joystickKnob.addChild(knobFace)
+
+        let knobHighlight = SKShapeNode(circleOfRadius: 9)
+        knobHighlight.name = "joystick-knob-highlight"
+        knobHighlight.position = CGPoint(x: -10, y: 11)
+        knobHighlight.fillColor = .white.withAlphaComponent(0.42)
+        knobHighlight.strokeColor = .clear
+        knobHighlight.zPosition = 0.2
+        joystickKnob.addChild(knobHighlight)
     }
 
     func createInteractiveStations() {
