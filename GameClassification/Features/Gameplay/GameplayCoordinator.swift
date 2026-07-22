@@ -19,7 +19,10 @@ final class GameplayCoordinator {
 
     weak var presentingViewController: UIViewController?
     private weak var activeGameScene: GameScene?
+    private weak var activeSpriteView: SKView?
     private var previousFoodChallengeLabel: String?
+    private var isVictoryCutscenePending = false
+    private var isVictoryCutscenePresented = false
 
     init() {
         let geometryStore = MapGeometryStore()
@@ -91,6 +94,10 @@ final class GameplayCoordinator {
         #endif
     }
 
+    var hasSavedProgress: Bool {
+        sessionState.hasSavedProgress
+    }
+
     func loadProgress() async {
         await sessionState.loadProgress()
     }
@@ -122,6 +129,7 @@ final class GameplayCoordinator {
     }
 
     func continueGame(in view: SKView, size: CGSize) {
+        sessionState.resumeSavedProgress()
         presentFreshGameScene(in: view, size: size)
     }
 
@@ -149,29 +157,73 @@ final class GameplayCoordinator {
 
     func playAgain() {
         AudioManager.shared.playButtonSound()
-        guard let scene = activeGameScene, let view = scene.view else { return }
+        guard let (view, size) = activePresentationContext() else { return }
         tacticalMapViewModel.closeMap()
+        isVictoryCutscenePending = false
+        isVictoryCutscenePresented = false
         sessionState.startNewSession()
         presentingViewController?.dismiss(animated: true)
-        presentFreshGameScene(in: view, size: scene.size)
+        presentFreshGameScene(in: view, size: size)
+    }
+
+    func leaveGameToMainMenu() {
+        AudioManager.shared.playButtonSound()
+        sessionState.saveForMainMenuContinue()
+        presentMainMenu()
     }
 
     func returnToMainMenu() {
         AudioManager.shared.playButtonSound()
+        sessionState.clearSavedProgress()
+        presentMainMenu()
+    }
+
+    private func presentMainMenu() {
         presentingViewController?.dismiss(animated: true)
-        guard let scene = activeGameScene, let view = scene.view else { return }
+        guard let (view, size) = activePresentationContext() else { return }
+        isVictoryCutscenePending = false
+        isVictoryCutscenePresented = false
         sessionState.endGameplay()
         AudioManager.shared.playMainMenuMusic()
-        let menu = makeMainMenuScene(size: scene.size)
+        let menu = makeMainMenuScene(size: size)
         menu.scaleMode = .resizeFill
         view.presentScene(menu, transition: .fade(withDuration: 0.6))
     }
 
     private func presentFreshGameScene(in view: SKView, size: CGSize) {
+        activeSpriteView = view
         let gameScene = makeGameScene(size: size)
         gameScene.scaleMode = .resizeFill
         view.presentScene(gameScene, transition: .fade(withDuration: 0.8))
         AudioManager.shared.playBackgroundMusic()
+    }
+
+    private func activePresentationContext() -> (view: SKView, size: CGSize)? {
+        guard let view = activeSpriteView ?? activeGameScene?.view else { return nil }
+        return (view, view.scene?.size ?? activeGameScene?.size ?? view.bounds.size)
+    }
+
+    private func presentPendingVictoryCutscene(from scene: GameScene?) {
+        guard isVictoryCutscenePending,
+              !isVictoryCutscenePresented,
+              presentingViewController?.presentedViewController == nil,
+              let scene,
+              let view = scene.view else { return }
+
+        isVictoryCutscenePending = false
+        isVictoryCutscenePresented = true
+        activeSpriteView = view
+        tacticalMapViewModel.closeMap()
+
+        let cutscene = VictoryLaunchScene(size: scene.size) { [weak self] in
+            self?.sessionState.completeVictoryCutscene()
+        }
+        cutscene.scaleMode = .resizeFill
+
+        let transition = SKTransition.fade(with: .black, duration: 0.9)
+        transition.pausesOutgoingScene = true
+        transition.pausesIncomingScene = false
+        view.presentScene(cutscene, transition: transition)
     }
 
     private func presentDrawingChallenge(_ challenge: DrawingChallenge, in scene: GameScene, chapterCount: Int, chapterIndex: Int) {
@@ -198,12 +250,22 @@ final class GameplayCoordinator {
             )
             let result = await authority.execute(command)
             scene?.applyStoryEffects(result.effects)
-            return DrawingSubmissionOutcome(accepted: result.accepted, message: result.message, recognition: result.recognition)
+            let hasAlbumHint = result.effects.contains { effect in
+                if case .dialogue(.albumHint) = effect { return true }
+                return false
+            }
+            return DrawingSubmissionOutcome(
+                accepted: result.accepted,
+                message: result.message,
+                recognition: result.recognition,
+                hasAlbumHint: hasAlbumHint
+            )
         }
 
         controller.onSuccess = { [weak self, weak scene] in
             self?.sessionState.endDrawing()
             scene?.refreshStoryVisuals()
+            self?.presentPendingVictoryCutscene(from: scene)
         }
         controller.onCancel = { [weak self] in self?.sessionState.endDrawing() }
         presenter.present(controller, animated: true)
@@ -267,6 +329,11 @@ extension GameplayCoordinator: GameSceneEventDelegate {
         if presentingViewController?.presentedViewController is DrawingChallengeViewController {
             presentingViewController?.dismiss(animated: true)
         }
+    }
+
+    func gameSceneDidReachVictory(_ scene: GameScene) {
+        isVictoryCutscenePending = true
+        presentPendingVictoryCutscene(from: scene)
     }
 
     func gameSceneDidRequestAlbum(_ scene: GameScene) {

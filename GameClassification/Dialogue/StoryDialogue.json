@@ -1,14 +1,131 @@
 [
-  {"id":"intro-1","chapter":"sleepingRoom","trigger":"chapter","text":"Your ship just got hit by solar flare, everything in every room is practically broken. Fix the engine in this ship until 100% to continue your journey.","priority":100},
-  {"id":"lab-complete","chapter":"engineInitial","trigger":"chapter","text":"Communication restored. The ship’s primary engine is offline. Proceed to the Engine Room.","priority":100},
-  {"id":"power-basic","chapter":"engineInitial","trigger":"power","value":"basicPower","text":"Primary lighting restored. Flashlight no longer required.","priority":100},
-  {"id":"power-disrupted","chapter":"engineInitial","trigger":"power","value":"disrupted","text":"Warning. Engine repair disrupted primary lighting. Emergency flashlight restored.","priority":100},
-  {"id":"storage-route","chapter":"storage","trigger":"chapter","text":"Repair progress halted. Advanced calibration tools are required. Proceed to Storage.","priority":100},
-  {"id":"tools-acquired","chapter":"engineFinal","trigger":"chapter","text":"Advanced repair tools acquired. Return to the Engine Room.","priority":100},
-  {"id":"engine-complete","chapter":"cockpit","trigger":"chapter","text":"Engine restoration complete. Cockpit access restored.","priority":100},
-  {"id":"album-hint","chapter":"sleepingRoom","trigger":"albumHint","text":"Having trouble drawing? Check the Album Book in the Sleeping Room for references.","priority":110},
-  {"id":"deny-engine-fragmented","chapter":"sleepingRoom","trigger":"roomDenied","value":"engine","text":"Engine sealed. Need laboratory repair first.","priority":80,"maximumIntelligence":39},
-  {"id":"deny-storage-analytical","chapter":"engineInitial","trigger":"roomDenied","value":"storage","text":"Storage authorization depends on a stable 60 percent engine feed. Current access conditions are unmet.","priority":80,"minimumIntelligence":40,"maximumIntelligence":99},
-  {"id":"deny-cockpit-confident","chapter":"engineFinal","trigger":"roomDenied","value":"cockpit","text":"Cockpit lock is functioning correctly. Complete full Engine and Intelligence restoration before entry.","priority":80,"minimumIntelligence":60},
-  {"id":"victory","chapter":"victory","trigger":"victory","text":"All systems restored. Navigation control is responding. You brought us back online.","priority":100}
+  {
+    "id": "intro-1",
+    "chapter": "sleepingRoom",
+    "trigger": "chapter",
+    "text": "Robo: Your ship just got hit by solar flare, everything in every room is practically broken. Fix the engine in this ship until 100% to continue your journey.",
+    "priority": 100
+  },
+  {
+    "id": "intro-2",
+    "chapter": "sleepingRoom",
+    "trigger": "chapter",
+    "text": "Robo: Go to the Lab to check on AI in this ship.",
+    "priority": 90
+  },
+  {
+    "id": "lab-entered-1",
+    "chapter": "laboratory",
+    "trigger": "chapter",
+    "text": "Robo: ??/?!?!?;??!!! THIS SHIP IS BROKEN. GO TO THE SCREEN ??!/? IN EVERY ROOM, AND DRAW EARTH OBJECTS.",
+    "priority": 100
+  },
+  {
+    "id": "lab-entered-2",
+    "chapter": "laboratory",
+    "trigger": "chapter",
+    "text": "Astronout: Robo lost its memory of earth objects, I should retrain it before arriving to planet C-4.",
+    "priority": 90
+  },
+  {
+    "id": "lab-entered-3",
+    "chapter": "laboratory",
+    "trigger": "chapter",
+    "text": "Astronout: I should start fixing things and watchout with my energy.",
+    "priority": 80
+  },
+  {
+    "id": "lab-complete",
+    "chapter": "engineInitial",
+    "trigger": "chapter",
+    "text": "Robo: Go to the Engine Room and start working on it.",
+    "priority": 100
+  },
+  {
+    "id": "power-basic",
+    "chapter": "engineInitial",
+    "trigger": "power",
+    "value": "basicPower",
+    "text": "Robo: Good! Just enough electricity from the engine to turn on the lamp.",
+    "priority": 100
+  },
+  {
+    "id": "power-disrupted",
+    "chapter": "engineInitial",
+    "trigger": "power",
+    "value": "disrupted",
+    "text": "Robo: Power outage, you must touch something wrong in the engine. Let’s keep rolling!",
+    "priority": 100
+  },
+  {
+    "id": "storage-route",
+    "chapter": "storage",
+    "trigger": "chapter",
+    "text": "Robo: You need advance tools to continue fixing the engine, go to the Storage Room.",
+    "priority": 100
+  },
+  {
+    "id": "tools-acquired",
+    "chapter": "engineFinal",
+    "trigger": "chapter",
+    "text": "Robo: You got all you need, go back to the Engine Room and continue fixing.",
+    "priority": 100
+  },
+  {
+    "id": "engine-complete",
+    "chapter": "cockpit",
+    "trigger": "chapter",
+    "text": "Robo: Congratulations! My intelligence and the engine is in 100% now. Go to the Cockpit!",
+    "priority": 100
+  },
+  {
+    "id": "album-hint",
+    "chapter": "sleepingRoom",
+    "trigger": "albumHint",
+    "text": "Robo: Having trouble drawing? Check the Album Book in the Sleeping Room for references.",
+    "priority": 110
+  },
+  {
+    "id": "deny-engine-fragmented",
+    "chapter": "sleepingRoom",
+    "trigger": "roomDenied",
+    "value": "engine",
+    "text": "Robo: Engine sealed. Need laboratory repair first.",
+    "priority": 80,
+    "maximumIntelligence": 39
+  },
+  {
+    "id": "deny-storage-analytical",
+    "chapter": "engineInitial",
+    "trigger": "roomDenied",
+    "value": "storage",
+    "text": "Robo: Storage authorization depends on a stable 60 percent engine feed. Current access conditions are unmet.",
+    "priority": 80,
+    "minimumIntelligence": 40,
+    "maximumIntelligence": 99
+  },
+  {
+    "id": "deny-cockpit-confident",
+    "chapter": "engineFinal",
+    "trigger": "roomDenied",
+    "value": "cockpit",
+    "text": "Robo: Cockpit lock is functioning correctly. Complete full Engine and Intelligence restoration before entry.",
+    "priority": 80,
+    "minimumIntelligence": 60
+  },
+  {
+    "id": "kitchen-entered",
+    "chapter": "sleepingRoom",
+    "trigger": "roomEntered",
+    "value": "kitchen",
+    "text": "Robo: You can add energy by drawing food in the kitchen.",
+    "priority": 100
+  },
+  {
+    "id": "victory",
+    "chapter": "victory",
+    "trigger": "victory",
+    "text": "Robo: All systems restored. Navigation control is responding. You brought us back online.",
+    "priority": 100
+  }
 ]

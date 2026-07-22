@@ -38,6 +38,7 @@ enum ObjectivePriority: String, Codable, Sendable {
 
 enum DialogueTrigger: Codable, Equatable, Sendable {
     case chapterEntered(StoryChapter)
+    case roomEntered(RoomID)
     case objectiveCompleted(String)
     case powerChanged(ShipPowerState)
     case roomDenied(RoomID)
@@ -50,6 +51,7 @@ enum StoryCutscene: String, Codable, Equatable, Sendable {
     case electricalDisruption
     case advancedToolsAcquired
     case engineRestoration
+    case victoryLaunch
 }
 
 struct DrawingPrompt: Codable, Equatable, Sendable {

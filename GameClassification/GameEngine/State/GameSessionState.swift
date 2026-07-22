@@ -6,16 +6,23 @@ import Observation
 @Observable
 final class GameSessionState {
     private(set) var phase: GamePhase = .preparing
+    private(set) var hasSavedProgress = false
     private(set) var localPlayer: PlayerState
     private(set) var teammate: PlayerState?
     private(set) var teammateConnectionState: TeammateConnectionState = .disconnected
     private(set) var currentDialogue: AIDialogueLine?
+    private var dialogueQueue: [AIDialogueLine] = []
     private(set) var transientMessage: String?
     private(set) var checkpointNotice: CheckpointID?
     private(set) var stats = GameSessionStats()
     private(set) var currentRoom: RoomID?
     private(set) var showLowEnergyAlert: Bool = false
     private var hasTriggeredLowEnergyAlert: Bool = false
+    private(set) var isPaused: Bool = false
+
+    func setPaused(_ paused: Bool) {
+        isPaused = paused
+    }
 
     let storySystem: StoryProgressionSystem
     private var energySystem: EnergySystem
@@ -66,6 +73,7 @@ final class GameSessionState {
         if storySystem.state.currentChapter == .sleepingRoom {
             applyEffects([.dialogue(.chapterEntered(.sleepingRoom))])
         }
+        updateLowEnergyState()
     }
 
     func endGameplay() {
@@ -85,8 +93,14 @@ final class GameSessionState {
     }
 
     func endCutscene() {
-        guard case .cutscene = phase else { return }
+        guard case let .cutscene(cutscene) = phase,
+              cutscene != .victoryLaunch else { return }
         phase = .playing
+    }
+
+    func completeVictoryCutscene() {
+        guard phase == .cutscene(.victoryLaunch) else { return }
+        phase = .victory
     }
 
     @discardableResult
@@ -186,7 +200,14 @@ final class GameSessionState {
     }
 
     func dismissDialogue() {
-        currentDialogue = nil
+        if !dialogueQueue.isEmpty {
+            let next = dialogueQueue.removeFirst()
+            currentDialogue = next
+            storySystem.markDialogueDelivered(id: next.id)
+            persistLatest()
+        } else {
+            currentDialogue = nil
+        }
     }
 
     func dismissLowEnergyAlert() {
@@ -194,6 +215,7 @@ final class GameSessionState {
     }
 
     private func updateLowEnergyState() {
+        guard phase == .playing || isDrawing else { return }
         if energy <= 20.0 {
             if !hasTriggeredLowEnergyAlert {
                 hasTriggeredLowEnergyAlert = true
@@ -209,8 +231,16 @@ final class GameSessionState {
     func loadProgress() async {
         let revisionAtLoadStart = sessionRevision
         do {
-            guard let persisted = try await repository.load() else { return }
+            guard let persisted = try await repository.load() else {
+                hasSavedProgress = false
+                return
+            }
             guard revisionAtLoadStart == sessionRevision else { return }
+            if persisted.latest.sharedStory.currentChapter == .victory || persisted.checkpoint.sharedStory.currentChapter == .victory {
+                hasSavedProgress = false
+                try? await repository.clear()
+                return
+            }
             storySystem.restore(persisted.latest.sharedStory)
             energySystem.restore(persisted.latest.localSurvival)
             localPlayer.worldPosition = persisted.latest.safeSpawn.isFinite
@@ -219,9 +249,11 @@ final class GameSessionState {
             currentRoom = nil
             stats = persisted.latest.stats
             checkpointSystem.restoreRecord(persisted.checkpoint)
+            hasSavedProgress = persisted.isContinueAvailable
             updateLowEnergyState()
             AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
         } catch {
+            hasSavedProgress = false
             transientMessage = "Saved progress could not be restored. A new session was started."
         }
     }
@@ -237,6 +269,7 @@ final class GameSessionState {
         stats = checkpoint.stats
         phase = .playing
         currentDialogue = nil
+        dialogueQueue = []
         transientMessage = "Checkpoint restored"
         hasTriggeredLowEnergyAlert = false
         showLowEnergyAlert = false
@@ -247,6 +280,7 @@ final class GameSessionState {
 
     func startNewSession(clearSavedProgress: Bool = true) {
         sessionRevision += 1
+        hasSavedProgress = false
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
         localPlayer.worldPosition = safeSpawn(for: .sleepingRoomStart)
@@ -254,18 +288,25 @@ final class GameSessionState {
         stats = GameSessionStats()
         phase = .playing
         currentDialogue = nil
+        dialogueQueue = []
         transientMessage = nil
         checkpointNotice = nil
         hasTriggeredLowEnergyAlert = false
         showLowEnergyAlert = false
-
-        if let line = dialogueManager.nextLine(for: .chapterEntered(.sleepingRoom), story: storySystem.state) {
-            currentDialogue = line
-            storySystem.markDialogueDelivered(id: line.id)
+        let initialLines = dialogueManager.lines(for: .chapterEntered(.sleepingRoom), story: storySystem.state)
+        if !initialLines.isEmpty {
+            dialogueQueue = Array(initialLines)
+            let next = dialogueQueue.removeFirst()
+            currentDialogue = next
+            storySystem.markDialogueDelivered(id: next.id)
         }
 
         checkpointSystem.record(makeSnapshot(safeSpawn: safeSpawn(for: .sleepingRoomStart)))
-        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSystem.latestCheckpoint)
+        let progress = PersistedStoryProgress(
+            latest: makeSnapshot(),
+            checkpoint: checkpointSystem.latestCheckpoint,
+            isContinueAvailable: false
+        )
         Task {
             if clearSavedProgress { try? await repository.clear() }
             try? await repository.save(progress)
@@ -274,7 +315,23 @@ final class GameSessionState {
         AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
-    private var isDrawing: Bool {
+    func saveForMainMenuContinue() {
+        hasSavedProgress = true
+        persistLatest()
+    }
+
+    func resumeSavedProgress() {
+        guard hasSavedProgress else { return }
+        hasSavedProgress = false
+        persistLatest()
+    }
+
+    func clearSavedProgress() {
+        hasSavedProgress = false
+        Task { try? await repository.clear() }
+    }
+
+    var isDrawing: Bool {
         if case .drawing = phase { return true }
         return false
     }
@@ -307,9 +364,16 @@ final class GameSessionState {
                 phase = .cutscene(cutscene)
 
             case let .dialogue(trigger):
-                if let line = dialogueManager.nextLine(for: trigger, story: storySystem.state) {
-                    currentDialogue = line
-                    storySystem.markDialogueDelivered(id: line.id)
+                let availableLines = dialogueManager.lines(for: trigger, story: storySystem.state)
+                for line in availableLines {
+                    if !dialogueQueue.contains(where: { $0.id == line.id }) && currentDialogue?.id != line.id {
+                        dialogueQueue.append(line)
+                    }
+                }
+                if currentDialogue == nil, !dialogueQueue.isEmpty {
+                    let next = dialogueQueue.removeFirst()
+                    currentDialogue = next
+                    storySystem.markDialogueDelivered(id: next.id)
                     shouldPersist = true
                 }
 
@@ -322,7 +386,7 @@ final class GameSessionState {
                 shouldPersist = true
 
             case .victory:
-                phase = .victory
+                phase = .cutscene(.victoryLaunch)
                 shouldPersist = true
             }
         }
@@ -330,8 +394,17 @@ final class GameSessionState {
         if shouldPersist { persistLatest() }
     }
 
-    private func persistLatest() {
-        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSystem.latestCheckpoint)
+    func persistLatest() {
+        if storySystem.state.currentChapter == .victory || phase == .victory {
+            hasSavedProgress = false
+            Task { try? await repository.clear() }
+            return
+        }
+        let progress = PersistedStoryProgress(
+            latest: makeSnapshot(),
+            checkpoint: checkpointSystem.latestCheckpoint,
+            isContinueAvailable: hasSavedProgress
+        )
         Task { try? await repository.save(progress) }
     }
 

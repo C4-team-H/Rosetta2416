@@ -1,5 +1,9 @@
 import SpriteKit
 
+enum GameplayInteractionTuning {
+    static let lockedDoorDeniedRadius = GameMapLayout.scaled(36)
+}
+
 extension GameScene {
     func checkProximityToInteractiveObject() {
         guard sessionState.phase == .playing, let player else {
@@ -294,7 +298,7 @@ extension GameScene {
                     )
                 )
             }
-            .filter { $0.distance <= GameMapLayout.scaled(88) }
+            .filter { $0.distance <= GameplayInteractionTuning.lockedDoorDeniedRadius }
             .min { $0.distance < $1.distance }
 
         guard let nearest else {
@@ -352,7 +356,7 @@ extension GameScene {
         let texture = SKTexture(imageNamed: imageName)
         let button = SKSpriteNode(texture: texture)
         button.size = CGSize(width: 150, height: 150)
-        button.position = CGPoint(x: size.width / 2 - 90, y: -size.height / 2 + joystickRadius + 70)
+        button.position = CGPoint(x: size.width / 2 - 150, y: -size.height / 2 + joystickRadius + 100)
         button.zPosition = 12
         button.name = name
 

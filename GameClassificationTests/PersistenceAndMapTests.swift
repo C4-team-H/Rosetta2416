@@ -19,11 +19,16 @@ struct PersistenceAndMapTests {
         let latest = snapshot(story: story, energy: 72, spawn: CGPoint(x: 10, y: 20))
         let checkpoint = snapshot(story: .initial, energy: 55, spawn: CGPoint(x: 30, y: 40))
 
-        try await repository.save(PersistedStoryProgress(latest: latest, checkpoint: checkpoint))
+        try await repository.save(PersistedStoryProgress(
+            latest: latest,
+            checkpoint: checkpoint,
+            isContinueAvailable: true
+        ))
         let loaded = try await repository.load()
 
         #expect(loaded?.latest == latest)
         #expect(loaded?.checkpoint == checkpoint)
+        #expect(loaded?.isContinueAvailable == true)
         #expect(loaded?.latest.schemaVersion == 2)
         #expect(loaded?.latest.sharedStory.selectedChallengeLabels["lab-memory-repair"] == "cat")
         #expect(loaded?.latest.sharedStory.albumBook.isMarkerPermanent == true)
@@ -82,7 +87,7 @@ struct PersistenceAndMapTests {
     @Test("Opening the Album makes its marker permanent and idempotent")
     func albumOpen() {
         let story = StoryProgressionSystem()
-        _ = story.handle(.drawingFailed)
+        _ = story.handle(.drawingFailed())
         #expect(story.markAlbumOpened().contains(.mapNeedsRefresh))
         #expect(story.state.albumBook.hasOpenedBook)
         #expect(story.state.albumBook.isMarkerPermanent)
@@ -177,11 +182,12 @@ struct PersistenceAndMapTests {
         let scene = makeScene(session: session)
         complete(.laboratory, in: session)
         validate("engine-ignition-coil", in: session)
-        // Make engine-calibration-port active
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        session.sharedStory.currentChapter = .engineFinal
+        var s1 = session.sharedStory
+        s1.currentChapter = .engineFinal
+        session.storySystem.restore(s1)
 
         let mainEngine = try #require(scene.mainEngineControlNode)
         scene.player.position = mainEngine.position
@@ -202,7 +208,9 @@ struct PersistenceAndMapTests {
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        session.sharedStory.currentChapter = .engineFinal
+        var s2 = session.sharedStory
+        s2.currentChapter = .engineFinal
+        session.storySystem.restore(s2)
 
         let mainEngine = try #require(scene.mainEngineControlNode)
         scene.player.position = mainEngine.position
@@ -241,7 +249,9 @@ struct PersistenceAndMapTests {
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        session.sharedStory.currentChapter = .engineFinal
+        var s3 = session.sharedStory
+        s3.currentChapter = .engineFinal
+        session.storySystem.restore(s3)
 
         let mainEngine = try #require(scene.mainEngineControlNode)
         scene.refreshStoryVisuals()
@@ -274,7 +284,9 @@ struct PersistenceAndMapTests {
         validate("engine-cooling-valve", in: session)
         validate("engine-cooling-restart", in: session)
         validate("engine-reactor-link", in: session)
-        session.sharedStory.currentChapter = .engineFinal
+        var s4 = session.sharedStory
+        s4.currentChapter = .engineFinal
+        session.storySystem.restore(s4)
 
         let config = MapGeometryConfiguration.drawingSpaceDefault
         let markers = TacticalMapMarkerFactory.make(
@@ -317,12 +329,12 @@ struct PersistenceAndMapTests {
         let console = configuration.objects.first { $0.id == "object-sleeping-main-console" }
         #expect(console != nil)
         #expect(configuration.albumBookPosition == CGPoint(
-            x: (console?.position.x ?? .zero) - 10,
+            x: (console?.position.x ?? .zero) - 8,
             y: console?.position.y ?? .zero
         ))
 
         let story = StoryProgressionSystem()
-        _ = story.handle(.drawingFailed)
+        _ = story.handle(.drawingFailed())
         let visibility = StationVisibilitySystem(storySystem: story, isDebugEnabled: false)
         let marker = TacticalMapMarkerFactory.make(
             story: story,
@@ -392,7 +404,7 @@ struct PersistenceAndMapTests {
         #expect(sideCounter != nil)
         #expect(configuration.kitchenTablePosition == CGPoint(
             x: sideCounter?.position.x ?? .zero,
-            y: (sideCounter?.position.y ?? .zero) + 6
+            y: (sideCounter?.position.y ?? .zero) + 2
         ))
 
         let session = makeSession()
@@ -446,8 +458,8 @@ struct PersistenceAndMapTests {
         let anchor = configuration.objects.first { $0.id == "object-lab-main-table" }
         #expect(anchor != nil)
         #expect(configuration.labTablePosition == CGPoint(
-            x: anchor?.position.x ?? .zero,
-            y: (anchor?.position.y ?? .zero) + 6
+            x: (anchor?.position.x ?? .zero) - 4,
+            y: (anchor?.position.y ?? .zero) + 46
         ))
     }
 
@@ -554,6 +566,44 @@ struct PersistenceAndMapTests {
         GameSessionState(localPlayer: PlayerState(
             id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
         ))
+    }
+
+    private func makeScene(session: GameSessionState) -> GameScene {
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: TacticalMapViewModel(sessionState: session)
+        )
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.cameraNode.setScale(GameScene.gameplayCameraScale)
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createJoystick()
+        scene.createInteractiveStations()
+        scene.createFoodObject()
+        scene.createAlbumBook()
+        scene.createLabTable()
+        scene.createLabMonitor2()
+        scene.createLabMonitor1()
+        scene.createEngineMonitor()
+        scene.createEnginePipeControl()
+        scene.createMainEngineControl()
+        scene.createStorageMonitor()
+        scene.createStorageMachinery()
+        scene.createStorageCabinet()
+        scene.createCockpitPortMonitor()
+        scene.createCockpitMainConsole()
+        scene.createRocketPowerOffSmoke()
+        scene.enableCandleLight()
+        scene.refreshStoryVisuals()
+        return scene
+    }
+
+    private func forceChapter(_ chapter: StoryChapter, in session: GameSessionState) {
+        var story = session.sharedStory
+        story.currentChapter = chapter
+        session.storySystem.restore(story)
     }
 }
 

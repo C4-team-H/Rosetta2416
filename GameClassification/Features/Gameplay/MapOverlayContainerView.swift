@@ -1,6 +1,36 @@
 import UIKit
 
-/// Lets gameplay touches pass through the full-screen hosting view while only the HUD button is visible.
+enum GameplayHUDLayout {
+    static let buttonDiameter: CGFloat = 64
+    static let buttonSpacing: CGFloat = 32
+    static let topPadding: CGFloat = 40
+    static let trailingPadding: CGFloat = 40
+    static let buttonHitSlop: CGFloat = 10
+
+    static func buttonFrame(
+        at index: Int,
+        in bounds: CGRect,
+        safeAreaInsets: UIEdgeInsets
+    ) -> CGRect {
+        CGRect(
+            x: bounds.maxX - safeAreaInsets.right - trailingPadding - buttonDiameter,
+            y: safeAreaInsets.top + topPadding + CGFloat(index) * (buttonDiameter + buttonSpacing),
+            width: buttonDiameter,
+            height: buttonDiameter
+        )
+    }
+
+    static func buttonHitArea(
+        at index: Int,
+        in bounds: CGRect,
+        safeAreaInsets: UIEdgeInsets
+    ) -> CGRect {
+        buttonFrame(at: index, in: bounds, safeAreaInsets: safeAreaInsets)
+            .insetBy(dx: -buttonHitSlop, dy: -buttonHitSlop)
+    }
+}
+
+/// Lets gameplay touches pass through the full-screen hosting view outside the visible HUD controls.
 final class MapOverlayContainerView: UIView {
     private let viewModel: TacticalMapViewModel
     private let debugSettings: GameDebugSettings
@@ -32,26 +62,28 @@ final class MapOverlayContainerView: UIView {
             return super.hitTest(point, with: event)
         }
 
-        if viewModel.sessionState.currentDialogue != nil || viewModel.sessionState.showLowEnergyAlert {
+        if (viewModel.sessionState.currentDialogue != nil && viewModel.sessionState.phase == .playing) || viewModel.sessionState.showLowEnergyAlert {
             return super.hitTest(point, with: event)
         }
 
-        if viewModel.sessionState.phase == .gameOver || viewModel.sessionState.phase == .victory {
+        if viewModel.sessionState.phase == .gameOver || viewModel.sessionState.phase == .victory || viewModel.sessionState.isPaused {
             return super.hitTest(point, with: event)
         }
 
         guard viewModel.isGameplayActive else { return nil }
-        return mapButtonHitArea.contains(point) ? super.hitTest(point, with: event) : nil
+        return gameplayButtonHitAreas.contains(where: { $0.contains(point) })
+            ? super.hitTest(point, with: event)
+            : nil
     }
 
-    private var mapButtonHitArea: CGRect {
-        let hitSize: CGFloat = 84
-        return CGRect(
-            x: bounds.maxX - safeAreaInsets.right - hitSize,
-            y: safeAreaInsets.top + 68,
-            width: hitSize,
-            height: hitSize
-        )
+    private var gameplayButtonHitAreas: [CGRect] {
+        [0, 1].map {
+            GameplayHUDLayout.buttonHitArea(
+                at: $0,
+                in: bounds,
+                safeAreaInsets: safeAreaInsets
+            )
+        }
     }
 
     private var debugButtonHitArea: CGRect {

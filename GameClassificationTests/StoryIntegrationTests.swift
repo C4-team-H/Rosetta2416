@@ -58,6 +58,18 @@ struct StoryIntegrationTests {
             == Set(StoryConfiguration.laboratoryChallenges.map(\.id)))
     }
 
+    @Test("Entering Kitchen triggers Robo dialogue regarding energy restoration")
+    func kitchenEntryDialogue() async {
+        let session = makeSession()
+        session.beginGameplay()
+        while session.currentDialogue != nil {
+            session.dismissDialogue()
+        }
+        _ = session.handle(.roomEntered(.kitchen))
+        #expect(session.currentDialogue?.id == "kitchen-entered")
+        #expect(session.currentDialogue?.text == "Robo: You can add your energy by draw food at the kitchen")
+    }
+
     @Test("Kitchen restores exactly 50, clamps at 100, and never mutates story")
     func foodIsolationAndRepeatability() async {
         let session = makeSession()
@@ -101,7 +113,7 @@ struct StoryIntegrationTests {
         #expect(!result.accepted)
         #expect(result.effects.isEmpty)
         #expect(!session.sharedStory.albumBook.hasFailedDrawingBefore)
-        #expect(!session.sharedStory.albumBook.isMarkerVisible)
+        #expect(session.sharedStory.albumBook.isMarkerVisible)
     }
 
     @Test("Engine 40 disruption subtracts ten Energy exactly once")
@@ -170,6 +182,70 @@ struct StoryIntegrationTests {
         #expect(persisted?.currentChapter == .sleepingRoom)
         #expect(persisted?.completedChallengeIDs.isEmpty == true)
         #expect(persisted?.deliveredDialogueIDs == ["intro-1"])
+    }
+
+    @Test("Continue Game is available only after the player leaves from pause")
+    func continueGameAvailability() async throws {
+        let repository = InMemoryStoryProgressRepository()
+        let firstSession = makeSession(repository: repository)
+
+        #expect(!firstSession.hasSavedProgress)
+        await firstSession.loadProgress()
+        #expect(!firstSession.hasSavedProgress)
+
+        firstSession.startNewSession()
+        #expect(!firstSession.hasSavedProgress)
+        firstSession.saveForMainMenuContinue()
+        #expect(firstSession.hasSavedProgress)
+        await Task.yield()
+        await Task.yield()
+
+        let returningSession = makeSession(repository: repository)
+        #expect(!returningSession.hasSavedProgress)
+        await returningSession.loadProgress()
+        #expect(returningSession.hasSavedProgress)
+
+        returningSession.resumeSavedProgress()
+        #expect(!returningSession.hasSavedProgress)
+    }
+
+    @Test("Final mission waits for launch cutscene before showing Victory")
+    func victoryWaitsForLaunchCutscene() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        complete(.laboratory, in: session)
+        complete(.engineInitial, in: session)
+        complete(.storage, in: session)
+        complete(.engineFinal, in: session)
+        _ = session.handle(.roomEntered(.cockpit))
+        complete(.cockpit, in: session)
+
+        #expect(session.sharedStory.currentChapter == .victory)
+        #expect(session.phase == .cutscene(.victoryLaunch))
+
+        session.endCutscene()
+        #expect(session.phase == .cutscene(.victoryLaunch))
+
+        session.completeVictoryCutscene()
+        #expect(session.phase == .victory)
+    }
+
+    @Test("Initial map markers immediately show active lab mission in yellow and reference album without entering lab")
+    func initialMapMarkersShowLabMissionAndAlbum() {
+        let session = makeSession()
+        session.beginGameplay()
+
+        let viewModel = TacticalMapViewModel(sessionState: session)
+        let markers = viewModel.visibleMarkers
+
+        let labMarker = markers.first { $0.id == "room-laboratory" }
+        #expect(labMarker != nil)
+        #expect(labMarker?.status == .active)
+
+        let albumMarker = markers.first { $0.id == "album-book" }
+        #expect(albumMarker != nil)
+        #expect(albumMarker?.kind == .albumBook)
     }
 
     private func complete(_ chapter: StoryChapter, in session: GameSessionState) {

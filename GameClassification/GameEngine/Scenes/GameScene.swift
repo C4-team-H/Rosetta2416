@@ -7,6 +7,7 @@ protocol GameSceneEventDelegate: AnyObject {
     func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String)
     func gameSceneDidRequestFoodChallenge(_ scene: GameScene)
     func gameSceneDidReachGameOver(_ scene: GameScene)
+    func gameSceneDidReachVictory(_ scene: GameScene)
     func gameSceneDidRequestAlbum(_ scene: GameScene)
 }
 
@@ -127,7 +128,10 @@ final class GameScene: SKScene {
     var isJoystickActive = false
     var joystickVector = CGPoint.zero
     var joystickActiveTouch: UITouch?
-    let joystickRadius: CGFloat = 60
+    let joystickRadius: CGFloat = 84
+    let joystickKnobRadius: CGFloat = 38
+    let joystickHorizontalInset: CGFloat = 80
+    let joystickVerticalInset: CGFloat = 100
     let playerSpeed: CGFloat = GameMapLayout.scaled(80)
 
     var pencilTouch: UITouch?
@@ -250,11 +254,18 @@ createEnginePipeControl()
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        joystickBase?.position = CGPoint(x: -size.width / 2 + joystickRadius + 80, y: -size.height / 2 + joystickRadius + 100)
+        joystickBase?.position = joystickHUDPosition
         positionActionButtons()
         candleLight?.position = CGPoint(x: -size.width / 2, y: -size.height / 2)
         candleLight?.resize(to: size)
         synchronizeCandleLightWithPlayer()
+    }
+
+    var joystickHUDPosition: CGPoint {
+        CGPoint(
+            x: -size.width / 2 + joystickRadius + joystickHorizontalInset,
+            y: -size.height / 2 + joystickRadius + joystickVerticalInset
+        )
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -312,7 +323,7 @@ createEnginePipeControl()
             storageCabinetNode?.setProximityHighlighted(false, animated: false)
             cockpitPortMonitorNode?.setProximityHighlighted(false, animated: false)
             cockpitMainConsoleNode?.setProximityHighlighted(false, animated: false)
-        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert {
+        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert || sessionState.currentDialogue != nil || sessionState.isPaused {
             if !wasMapInputSuspended {
                 clearPencilTarget()
                 pencilTouch = nil
@@ -338,6 +349,7 @@ createEnginePipeControl()
 
         if tacticalMapViewModel.shouldRunLocalSimulation
             && !isPaused
+            && !sessionState.isPaused
             && !debugSettings.isMapDebugEnabled
             && sessionState.currentDialogue == nil {
             sessionState.updateEnergy(deltaTime: frameDeltaTime, isMoving: isMoving)
@@ -353,6 +365,7 @@ createEnginePipeControl()
             checkProximityToLabMonitor2()
         }
 
+        player?.updateEnergyBar(value: sessionState.energy)
         updateStationVisibility()
 
         if debugSettings.isMapDebugEnabled {
@@ -399,7 +412,9 @@ createEnginePipeControl()
         physicsWorld.contactDelegate = nil
         tacticalMapViewModel.closeMap()
         mapCoordinateConverter.detach(scene: self)
-        sessionState.endGameplay()
+        if !(view.scene is GameScene), !(view.scene is VictoryLaunchScene) {
+            sessionState.endGameplay()
+        }
         super.willMove(from: view)
     }
 
@@ -427,6 +442,7 @@ createEnginePipeControl()
                 ]), withKey: "storyCutscene")
             case .victory:
                 lightingSystem.playVictory(in: self)
+                eventDelegate?.gameSceneDidReachVictory(self)
             default:
                 break
             }
@@ -437,6 +453,7 @@ createEnginePipeControl()
         didNotifyGameOver = false
         resetContactTracking()
         player.position = validatedPlayerPosition(sessionState.localPlayer.worldPosition)
+        player.updateEnergyBar(value: sessionState.energy)
         lastValidPlayerPosition = player.position
         lastMovementResult = .stationary(at: player.position)
         stopPlayerMovement()

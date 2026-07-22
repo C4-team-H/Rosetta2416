@@ -83,10 +83,11 @@ enum TacticalMapMarkerFactory {
             guard let room = configuration.rooms.first(where: { $0.roomID == roomID }) else { continue }
             let isTravelDestination = story.state.activeMission?.activeChallengeID == nil
                 && story.state.activeMission?.targetRoomID == roomID
+            let roomStatus: MapMarkerStatus = isTravelDestination ? .active : (story.canAccess(roomID) ? .unlocked : .locked)
             markers.append(MapMarker(
                 id: "room-\(roomID.rawValue)",
                 kind: kind,
-                status: story.canAccess(roomID) ? .unlocked : .locked,
+                status: roomStatus,
                 worldPosition: CGPoint(x: room.roomTriggerBounds.midX, y: room.roomTriggerBounds.midY),
                 title: room.name,
                 isVisible: visibilitySystem == nil || isTravelDestination

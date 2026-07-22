@@ -54,19 +54,19 @@ enum StoryConfiguration {
     static func mission(for chapter: StoryChapter, activeChallengeID: String? = nil) -> MissionState? {
         switch chapter {
         case .sleepingRoom:
-            MissionState(id: .findLaboratory, title: "Find the Laboratory.", targetRoomID: .laboratory, activeChallengeID: nil)
+            return MissionState(id: .findLaboratory, title: "Find the Laboratory.", targetRoomID: .laboratory, activeChallengeID: nil)
         case .laboratory:
-            MissionState(id: .restoreAI, title: "Restore the AI.", targetRoomID: .laboratory, activeChallengeID: activeChallengeID)
+            return MissionState(id: .restoreAI, title: "Restore the AI.", targetRoomID: .laboratory, activeChallengeID: activeChallengeID)
         case .engineInitial:
-            MissionState(id: .repairEngine, title: "Repair the Engine.", targetRoomID: .engine, activeChallengeID: activeChallengeID)
+            return MissionState(id: .repairEngine, title: "Repair the Engine.", targetRoomID: .engine, activeChallengeID: activeChallengeID)
         case .storage:
-            MissionState(id: .retrieveCalibrationTools, title: "Retrieve the calibration tools from Storage.", targetRoomID: .storage, activeChallengeID: activeChallengeID)
+            return MissionState(id: .retrieveCalibrationTools, title: "Retrieve the calibration tools from Storage.", targetRoomID: .storage, activeChallengeID: activeChallengeID)
         case .engineFinal:
-            MissionState(id: .continueEngineRepair, title: "Continue repairing the Engine.", targetRoomID: .engine, activeChallengeID: activeChallengeID)
+            return MissionState(id: .continueEngineRepair, title: "Continue repairing the Engine.", targetRoomID: .engine, activeChallengeID: activeChallengeID)
         case .cockpit:
-            MissionState(id: .initiateLaunch, title: "Go to the Cockpit and initiate launch.", targetRoomID: .cockpit, activeChallengeID: activeChallengeID)
+            return MissionState(id: .initiateLaunch, title: "Go to the Cockpit and initiate launch.", targetRoomID: .cockpit, activeChallengeID: activeChallengeID)
         case .victory:
-            nil
+            return nil
         }
     }
 

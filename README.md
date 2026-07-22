@@ -1,205 +1,293 @@
-# Drawing Space
+<p align="center">
+  <img
+    src="GameClassification/Resources/Assets.xcassets/MainMenuBackground.imageset/MainMenuScreen.jpeg"
+    alt="Rosetta 2416 — a hand-drawn spacecraft crossing the stars"
+    width="100%"
+  />
+</p>
 
-*A 2D top-down adventure where you wake up alone on a broken starship. Draw to repair. Explore to survive. Piece together the scattered intelligence of a shattered AI.*
+<h1 align="center">ROSETTA 2416</h1>
+
+<p align="center">
+  <strong>Draw the repairs. Restore the ship. Find your way home.</strong>
+</p>
+
+<p align="center">
+  A story-driven, top-down science-fiction adventure for iPhone and iPad,<br />
+  where every drawing can bring a broken starship—and its fractured AI—back to life.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/iOS%20%26%20iPadOS-26.0%2B-0A84FF?style=for-the-badge&logo=apple&logoColor=white" alt="iOS and iPadOS 26.0 or later" />
+  <img src="https://img.shields.io/badge/Swift-5.0-F05138?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 5.0" />
+  <img src="https://img.shields.io/badge/SpriteKit-2D%20Game%20Engine-6E5AE6?style=for-the-badge" alt="SpriteKit" />
+  <img src="https://img.shields.io/badge/Core%20ML-On--Device%20Recognition-111111?style=for-the-badge&logo=apple&logoColor=white" alt="Core ML" />
+</p>
 
 ---
 
-## The Premise
+## Table of Contents
 
-Your ship is dead in space. The AI — your only ally — has been splintered across the vessel. The engine is cold. The lights flicker. Your energy drains with every step.
-
-You carry a sketchpad. The ship's repair stations respond to drawings: trace a radio to restore communications, sketch a lightbulb to reignite the ignition coil, draw a brain to reconnect the AI's memory. A Core ML model watches your strokes in real time, judging whether your doodle matches the schematic the ship expects.
-
-**Twenty-three repair missions** stand between you and escape. The Kitchen offers the only relief — draw food, restore energy, keep going. Fail to manage your energy, and it's Game Over: rewind to the last checkpoint, try again.
-
-Built for iPhone and iPad with Apple Pencil support. Control your astronaut with a joystick or tap-to-move with the Pencil — light pressure walks, heavy pressure runs.
+- [The Story](#the-story)
+- [The Core Experience](#the-core-experience)
+- [Journey Through the Rosetta](#journey-through-the-rosetta)
+- [Drawing as a Game Mechanic](#drawing-as-a-game-mechanic)
+- [Controls](#controls)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Testing](#testing)
+- [Development Status](#development-status)
+- [Team](#team)
 
 ---
 
-## The Ship
+## The Story
 
-Six interconnected rooms, each gated by story progress:
+The year is **2416**. The exploration vessel **Rosetta** has been sent toward planet **C-4**, a potential new home for humanity. Only one human travels aboard the ship, resting in hibernation while its artificial intelligence handles navigation, maintenance, and the long silence between worlds.
 
-| Room | Purpose | Unlock condition |
+Then the astronaut wakes months too early.
+
+The Rosetta is drifting. Its engine is cold, its rooms are locked behind failing systems, and the AI that once kept everything alive has been fragmented. Emergency lighting is all that remains, and the astronaut's energy is slowly running out.
+
+The ship's repair terminals do not respond to ordinary commands. They respond to **drawings**.
+
+To survive, the player must explore the damaged vessel, discover active repair stations, sketch the objects requested by the ship, and rebuild the Rosetta one system at a time. Every successful drawing restores more than machinery: it recovers a piece of the AI, opens a new path, and brings the mission closer to launch.
+
+> **Rosetta 2416 turns drawing into action.** A sketch is not a side activity—it is the tool the player uses to survive, progress, and complete the story.
+
+## The Core Experience
+
+| Pillar | What the player does | Why it matters |
 |---|---|---|
-| **Sleeping Room** | Your starting point. A sketchbook of object references hangs on the wall. | Always open |
-| **Kitchen** | The only renewable energy source. Draw food to restore 40 Energy. | Always open |
-| **Laboratory** | Reassemble the AI's core intelligence. Three drawing challenges. | Reach the lab from Sleeping Room |
-| **Engine Room** | Restore propulsion in five escalating phases. Twenty missions total. | Intelligence 40, all Lab missions complete |
-| **Storage** | Claim the advanced toolkit. Four missions, gated behind Engine progress. | Engine Progress 60 |
-| **Cockpit** | The final three missions. Complete them to win. | Intelligence 100, Engine Progress 100 |
+| **Explore** | Navigate a connected, top-down spacecraft filled with locked doors, damaged terminals, and environmental hazards. | Each restored system reveals a new part of the ship and advances the narrative. |
+| **Draw** | Use a finger or Apple Pencil to complete visual prompts on a PencilKit canvas. | An on-device Core ML model decides whether the sketch matches the requested object. |
+| **Survive** | Manage a continuously draining Energy supply and return to the Kitchen when resources run low. | Reaching zero Energy triggers Game Over and returns the player to the latest safe checkpoint. |
+| **Restore** | Recover AI Intelligence, rebuild Engine Progress, acquire advanced tools, and bring navigation back online. | Every milestone changes the ship's lighting, unlocks access, and moves the Rosetta closer to launch. |
 
-The ship's power state shifts as you progress — emergency darkness, basic power, a mid-game electrical disruption, and finally full restoration. Each state changes the lighting, the atmosphere, and the urgency.
+The complete story contains **six major missions** and **19 repair drawing challenges**, plus repeatable Kitchen challenges for restoring Energy. Story prompts are selected by category and persisted for the current playthrough, giving each new session variation without breaking mission progression.
 
----
+## Journey Through the Rosetta
+
+<p align="center">
+  <img
+    src="GameClassification/Resources/Assets.xcassets/ShipMap.imageset/ShipMap.jpg"
+    alt="Illustrated overview of the Rosetta spacecraft interior"
+    width="88%"
+  />
+</p>
+
+The ship is divided into six interconnected rooms. Access is controlled by the same story state that powers objectives, doors, lighting, checkpoints, and the Tactical Map.
+
+| Area | Role in the journey | Access and progression |
+|---|---|---|
+| **Sleeping Room** | The astronaut's starting point and home of the visual reference Album. | Available from the beginning. |
+| **Laboratory** | The first destination, where the player begins reconstructing the AI. | Reach the room, then complete three repair drawings to raise Intelligence to 40. |
+| **Kitchen** | A permanent survival station with repeatable food-drawing challenges. | Always available; a successful drawing restores 50 Energy. |
+| **Engine Room** | The heart of the Rosetta's recovery, repaired across two major phases. | Opens after the Laboratory. Initial repairs raise Engine Progress to 60 and trigger changing power states. |
+| **Storage** | The location of the advanced calibration tools required for final repairs. | Opens after the initial Engine phase; three challenges must be completed before returning to the Engine Room. |
+| **Cockpit** | The final destination and launch sequence. | Opens only after Intelligence and Engine Progress reach 100 and the advanced tools have been acquired. |
+
+### Mission flow
+
+```mermaid
+flowchart LR
+    A["Wake in the Sleeping Room"] --> B["Restore the Laboratory AI"]
+    B --> C["Repair the Engine to 60%"]
+    C --> D["Recover tools from Storage"]
+    D --> E["Restore Engine and AI to 100%"]
+    E --> F["Repair the Cockpit"]
+    F --> G["Launch the Rosetta"]
+```
+
+Ship power evolves with the story: **Power Off → Basic Power → Disrupted → Fully Restored**. These states affect lighting, atmosphere, available routes, and the sense of urgency throughout the journey.
+
+## Drawing as a Game Mechanic
+
+Drawing challenges connect the game's narrative, machine learning, and player input in one continuous loop:
+
+1. The story activates the next physical repair station.
+2. A category-based prompt is selected from the model's supported label catalog.
+3. The player draws the requested object with a finger or Apple Pencil.
+4. PencilKit converts the strokes into drawing data for the local recognition pipeline.
+5. `SketchClassifierV3` predicts a label and confidence score entirely on-device.
+6. A valid result repairs the station, updates progression, records a checkpoint when appropriate, and reveals the next objective.
+
+The prompt randomizer selects unique labels for each story chapter using a persisted story seed. The Kitchen uses a separate food pool and avoids immediately repeating the previous prompt. This makes replay sessions feel less predictable while preserving deterministic save and checkpoint behavior.
+
+If repeated attempts fail, the in-world Album can provide a reference-oriented hint without bypassing the recognition challenge.
+
+## Controls
+
+| Input | Action |
+|---|---|
+| **Finger — virtual joystick** | Drag the on-screen joystick to move through rooms and corridors. |
+| **Finger — interface** | Open the Tactical Map, pause the game, interact with active stations, and use drawing controls. |
+| **Finger or Apple Pencil — canvas** | Draw, clear, retry, and submit repair or food prompts. |
+| **Apple Pencil — world navigation** | Touch or drag toward a destination to move there. Pencil pressure adjusts travel speed from careful movement to a faster run. |
+
+All movement is validated against the shared ship geometry, including walls, doors, furniture, machinery, and the player's collision footprint.
+
+## Key Features
+
+- **A complete story-driven progression loop** from awakening to launch, organized into six major missions.
+- **19 story repair challenges** distributed across the Laboratory, Engine Room, Storage, and Cockpit.
+- **On-device doodle recognition** powered by PencilKit and a custom Core ML classifier.
+- **Randomized, category-aware prompts** that remain stable across saves and checkpoints.
+- **A survival-focused Energy system** with passive drain, increased movement cost, low-energy warnings, Kitchen recovery, and Game Over recovery.
+- **Dynamic ship restoration** with door unlocks, environmental lighting changes, cutscenes, smoke effects, dialogue, and repaired world objects.
+- **A live Tactical Map** that displays the player, rooms, doors, destinations, active stations, checkpoints, and relevant landmarks.
+- **One authoritative map pipeline** shared by SpriteKit rendering, collision, room access, and the SwiftUI Tactical Map.
+- **Collision-aware movement** with player-footprint checks, obstacle clearance, corridor containment, and wall sliding.
+- **Automatic SwiftData persistence** for current progress, randomized prompts, session statistics, and checkpoint snapshots.
+- **Contextual AI dialogue** for chapter transitions, completed objectives, power events, access denial, and Energy warnings.
+- **An interactive reference Album** that records drawing progress and helps players recover after repeated failures.
+- **Main Menu, Continue, Pause, Game Over, and Victory flows**, including session statistics and a clean Play Again reset.
+- **Original audiovisual presentation** with animated character art, illustrated ship environments, music, sound effects, and tactile button feedback.
 
 ## Architecture
 
-The project follows a **systems-over-scenes** architecture. The game world is a SpriteKit scene; the HUD, tactical map, and drawing challenge are SwiftUI overlays. A single `GameSessionState` observable object bridges them all.
+Rosetta uses a **feature-oriented interface layer** around a **system-oriented game engine**. UIKit hosts the application and SpriteKit view, `GameplayCoordinator` connects the major features, and a single observable session state keeps gameplay, story, drawing, and overlays synchronized.
 
-### Engine Layer (`GameEngine/`)
+```mermaid
+flowchart TB
+    UIKit["UIKit Application Host"] --> Coordinator["GameplayCoordinator"]
 
-| System | Responsibility |
-|---|---|
-| **Movement** | Joystick and Pencil-controlled navigation with collision-respecting substeps |
-| **Collision** | Footprint-based obstacle and wall resolution with sliding |
-| **Walkability** | A* pathfinding across rooms, corridors, and dynamic door states |
-| **Interaction** | Proximity-based REPAIR / EAT button triggers |
-| **Station Visibility** | Centralized rule governing which repair stations appear in both SpriteKit and the Tactical Map |
-| **Energy** | Per-second drain, movement multiplier, kitchen restoration, depletion → Game Over |
-| **Lighting** | Candle-light vignette, power state transitions, victory flash |
-| **Mission** | Objective validation and room-access gating |
-| **Map Geometry** | Editor-driven, serializable world layout consumed by both collision and rendering |
+    Coordinator --> Scene["SpriteKit GameScene"]
+    Coordinator --> Overlay["SwiftUI HUD and Tactical Map"]
+    Coordinator --> Canvas["PencilKit Drawing Challenge"]
 
-### Story Layer (`GameEngine/Story/`)
+    Canvas --> Recognition["Core ML Recognition"]
+    Scene --> Session["GameSessionState"]
+    Overlay --> Session
+    Recognition --> Authority["StoryAuthority"]
+    Authority --> Session
 
-- **`StoryContent`** — All 23 objective definitions, room access rules, chapter ordering, and drawing prompts.
-- **`StoryProgressionSystem`** — `@Observable` state machine. Computes `ObjectiveStatus` from the current chapter, completed IDs, and tool availability. Advances chapters, unlocks doors, triggers cutscenes.
-- **`StoryAuthority`** — Validates drawing submissions through the doodle recognizer, routes Kitchen drawings through a separate food pool.
-- **`AI Dialogue`** — Contextual dialogue lines triggered by chapter entry, objective completion, power changes, and energy warnings.
+    Session --> Story["Story Progression and Missions"]
+    Session --> Energy["Energy and Checkpoints"]
+    Session --> Persistence["SwiftData Persistence"]
 
-### Feature Layer (`Features/`)
-
-| Feature | Description |
-|---|---|
-| **Gameplay** | `GameplayCoordinator` wires session state, story authority, and the SpriteKit scene. `GameplayHUDView` renders energy, intelligence, engine bars, current objective, and dialogue. |
-| **Tactical Map** | A SwiftUI vector overlay. Renders rooms, doors, stations, kitchen, and player positions. Coordinate converter maps SpriteKit world coords → SwiftUI view coords. |
-| **Drawing Challenge** | PencilKit canvas with submit/share/clear controls. Shows the target drawing prompt and expected label. |
-| **Map Debug** | Editor UI for modifying room geometry, walls, spawn points, stations, and collision bodies in real time. Exportable to JSON. |
-
-### Rendering (`GameEngine/Scenes`, `Nodes/`, `World/`)
-
-- **`GameScene`** — The main SpriteKit scene. Owns the camera, player, joystick, candle light, and game loop. Delegates world construction to `GameWorldBuilder`.
-- **`ShipMapNode`** — Renders the floor plan, rooms, corridors, walls, furniture, doors, and debug overlay. Supports incremental geometry updates.
-- **`PlayerNode`** — The astronaut character with animated walk cycle (`AstroWalk.atlas`), collision footprint, and interaction sensor.
-- **`CandleLightNode`** — A darkness vignette with a warm, flickering light that follows the player.
-
-### Key Design Decisions
-
-- **One layout, two consumers.** `MapGeometryConfiguration` feeds both SpriteKit collision (`WalkabilitySystem`) and the SwiftUI tactical map (`MapCoordinateConverter`). Changing the world once updates both representations.
-- **`@Observable` all the way down.** `GameSessionState` → `StoryProgressionSystem` → `SharedStoryState`. SwiftUI views re-render automatically when story progress changes. No manual notifications, no delegates for state propagation.
-- **Story effects as value types.** `handle(_:)` and `completeObjective(id:)` return `[StoryEffect]` enums. `GameScene.applyStoryEffects(_:)` interprets them: power transitions, door unlocks, objective completion animations, cutscenes, victory.
-- **Kitchen is independent.** The Kitchen does not participate in story progression. It uses a separate interaction path, a separate food drawing pool, and never blocks, locks, or completes. It is a permanent gameplay utility, not a mission.
-
----
-
-## Station Visibility System
-
-The station/easel visibility system is the most recent architecture addition. Its goal: **only show the repair station relevant to the current active mission**, while always showing the Kitchen.
-
-### The Problem (Before)
-
-Stations were visible based on **player proximity**: walk near any station and it appeared. This cluttered the game world with irrelevant repair points and gave no directional guidance. The Tactical Map had its own separate, hard-coded filtering logic that duplicated the SpriteKit rules.
-
-### The Solution
-
-A single centralized rule lives in `StationVisibilitySystem`:
-
-```swift
-func shouldShowStation(interactionID: String) -> Bool {
-    if isDebugEnabled { return true }
-    if interactionID == "kitchen-food" { return true }
-    guard let activeObjective = storySystem.activeObjective else { return false }
-    return interactionID == activeObjective.id
-}
+    Geometry["MapGeometryConfiguration"] --> Scene
+    Geometry --> Overlay
+    Geometry --> Collision["Walkability and Collision"]
+    Collision --> Scene
 ```
 
-Both consumers query the same system:
+### Architectural principles
 
-```
-StationVisibilitySystem (one rule)
-├── GameScene.stationVisibilitySystem → SpriteKit node.isHidden
-└── TacticalMapViewModel.visibleMarkers → MapMarker.isVisible → .filter(\.isVisible)
-```
+- **One map, multiple consumers.** `MapGeometryConfiguration` is compiled into the runtime world and consumed by rendering, walkability, collision, room detection, checkpoints, and the Tactical Map.
+- **Systems own behavior.** Movement, collision, Energy, interaction, lighting, story progression, drawing validation, and checkpoint recovery are kept out of presentation code.
+- **State drives presentation.** `GameSessionState` and `StoryProgressionSystem` use Observation so HUD and map surfaces update from the same authoritative state.
+- **Commands protect progression.** Drawing and interaction requests pass through `StoryAuthority`, preventing duplicate processing and keeping recognition results tied to the active objective.
+- **Persistence is snapshot-based.** SwiftData stores both the latest state and the last safe checkpoint, allowing Continue and Game Over recovery to serve different purposes.
+- **Developer tooling is isolated.** The geometry editor, validation tools, collision inspection, and export workflow are available only behind an explicit Debug-build gate.
 
-### When It Updates
+## Technology Stack
 
-- **Every frame** — `GameScene.update()` calls `updateStationVisibility()`.
-- **On story events** — `refreshStoryVisuals()` runs after objectives complete, chapters change, or doors unlock.
-- **On debug toggle** — entering or exiting map debug mode immediately calls `refreshStoryVisuals()`.
-- **On Tactical Map open** — `visibleMarkers` recomputes fresh via the `@Observable` chain.
-
-### Rules Summary
-
-| Condition | SpriteKit | Tactical Map |
-|---|---|---|
-| Normal gameplay | Only active mission station + Kitchen | Only active mission marker + Kitchen |
-| Debug mode active | All stations visible | All station markers visible |
-| No active objective (between chapters or all complete) | Only Kitchen visible | Only Kitchen marker visible |
-| Objective completed | Station hidden; next mission's station appears | Marker hidden; next mission's marker appears |
-| Kitchen (always) | `foodObject` always visible | Kitchen marker always visible |
-
-### Files
-
-- `GameEngine/Systems/StationVisibilitySystem.swift` — the centralized rule (16 lines)
-- `GameEngine/World/GameWorldBuilder.swift` — `refreshStoryVisuals()` and `updateStationVisibility()` apply it to SpriteKit nodes
-- `Features/TacticalMap/TacticalMapViewModel.swift` — creates visibility system, passes to marker factory
-- `Features/TacticalMap/MapMarker.swift` — `TacticalMapMarkerFactory` sets `isVisible` on station and kitchen markers
-- `GameEngine/Systems/InteractionSystem.swift` — proximity checks now filter out hidden stations
-
----
-
-## Tech Stack
-
-| Technology | Role |
+| Technology | Responsibility |
 |---|---|
-| **UIKit** | App host, view controller hierarchy |
-| **SpriteKit** | Game world, physics, collision, animation, lighting |
-| **SwiftUI** | HUD bars, tactical map overlay, dialogue, drawing challenge UI |
-| **PencilKit** | Drawing canvas with pressure sensitivity |
-| **Core ML** | Doodle recognition — a custom `HandwritingGameClassificationV2` model |
-| **SwiftData** | Story progress persistence with checkpoint snapshots |
+| **Swift 5** | Primary implementation language. |
+| **UIKit** | Application lifecycle, root view controller, and SpriteKit hosting. |
+| **SpriteKit** | World rendering, camera, character movement, animation, lighting, effects, and interaction nodes. |
+| **SwiftUI** | Gameplay HUD, Tactical Map, story overlays, alerts, and drawing-screen layout. |
+| **PencilKit** | Finger and Apple Pencil drawing input. |
+| **Core ML** | Local sketch classification with `SketchClassifierV3`. |
+| **SwiftData** | Save-game, checkpoint, and migration-aware local persistence. |
+| **Observation** | Reactive session and story state shared across interface layers. |
+| **Swift Testing** | Unit, integration, geometry, persistence, and gameplay regression coverage. |
 
----
+## Project Structure
 
-## Progress
+```text
+GameClassification/
+├── App/                         # App and scene lifecycle
+├── Core/                        # Shared debug configuration and utilities
+├── Data/
+│   ├── Persistence/             # SwiftData implementation
+│   └── Repositories/            # Persistence contracts and save models
+├── Dialogue/                    # AI dialogue models, manager, and JSON content
+├── Drawing/
+│   └── Recognition/             # Core ML pipeline, label catalog, and randomizer
+├── Features/
+│   ├── AlbumBook/               # Reference Album state and presentation
+│   ├── DrawingChallenge/        # PencilKit mission canvas
+│   ├── Gameplay/                # Coordinator, controller, input, and HUD
+│   ├── MapDebug/                # Debug-only geometry editor and validation UI
+│   ├── Story/                   # Story, checkpoint, Game Over, and Victory overlays
+│   └── TacticalMap/             # Live vector map and coordinate conversion
+├── GameEngine/
+│   ├── Map/                     # Canonical map geometry and editor data flow
+│   ├── Missions/                # Missions, prompt preparation, and station visibility
+│   ├── Nodes/                   # Player, repair stations, props, and effects
+│   ├── Scenes/                  # Prologue, menu, gameplay, and launch scenes
+│   ├── State/                   # Session, player, survival, and phase state
+│   ├── Story/                   # Chapters, objectives, authority, and progression
+│   ├── Systems/                 # Movement, collision, Energy, lighting, and interaction
+│   └── World/                   # Runtime world construction and ship rendering
+└── Resources/                   # Art, audio, fonts, story data, and Core ML model
 
-### Completed
-
-- [x] Full 23-mission story with chapter gating, door unlocks, and three power states
-- [x] SpriteKit game world with joystick and Apple Pencil tap-to-move
-- [x] Collision-respecting movement with substep resolution and wall sliding
-- [x] Animated astronaut character with walk-cycle texture atlas
-- [x] Energy system — drain, movement multiplier, Kitchen restoration, Game Over
-- [x] Proximity-based interaction: REPAIR button for stations, EAT button for Kitchen
-- [x] Core ML doodle recognition with confidence threshold (50%)
-- [x] Drawing challenge UI with prompt display, submit, clear, and retry
-- [x] Candle-light vignette with flicker animation, synchronized to player
-- [x] Lighting transitions: emergency → basic power → disrupted → fully restored
-- [x] Tactical Map overlay — rooms, doors, stations, Kitchen, player, teammate markers
-- [x] Map coordinate converter — SpriteKit world coords ↔ SwiftUI view coords with padding and aspect ratio preservation
-- [x] Map debug editor — toggle visibility layers, edit geometry, export JSON, test collision
-- [x] AI dialogue system — contextual lines on chapter entry, objective complete, power change, energy low
-- [x] Checkpoint system with automatic SwiftData persistence
-- [x] Checkpoint retry on Game Over — reset to last checkpoint, restore minimal energy
-- [x] Main Menu — continue saved game or start new
-- [x] Victory screen with session stats
-- [x] Background music and sound effects
-- [x] Object reference album in Sleeping Room
-- [x] ★ **Station Visibility System** — centralized, mission-based easel visibility across SpriteKit and Tactical Map
-
-### In Progress / Upcoming
-
-- [ ] **Progress bar assets** — AI Intelligence, Engine, dan Energy butuh visual bar yang terbaca sepintas dan selaras dengan estetika kapal yang rusak. Bukan sekadar angka, tapi indikator yang terasa hidup.
-- [ ] **Button assets** — REPAIR, EAT, SUBMIT, dan tombol-tombol interaksi lainnya masih polos. Perlu sentuhan visual yang terasa taktil — seolah tombol itu benar-benar bisa ditekan di dalam dunia kapal.
-- [ ] **Interaction object slicing** — Setiap objek yang bisa disentuh pemain (stasiun reparasi, panel makanan, terminal) perlu di-slice dari sprite sheet menjadi komponen yang siap dipakai di scene. Akurasi potongan menentukan seberapa natural interaksi terasa.
-- [ ] **Dialog bar** — Panel dialog yang muncul di bagian bawah layar saat AI berbicara. Harus punya karakter: sedikit glitch, sedikit hangat, mencerminkan kepribadian AI yang retak namun setia.
-- [ ] **Mission bar** — Objective tracker yang selalu terlihat di HUD. Pemain harus bisa melirik dan langsung tahu: "Apa yang harus aku gambar sekarang?" Tanpa membuka menu, tanpa kehilangan ritme.
-- [ ] **Narrative dialogue list** — Semua dialog AI ditulis dulu dalam bentuk daftar naratif sebelum diintegrasikan ke sistem. Mencakup sapaan awal, reaksi keberhasilan/kegagalan misi, transisi antar chapter, peringatan energi rendah, dan momen-momen sunyi di antara perbaikan.
-
----
+GameClassificationTests/        # 100+ focused tests across the game systems
+```
 
 ## Getting Started
 
-1. Clone the repository.
-2. Open `GameClassification.xcodeproj` in Xcode 26+.
-3. Select an iOS 26 simulator or connected device.
-4. Build and run the `GameClassification` scheme.
+### Requirements
 
-For map editing, launch with the `-ShipMapDebug` argument to enable the debug overlay and editor tools.
+- macOS with **Xcode 26 or later**
+- An **iOS 26 / iPadOS 26 simulator** or compatible physical device
+- Apple Pencil is optional; every drawing challenge also supports finger input
 
----
+### Run the game
+
+```bash
+git clone https://github.com/C4-team-H/JoystickAndCanvas.git
+cd JoystickAndCanvas
+open GameClassification.xcodeproj
+```
+
+Then:
+
+1. Select the `GameClassification` scheme.
+2. Choose an iPhone or iPad simulator, or a connected device.
+3. Build and run with <kbd>⌘R</kbd>.
+4. Choose **NEW GAME** to begin the prologue, or **CONTINUE GAME** when a saved session is available.
+
+### Debug map editor
+
+The live geometry editor is intentionally disabled by default. Maintainers can enable `DebugAvailability.enableDebugMode` for a Debug build and add the `-ShipMapDebug` launch argument when geometry inspection or collision testing is required. The editor remains unavailable in Release builds.
+
+## Testing
+
+Run the full test target from Xcode with <kbd>⌘U</kbd>, or use the command line:
+
+```bash
+xcodebuild test \
+  -project GameClassification.xcodeproj \
+  -scheme GameClassification \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  CODE_SIGNING_ALLOWED=NO
+```
+
+The test suite covers story progression, drawing randomization, Core ML label compatibility, Energy rules, persistence and migration, checkpoints, map topology, room reachability, collision behavior, Tactical Map alignment, lighting, interaction nodes, menu flows, and regression-sensitive gameplay architecture.
+
+## Development Status
+
+Rosetta 2416 is in **active development**. The complete single-player story loop, drawing recognition, ship exploration, progression, persistence, checkpoint recovery, Tactical Map, Game Over, and Victory flow are implemented.
+
+Current work is focused on:
+
+- final HUD, mission tracker, dialogue, and interaction-button polish;
+- expanding environmental feedback, animation, and narrative dialogue;
+- refining sprite integration for interactive stations and ship machinery;
+- playtesting drawing difficulty, Energy balance, accessibility, and device performance;
+- strengthening automated regression coverage as the world and presentation evolve.
+
+The codebase includes state models that can represent a teammate, but a production multiplayer transport is **not currently implemented**. The present game experience is single-player.
 
 ## Team
 
-Built by **C4-team-H** — a collaborative iOS game development project.
+Created by **[C4-team-H](https://github.com/C4-team-H)** as a collaborative iOS game project.
+
+Explore the source, follow development, or contribute through the **[JoystickAndCanvas repository](https://github.com/C4-team-H/JoystickAndCanvas)**.

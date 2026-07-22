@@ -11,6 +11,9 @@ final class PlayerNode: SKShapeNode {
     let navigationFootprint: CollisionFootprint
     let interactionSensor: SKNode
     let animationController: PlayerAnimationController
+    private let energyBarRoot = SKNode()
+    private let energyBarFill: SKShapeNode
+    private let energyBarValueLabel: SKLabelNode
 
     init(configuration: GameMapConfiguration, debugEnabled: Bool) {
         collisionFootprint = configuration.playerFootprint
@@ -41,6 +44,9 @@ final class PlayerNode: SKShapeNode {
         )
         interactionSensor = Self.makeInteractionSensor(footprintBounds: footBounds)
         animationController = PlayerAnimationController(sprite: sprite)
+        let energyBarNodes = Self.makeEnergyBar()
+        energyBarFill = energyBarNodes.fill
+        energyBarValueLabel = energyBarNodes.valueLabel
         super.init()
 
         name = "playerFootprint"
@@ -57,6 +63,17 @@ final class PlayerNode: SKShapeNode {
         )
         sprite.zPosition = 1
         addChild(sprite)
+        energyBarRoot.name = "playerEnergyBar"
+        energyBarRoot.zPosition = 3
+        energyBarRoot.position = CGPoint(
+            x: characterBounds.midX,
+            y: characterBounds.maxY + GameMapLayout.scaled(6)
+        )
+        energyBarRoot.addChild(energyBarNodes.background)
+        energyBarRoot.addChild(energyBarNodes.track)
+        energyBarRoot.addChild(energyBarFill)
+        energyBarRoot.addChild(energyBarValueLabel)
+        addChild(energyBarRoot)
 
         let body = SKPhysicsBody(polygonFrom: footprintPath)
         body.isDynamic = true
@@ -113,6 +130,14 @@ final class PlayerNode: SKShapeNode {
         )
         interactionSensor.physicsBody?.velocity = .zero
         interactionSensor.physicsBody?.angularVelocity = 0
+    }
+
+    func updateEnergyBar(value: Double) {
+        let clampedValue = min(max(value, 0), 100)
+        let fillWidth = Self.energyBarSize.width * clampedValue / 100
+        energyBarFill.path = Self.makeEnergyFillPath(width: fillWidth)
+        energyBarFill.fillColor = Self.energyColor(for: clampedValue)
+        energyBarValueLabel.text = "\(Int(clampedValue))%"
     }
 
     func updateAnimation(movementVector: CGPoint, isMoving: Bool) {
@@ -178,6 +203,78 @@ final class PlayerNode: SKShapeNode {
         path.addLines(between: points)
         path.closeSubpath()
         return path
+    }
+
+    private static var energyBarSize: CGSize {
+        GameMapLayout.scaled(CGSize(width: 32, height: 4))
+    }
+
+    private static func makeEnergyBar() -> (background: SKShapeNode, track: SKShapeNode, fill: SKShapeNode, valueLabel: SKLabelNode) {
+        let barSize = energyBarSize
+        let backgroundSize = CGSize(width: 0, height: 0)
+        let background = SKShapeNode(
+            rectOf: backgroundSize,
+            cornerRadius: backgroundSize.height / 2
+        )
+//        background.fillColor = SKColor.black.withAlphaComponent(0.58)
+//        background.strokeColor = SKColor.white.withAlphaComponent(0.22)
+//        background.lineWidth = GameMapLayout.scaled(1)
+//        background.position = .zero
+//        background.zPosition = 0
+
+        let track = SKShapeNode(
+            rectOf: barSize,
+            cornerRadius: barSize.height / 2
+        )
+        track.fillColor = SKColor.white.withAlphaComponent(0.5)
+        track.strokeColor = SKColor.white.withAlphaComponent(0.5)
+        track.lineWidth = GameMapLayout.scaled(0.8)
+        track.position = CGPoint(x: 0, y: -GameMapLayout.scaled(2))
+        track.zPosition = 1
+
+        let fill = SKShapeNode(path: makeEnergyFillPath(width: barSize.width))
+        fill.fillColor = energyColor(for: 100)
+        fill.strokeColor = .clear
+        fill.position = CGPoint(x: 0, y: -GameMapLayout.scaled(2))
+        fill.zPosition = 2
+
+        let valueLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        valueLabel.fontSize = GameMapLayout.scaled(4)
+        valueLabel.fontColor = .white
+        valueLabel.horizontalAlignmentMode = .center
+        valueLabel.verticalAlignmentMode = .center
+        valueLabel.position = CGPoint(x: 5, y: GameMapLayout.scaled(-2))
+        valueLabel.zPosition = 2
+
+        return (background, track, fill, valueLabel)
+    }
+
+    private static func makeEnergyFillPath(width: CGFloat) -> CGPath {
+        let barSize = energyBarSize
+        let clampedWidth = min(max(width, 0), barSize.width)
+        let rect = CGRect(
+            x: -barSize.width / 2,
+            y: -barSize.height / 2,
+            width: clampedWidth,
+            height: barSize.height
+        )
+        return CGPath(
+            roundedRect: rect,
+            cornerWidth: barSize.height / 2,
+            cornerHeight: barSize.height / 2,
+            transform: nil
+        )
+    }
+
+    private static func energyColor(for value: Double) -> SKColor {
+        switch value {
+        case 50...:
+            return SKColor(red: 0.08, green: 0.72, blue: 0.00, alpha: 1)
+        case 20...:
+            return SKColor(red: 1.00, green: 0.62, blue: 0.12, alpha: 1)
+        default:
+            return SKColor(red: 1.00, green: 0.20, blue: 0.18, alpha: 1)
+        }
     }
 
     private static func makeInteractionSensor(footprintBounds: CGRect) -> SKNode {

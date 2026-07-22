@@ -31,7 +31,12 @@ class GameViewController: UIViewController {
         spriteView.showsNodeCount = false
 
         installGameplayOverlay()
-        Task { await coordinator.loadProgress() }
+        Task {
+            await coordinator.loadProgress()
+            if let menuScene = spriteView.scene as? MainMenuScene {
+                menuScene.updateMenuButtons()
+            }
+        }
     }
 
     private func installGameplayOverlay() {
@@ -43,7 +48,8 @@ class GameViewController: UIViewController {
             mapDebugViewModel: coordinator.mapDebugViewModel,
             onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
             onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
-            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
+            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() },
+            onLeaveGame: { [weak coordinator] in coordinator?.leaveGameToMainMenu() }
         )
         #else
         let rootView = GameplayHUDView(
@@ -51,7 +57,8 @@ class GameViewController: UIViewController {
             session: coordinator.sessionState,
             onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
             onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
-            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
+            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() },
+            onLeaveGame: { [weak coordinator] in coordinator?.leaveGameToMainMenu() }
         )
         #endif
         let controller = UIHostingController(rootView: rootView)
