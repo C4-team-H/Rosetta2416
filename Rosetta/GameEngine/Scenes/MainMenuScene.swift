@@ -9,9 +9,34 @@ import SpriteKit
 
 final class MainMenuScene: SKScene {
 
+    static let jetFireNodeName = "mainMenuJetFire"
+    static let jetFireAnimationKey = "mainMenuJetFireAnimation"
+
+    private enum AssetName {
+        static let jetFireFrames = (1...4).map { "JetFire\($0)" }
+    }
+
+    private enum JetFireLayout {
+        static let widthToBackgroundRatio: CGFloat = 0.18
+        static let attachmentHeightRatio: CGFloat = 0.12
+    }
+
+    private enum ArtworkCrop {
+        static let jetFire = CGRect(
+            x: 1065.0 / 2752.0,
+            y: 469.0 / 2064.0,
+            width: 625.0 / 2752.0,
+            height: 754.0 / 2064.0
+        )
+    }
+
     private var titleLabel: SKLabelNode!
     private var backgroundNode: SKSpriteNode!
     private let starFieldNode = SKNode()
+    private let jetFireTextures = AssetName.jetFireFrames.map {
+        MainMenuScene.croppedTexture(named: $0, rect: ArtworkCrop.jetFire)
+    }
+    private lazy var jetFireNode = SKSpriteNode(texture: jetFireTextures.first)
     private var startButton: SKSpriteNode?
     private var newGameButton: SKSpriteNode!
     private weak var pressedButton: SKSpriteNode?
@@ -43,6 +68,7 @@ final class MainMenuScene: SKScene {
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
 
+        setupJetFire()
         setupStarField()
         
         if coordinator.hasSavedProgress {
@@ -234,11 +260,49 @@ final class MainMenuScene: SKScene {
         backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         guard let textureSize = backgroundNode.texture?.size(), textureSize.width > 0, textureSize.height > 0 else {
             backgroundNode.size = size
+            layoutJetFire()
             return
         }
 
         let scale = max(size.width / textureSize.width, size.height / textureSize.height)
         backgroundNode.size = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
+        layoutJetFire()
+    }
+
+    private func setupJetFire() {
+        jetFireNode.name = Self.jetFireNodeName
+        jetFireNode.anchorPoint = CGPoint(x: 0.5, y: 1)
+        jetFireNode.zPosition = -9
+        jetFireNode.isUserInteractionEnabled = false
+        addChild(jetFireNode)
+
+        guard !jetFireTextures.isEmpty else { return }
+        let animation = SKAction.animate(
+            with: jetFireTextures,
+            timePerFrame: 0.085,
+            resize: false,
+            restore: false
+        )
+        jetFireNode.run(.repeatForever(animation), withKey: Self.jetFireAnimationKey)
+    }
+
+    private func layoutJetFire() {
+        guard let fireTexture = jetFireNode.texture else { return }
+
+        let fireTextureSize = fireTexture.size()
+        guard fireTextureSize.width > 0, fireTextureSize.height > 0 else { return }
+
+        let fireWidth = backgroundNode.size.width * JetFireLayout.widthToBackgroundRatio
+        jetFireNode.size = CGSize(
+            width: fireWidth,
+            height: fireWidth * fireTextureSize.height / fireTextureSize.width
+        )
+        jetFireNode.position = CGPoint(
+            x: backgroundNode.position.x,
+            y: backgroundNode.position.y
+                - backgroundNode.size.height / 2
+                + backgroundNode.size.height * JetFireLayout.attachmentHeightRatio
+        )
     }
 
     private func setupStarField() {
@@ -311,5 +375,13 @@ final class MainMenuScene: SKScene {
             .wait(forDuration: TimeInterval.random(in: 0.35...1.35))
         ])
         star.run(.sequence([initialDelay, .repeatForever(twinkle)]))
+    }
+
+    private static func croppedTexture(named name: String, rect: CGRect) -> SKTexture {
+        let source = SKTexture(imageNamed: name)
+        source.filteringMode = .linear
+        let cropped = SKTexture(rect: rect, in: source)
+        cropped.filteringMode = .linear
+        return cropped
     }
 }
