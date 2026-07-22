@@ -5,10 +5,8 @@ struct StoryProgressHUDView: View {
     let session: GameSessionState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 20) {
 //            chapterHeader
-
-            VStack(alignment: .leading, spacing: 8) {
                 resourceBar(
                     title: "Robo Intelligence",
                     value: session.progress.intelligence,
@@ -21,19 +19,18 @@ struct StoryProgressHUDView: View {
                     iconName: "EngineBarIcon",
                     tint: .yellow
                 )
-            }
             Divider()
                 .overlay(.white)
             if let mission = session.sharedStory.activeMission {
                 missionPanel(mission)
-                    .padding(.leading, 16)
+                    .padding(.leading, 12)
             }
         }
-        .padding(12)
-        .frame(width: 300, alignment: .leading)
+        .padding(16)
+        .frame(width: 300, alignment: .center)
         .background(.black.opacity(0.35), in: .rect(cornerRadius: 16))
 //        .glassEffect(color: .cyan, isActive: true)
-//        .overlay { RoundedRectangle(cornerRadius: 12).stroke(.cyan.opacity(0.22)) }
+        .overlay { RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.50)) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Story progress")
     }
@@ -54,7 +51,6 @@ struct StoryProgressHUDView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 40, height: 40)
-                .padding(4)
 //                .background(tint.opacity(0.14), in: .rect(cornerRadius: 6))
 //                .overlay { RoundedRectangle(cornerRadius: 6).stroke(tint.opacity(0.35)) }
 
@@ -97,15 +93,20 @@ struct StoryProgressHUDView: View {
             Image(systemName: "scope")
                 .foregroundStyle(.red)
                 .font(.system(size: 22))
-                .frame(width: 20, height: 20)
+                .frame(width: 20, height:25)
             VStack(alignment: .leading, spacing: 6) {
-                Text(mission.title)
-                    .font(GameFont.bodySemiBold)
-                    .foregroundStyle(missionChromeColor)
-                    .lineLimit(2)
+//                Text(mission.title)
+//                    .font(GameFont.bodySemiBold)
+//                    .foregroundStyle(missionChromeColor)
+//                    .lineLimit(2)
                 if let objective = session.activeObjective {
+                    Text(objective.definition.title)
+                        .font(GameFont.title3Bold)
+                        .foregroundStyle(missionChromeColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
                     Text(objective.definition.description)
-                        .font(GameFont.callout)
+                        .font(GameFont.body)
                         .foregroundStyle(missionChromeColor.opacity(0.9))
                         .lineLimit(2)
                 }
