@@ -323,7 +323,7 @@ createEnginePipeControl()
             storageCabinetNode?.setProximityHighlighted(false, animated: false)
             cockpitPortMonitorNode?.setProximityHighlighted(false, animated: false)
             cockpitMainConsoleNode?.setProximityHighlighted(false, animated: false)
-        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert || sessionState.currentDialogue != nil {
+        } else if tacticalMapViewModel.isMapPresented || sessionState.showLowEnergyAlert || sessionState.currentDialogue != nil || sessionState.isPaused {
             if !wasMapInputSuspended {
                 clearPencilTarget()
                 pencilTouch = nil
@@ -349,6 +349,7 @@ createEnginePipeControl()
 
         if tacticalMapViewModel.shouldRunLocalSimulation
             && !isPaused
+            && !sessionState.isPaused
             && !debugSettings.isMapDebugEnabled
             && sessionState.currentDialogue == nil {
             sessionState.updateEnergy(deltaTime: frameDeltaTime, isMoving: isMoving)

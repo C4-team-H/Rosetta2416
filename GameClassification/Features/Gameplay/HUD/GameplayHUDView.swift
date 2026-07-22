@@ -12,6 +12,7 @@ struct GameplayHUDView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var feedbackTrigger = 0
+    @State private var isPausePresented = false
 
     var body: some View {
         ZStack {
@@ -27,11 +28,14 @@ struct GameplayHUDView: View {
                     .padding(.top, 16)
                     .padding(.leading, 16)
 
-                MapButton(action: openMap)
-                    .disabled(session.showLowEnergyAlert)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(.top, 40)
-                    .padding(.trailing, 40)
+                VStack(spacing: 32) {
+                    PauseButton(action: openPauseMenu)
+                    MapButton(action: openMap)
+                }
+                .disabled(session.showLowEnergyAlert || session.isPaused || isPausePresented)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, 40)
+                .padding(.trailing, 40)
             }
 
             if let line = session.currentDialogue, session.phase == .playing {
@@ -90,11 +94,26 @@ struct GameplayHUDView: View {
                 .zIndex(3)
             }
 
-            if session.showLowEnergyAlert && session.phase != .gameOver && session.phase != .victory {
+            if session.showLowEnergyAlert && (session.phase == .playing || session.isDrawing) {
                 LowEnergyAlertOverlay(session: session) {
                     session.dismissLowEnergyAlert()
                 }
                 .zIndex(6)
+            }
+
+            if session.isPaused || isPausePresented {
+                PauseMenuOverlay(
+                    onKeepPlaying: {
+                        session.setPaused(false)
+                        isPausePresented = false
+                    },
+                    onMainMenu: {
+                        session.setPaused(false)
+                        isPausePresented = false
+                        onMainMenu()
+                    }
+                )
+                .zIndex(7)
             }
         }
         .animation(overlayAnimation, value: viewModel.isMapPresented)
@@ -114,6 +133,14 @@ struct GameplayHUDView: View {
         feedbackTrigger += 1
         viewModel.openMap()
     }
+
+    private func openPauseMenu() {
+        AudioManager.shared.playButtonSound()
+        feedbackTrigger += 1
+        session.setPaused(true)
+        isPausePresented = true
+    }
+
     private func closeMap() {
         AudioManager.shared.playButtonSound()
         feedbackTrigger += 1

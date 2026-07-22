@@ -24,7 +24,7 @@
     "id": "lab-entered-2",
     "chapter": "laboratory",
     "trigger": "chapter",
-    "text": "Astronout: Robo lost it’s memory of earth objects, I should retrain it before arriving to planet C-4.",
+    "text": "Astronout: Robo lost its memory of earth objects, I should retrain it before arriving to planet C-4.",
     "priority": 90
   },
   {

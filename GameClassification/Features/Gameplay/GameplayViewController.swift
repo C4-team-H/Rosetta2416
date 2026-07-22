@@ -28,12 +28,11 @@ class GameViewController: UIViewController {
         spriteView.showsNodeCount = false
 
         installGameplayOverlay()
-        Task { [weak self, weak spriteView] in
-            guard let self, let spriteView else { return }
+        Task {
             await coordinator.loadProgress()
-            let scene = coordinator.makeMainMenuScene(size: spriteView.bounds.size)
-            scene.scaleMode = .resizeFill
-            spriteView.presentScene(scene)
+            if let menuScene = spriteView.scene as? MainMenuScene {
+                menuScene.updateMenuButtons()
+            }
         }
     }
 
