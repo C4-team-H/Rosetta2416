@@ -11,7 +11,7 @@ final class MainMenuScene: SKScene {
 
     private var titleLabel: SKLabelNode!
     private var backgroundNode: SKSpriteNode!
-    private var startButton: SKSpriteNode!
+    private var startButton: SKSpriteNode?
     private var newGameButton: SKSpriteNode!
     private weak var pressedButton: SKSpriteNode?
     private var isPressedFeedbackActive = false
@@ -41,7 +41,11 @@ final class MainMenuScene: SKScene {
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
         
-        startButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
+        if coordinator.sessionState.hasSavedProgress {
+            let continueButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
+            startButton = continueButton
+            addChild(continueButton)
+        }
         newGameButton = makeImageButton(name: "newGameButton", imageName: "NewGameButton")
         self.addChild(newGameButton)
 

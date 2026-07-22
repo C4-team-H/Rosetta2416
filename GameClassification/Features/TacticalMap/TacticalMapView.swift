@@ -18,6 +18,7 @@ struct TacticalMapView: View {
                     .layoutPriority(1)
 
                 MapLegendView()
+                    .padding(.vertical, 12)
             }
             .foregroundStyle(.white)
             .padding(MapDesignTokens.panelPadding)

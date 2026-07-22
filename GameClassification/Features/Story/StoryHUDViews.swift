@@ -5,113 +5,287 @@ struct StoryProgressHUDView: View {
     let session: GameSessionState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
+            chapterHeader
+                .padding(.horizontal, 14)
+                .padding(.top, 12)
+                .padding(.bottom, 10)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 resourceBar(
                     title: "Robo Intelligence",
                     value: session.progress.intelligence,
                     iconName: "AIKnowledgeBarIcon",
-                    tint: .blue
+                    tint: StoryHUDPalette.intelligence
                 )
                 resourceBar(
                     title: "Engine Progress",
                     value: session.progress.engineProgress,
                     iconName: "EngineBarIcon",
-                    tint: .yellow
+                    tint: StoryHUDPalette.engine
                 )
             }
-            Divider()
-                .overlay(.white)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 10)
+
             if let mission = session.sharedStory.activeMission {
                 missionPanel(mission)
-                    .padding(.leading, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 10)
             }
         }
-        .padding(16)
-        .frame(width: 300, alignment: .center)
-        .background(.black.opacity(0.35), in: .rect(cornerRadius: 16))
+        .frame(width: 316, alignment: .leading)
+        .background(panelBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22)
+                .strokeBorder(StoryHUDPalette.ink, lineWidth: 4)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                .padding(5)
+        }
+        .shadow(color: .black.opacity(0.38), radius: 12, y: 7)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Story progress")
     }
 
     private var chapterHeader: some View {
-        HStack(spacing: 8) {
-            Text(session.sharedStory.currentChapter.displayName.uppercased())
-                .font(GameFont.caption1Bold)
-                .foregroundStyle(.cyan)
-                .lineLimit(1)
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(StoryHUDPalette.intelligence)
+
+                Image(systemName: "waveform.path.ecg")
+                    .font(.system(size: 18, weight: .black))
+                    .foregroundStyle(StoryHUDPalette.ink)
+            }
+            .frame(width: 38, height: 38)
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(StoryHUDPalette.ink, lineWidth: 3)
+            }
+            .overlay(alignment: .top) {
+                Capsule()
+                    .fill(.white.opacity(0.42))
+                    .frame(width: 18, height: 3)
+                    .padding(.top, 5)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("MISSION CONTROL")
+                    .font(GameFont.custom(size: 15, weight: 800))
+                    .foregroundStyle(.white)
+                    .tracking(0.6)
+
+                Text(session.sharedStory.currentChapter.displayName.uppercased())
+                    .font(GameFont.custom(size: 10, weight: 700))
+                    .foregroundStyle(StoryHUDPalette.intelligence)
+                    .tracking(0.8)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
             Spacer(minLength: 8)
+
+            VStack(spacing: 4) {
+                statusLight(color: StoryHUDPalette.engine)
+                statusLight(color: StoryHUDPalette.intelligence)
+                statusLight(color: StoryHUDPalette.mission)
+            }
+            .padding(6)
+            .background(StoryHUDPalette.ink.opacity(0.84), in: .capsule)
+            .overlay { Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1) }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "Mission control, \(session.sharedStory.currentChapter.displayName)"
+        )
     }
 
     private func resourceBar(title: String, value: Double, iconName: String, tint: Color) -> some View {
-        HStack(spacing: 8) {
+        let normalizedValue = value.clamped(to: 0...100)
+        let percentage = Int(normalizedValue)
+
+        return HStack(spacing: 10) {
             Image(iconName)
                 .resizable()
+                .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 40, height: 40)
-                .padding(4)
+                .frame(width: 44, height: 44)
+                .shadow(color: .black.opacity(0.28), radius: 2, y: 2)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Text(title)
-                        .font(GameFont.custom(size: 17, weight: 700))
+                        .font(GameFont.custom(size: 14, weight: 700))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .minimumScaleFactor(0.78)
+
                     Spacer(minLength: 6)
-                    Text("\(Int(value.clamped(to: 0...100)))%")
-                        .font(GameFont.custom(size: 15, weight: 800))
-                        .foregroundStyle(.white)
+
+                    Text("\(percentage)%")
+                        .font(GameFont.custom(size: 13, weight: 800))
+                        .foregroundStyle(tint)
                         .monospacedDigit()
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(StoryHUDPalette.ink.opacity(0.86), in: .capsule)
                 }
 
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.12))
-                        Capsule()
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(StoryHUDPalette.ink)
+
+                        RoundedRectangle(cornerRadius: 4)
                             .fill(
                                 LinearGradient(
-                                    colors: [tint, tint],
+                                    colors: [tint.opacity(0.72), tint],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geometry.size.width * value.clamped(to: 0...100) / 100)
+                            .frame(width: geometry.size.width * CGFloat(normalizedValue) / 100)
+                            .overlay(alignment: .top) {
+                                Capsule()
+                                    .fill(.white.opacity(0.34))
+                                    .frame(height: 2)
+                                    .padding(.horizontal, 4)
+                                    .padding(.top, 2)
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 }
-                .frame(height: 8)
-                .overlay { Capsule().stroke(.white.opacity(0.16), lineWidth: 1) }
+                .frame(height: 12)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(.white.opacity(0.16), lineWidth: 1)
+                }
             }
         }
+        .padding(9)
+        .background(StoryHUDPalette.well, in: .rect(cornerRadius: 14))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(StoryHUDPalette.ink, lineWidth: 3)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue("\(percentage) percent")
     }
 
     private func missionPanel(_ mission: MissionState) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "scope")
-                .foregroundStyle(.red)
-                .font(.system(size: 22))
-                .frame(width: 20, height:25)
-            VStack(alignment: .leading, spacing: 6) {
-//                Text(mission.title)
-//                    .font(GameFont.bodySemiBold)
-//                    .foregroundStyle(missionChromeColor)
-//                    .lineLimit(2)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 38, height: 38)
+                .background(StoryHUDPalette.mission, in: .rect(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(StoryHUDPalette.ink, lineWidth: 3)
+                }
+                .overlay(alignment: .top) {
+                    Capsule()
+                        .fill(.white.opacity(0.34))
+                        .frame(width: 18, height: 3)
+                        .padding(.top, 5)
+                }
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(StoryHUDPalette.mission)
+                        .frame(width: 7, height: 7)
+
+                    Text("ACTIVE OBJECTIVE")
+                        .font(GameFont.custom(size: 10, weight: 800))
+                        .foregroundStyle(StoryHUDPalette.mission)
+                        .tracking(0.8)
+                }
+
                 if let objective = session.activeObjective {
                     Text(objective.definition.title)
-                        .font(GameFont.title3Bold)
+                        .font(GameFont.custom(size: 16, weight: 800))
                         .foregroundStyle(missionChromeColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                    Text(objective.definition.description)
-                        .font(GameFont.body)
-                        .foregroundStyle(missionChromeColor.opacity(0.9))
                         .lineLimit(2)
+                        .minimumScaleFactor(0.78)
+
+                    Text(objective.definition.description)
+                        .font(GameFont.custom(size: 12, weight: 500))
+                        .foregroundStyle(missionChromeColor.opacity(0.76))
+                        .lineLimit(3)
+                } else {
+                    Text(taskTitle(for: mission))
+                        .font(GameFont.custom(size: 16, weight: 800))
+                        .foregroundStyle(missionChromeColor)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
                 }
             }
-            .padding(.leading, 10)
+
+            Spacer(minLength: 0)
         }
+        .padding(11)
+        .background {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(StoryHUDPalette.ink.opacity(missionBackgroundOpacity))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(StoryHUDPalette.ink, lineWidth: 3)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 11)
+                .strokeBorder(StoryHUDPalette.mission.opacity(0.28), lineWidth: 1)
+                .padding(4)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Active objective")
+        .accessibilityValue(missionAccessibilityValue(for: mission))
+    }
+
+    private var panelBackground: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22)
+                .fill(StoryHUDPalette.ink.opacity(0.65))
+                .offset(y: 5)
+
+            RoundedRectangle(cornerRadius: 22)
+                .fill(
+                    LinearGradient(
+                        colors: [StoryHUDPalette.shellHighlight, StoryHUDPalette.shell],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+    }
+
+    private func statusLight(color: Color) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: 5, height: 5)
+            .overlay { Circle().stroke(.white.opacity(0.3), lineWidth: 0.5) }
+    }
+
+    private func taskTitle(for mission: MissionState) -> String {
+        switch mission.id {
+        case .findLaboratory:
+            "Find the laboratory."
+        default:
+            mission.title
+        }
+    }
+
+    private func missionAccessibilityValue(for mission: MissionState) -> String {
+        guard let objective = session.activeObjective else {
+            return taskTitle(for: mission)
+        }
+
+        return "\(objective.definition.title). \(objective.definition.description)"
     }
 
     private var missionChromeColor: Color {
@@ -124,12 +298,22 @@ struct StoryProgressHUDView: View {
     private var missionBackgroundOpacity: Double {
         switch session.sharedStory.powerState {
         case .off, .disrupted:
-            0.34
+            0.72
         case .basicPower, .fullyRestored:
-            0.18
+            0.54
         }
     }
 
+}
+
+private enum StoryHUDPalette {
+    static let ink = Color(red: 0.025, green: 0.075, blue: 0.09)
+    static let shell = Color(red: 0.10, green: 0.22, blue: 0.25)
+    static let shellHighlight = Color(red: 0.22, green: 0.39, blue: 0.41)
+    static let well = Color(red: 0.045, green: 0.12, blue: 0.14).opacity(0.94)
+    static let intelligence = Color(red: 0.31, green: 0.84, blue: 0.91)
+    static let engine = Color(red: 1.0, green: 0.74, blue: 0.20)
+    static let mission = Color(red: 0.96, green: 0.32, blue: 0.27)
 }
 
 struct AIDialogueOverlay: View {

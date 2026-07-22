@@ -128,7 +128,10 @@ final class GameScene: SKScene {
     var isJoystickActive = false
     var joystickVector = CGPoint.zero
     var joystickActiveTouch: UITouch?
-    let joystickRadius: CGFloat = 60
+    let joystickRadius: CGFloat = 84
+    let joystickKnobRadius: CGFloat = 38
+    let joystickHorizontalInset: CGFloat = 80
+    let joystickVerticalInset: CGFloat = 100
     let playerSpeed: CGFloat = GameMapLayout.scaled(80)
 
     var pencilTouch: UITouch?
@@ -251,11 +254,18 @@ createEnginePipeControl()
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        joystickBase?.position = CGPoint(x: -size.width / 2 + joystickRadius + 80, y: -size.height / 2 + joystickRadius + 100)
+        joystickBase?.position = joystickHUDPosition
         positionActionButtons()
         candleLight?.position = CGPoint(x: -size.width / 2, y: -size.height / 2)
         candleLight?.resize(to: size)
         synchronizeCandleLightWithPlayer()
+    }
+
+    var joystickHUDPosition: CGPoint {
+        CGPoint(
+            x: -size.width / 2 + joystickRadius + joystickHorizontalInset,
+            y: -size.height / 2 + joystickRadius + joystickVerticalInset
+        )
     }
 
     override func update(_ currentTime: TimeInterval) {

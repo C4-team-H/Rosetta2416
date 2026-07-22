@@ -50,7 +50,6 @@ final class LightingSystem {
     }
 
     func playVictory(in scene: GameScene) {
-        activateCockpitDisplays(in: scene)
         playPlaceholderSound(1025)
         flash(in: scene, color: .green, duration: 1.1)
     }
@@ -86,28 +85,6 @@ final class LightingSystem {
             .moveBy(x: -4, y: 4, duration: 0.05)
         ]
         camera.run(.sequence(movements), withKey: "powerDisruptionShake")
-    }
-
-    private func activateCockpitDisplays(in scene: GameScene) {
-        guard scene.childNode(withName: "cockpitDisplayGlow") == nil else { return }
-        let display = SKShapeNode(
-            rectOf: GameMapLayout.scaled(CGSize(width: 260, height: 120)),
-            cornerRadius: GameMapLayout.scaled(18)
-        )
-        display.name = "cockpitDisplayGlow"
-        display.position = roomCenter(.cockpit)
-        display.fillColor = .cyan.withAlphaComponent(0.22)
-        display.strokeColor = .cyan
-        display.glowWidth = GameMapLayout.scaled(12)
-        display.zPosition = 0.5
-        scene.addChild(display)
-    }
-
-    private func roomCenter(_ roomID: RoomID) -> CGPoint {
-        guard let frame = GameMapLayout.rooms.first(where: { $0.id == roomID })?.worldFrame else {
-            return CGPoint(x: GameMapLayout.worldSize.width / 2, y: GameMapLayout.worldSize.height / 2)
-        }
-        return CGPoint(x: frame.midX, y: frame.midY)
     }
 
     private func playPlaceholderSound(_ soundID: SystemSoundID) {

@@ -4,6 +4,7 @@
 <dict>
 	<key>UIAppFonts</key>
 	<array>
+		<string>Chewy-Regular.ttf</string>
 		<string>MuseoModerno-VariableFont_wght.ttf</string>
 		<string>GeistPixel-Regular-VariableFont_ELSH.ttf</string>
 	</array>

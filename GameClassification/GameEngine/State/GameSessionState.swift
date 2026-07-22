@@ -6,6 +6,7 @@ import Observation
 @Observable
 final class GameSessionState {
     private(set) var phase: GamePhase = .preparing
+    private(set) var hasSavedProgress = false
     private(set) var localPlayer: PlayerState
     private(set) var teammate: PlayerState?
     private(set) var teammateConnectionState: TeammateConnectionState = .disconnected
@@ -280,6 +281,7 @@ final class GameSessionState {
 
     func startNewSession(clearSavedProgress: Bool = true) {
         sessionRevision += 1
+        hasSavedProgress = true
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
         localPlayer.worldPosition = safeSpawn(for: .sleepingRoomStart)
