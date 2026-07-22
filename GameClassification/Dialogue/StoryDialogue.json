@@ -24,14 +24,14 @@
     "id": "lab-entered-2",
     "chapter": "laboratory",
     "trigger": "chapter",
-    "text": "Astronout: This thing suffered from Semantic Aphasia.\n(Semantic aphasia is a language disorder where the brain loses the connection between words and their meanings).",
+    "text": "Astronout: Robo lost it’s memory of earth objects, I should retrain it before arriving to planet C-4.",
     "priority": 90
   },
   {
     "id": "lab-entered-3",
     "chapter": "laboratory",
     "trigger": "chapter",
-    "text": "Astronout: I should start fixing thing and watchout with my energy.",
+    "text": "Astronout: I should start fixing things and watchout with my energy.",
     "priority": 80
   },
   {

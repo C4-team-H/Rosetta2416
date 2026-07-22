@@ -21,9 +21,7 @@ struct StationVisibilitySystem {
     func visibility(interactionID: String) -> StationVisibility {
         if isDebugEnabled { return .worldAndMap }
         if interactionID == Self.kitchenInteractionID { return .worldAndMap }
-        if interactionID == Self.albumInteractionID {
-            return storySystem.state.albumBook.isMarkerVisible ? .worldAndMap : .worldOnly
-        }
+        if interactionID == Self.albumInteractionID { return .worldAndMap }
         if interactionID == storySystem.activeObjective?.id { return .worldAndMap }
         if storySystem.state.completedChallengeIDs.contains(interactionID),
            StoryConfiguration.definition(id: interactionID)?.persistsAsRepairedWorldProp == true {

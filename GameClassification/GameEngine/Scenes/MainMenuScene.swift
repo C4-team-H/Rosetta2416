@@ -11,8 +11,8 @@ final class MainMenuScene: SKScene {
 
     private var titleLabel: SKLabelNode!
     private var backgroundNode: SKSpriteNode!
-    private var startButton: SKShapeNode!
-    private var newGameButton: SKShapeNode!
+    private var startButton: SKSpriteNode!
+    private var newGameButton: SKSpriteNode!
     private let coordinator: GameplayCoordinator
 
     init(size: CGSize, coordinator: GameplayCoordinator) {
@@ -34,25 +34,8 @@ final class MainMenuScene: SKScene {
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
         
-//        titleLabel = SKLabelNode(fontNamed: GameFont.fontName)
-//        titleLabel.text = "ROSETTA"
-//        titleLabel.fontSize = 160
-//        titleLabel.fontColor = .white
-//        titleLabel.position = CGPoint(x: self.size.width / 2, y: self.size.height * 0.68)
-//        titleLabel.horizontalAlignmentMode = .center
-////        titleLabel.verticalAlignmentMode = .center
-//        self.addChild(titleLabel)
-        
-        startButton = makeButton(
-            name: "startButton",
-            title: "CONTINUE GAME",
-            color: SKColor(red: 0.15, green: 0.68, blue: 0.38, alpha: 1)
-        )
-        newGameButton = makeButton(
-            name: "newGameButton",
-            title: "NEW GAME",
-            color: SKColor(red: 0.16, green: 0.44, blue: 0.72, alpha: 1)
-        )
+        startButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
+        newGameButton = makeImageButton(name: "newGameButton", imageName: "NewGameButton")
         positionMenuNodes()
         self.addChild(startButton)
         self.addChild(newGameButton)
@@ -60,6 +43,13 @@ final class MainMenuScene: SKScene {
     
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
+        
+        // Recalculate button sizes based on 1/4 screen width
+        let targetWidth = size.width / 4
+        let targetHeight = targetWidth * (332.0 / 1390.0)
+        let buttonSize = CGSize(width: targetWidth, height: targetHeight)
+        startButton?.size = buttonSize
+        newGameButton?.size = buttonSize
         
         positionMenuNodes()
     }
@@ -95,21 +85,12 @@ final class MainMenuScene: SKScene {
         coordinator.startNewGame(in: view, size: size)
     }
 
-    private func makeButton(name: String, title: String, color: SKColor) -> SKShapeNode {
-        let button = SKShapeNode(rectOf: CGSize(width: 220, height: 58), cornerRadius: 12)
+    private func makeImageButton(name: String, imageName: String) -> SKSpriteNode {
+        let button = SKSpriteNode(imageNamed: imageName)
         button.name = name
-        button.fillColor = color
-        button.strokeColor = .white
-        button.lineWidth = 2
-
-        let label = SKLabelNode(fontNamed: GameFont.fontName)
-        label.text = title
-        label.fontSize = 18
-        label.fontColor = .white
-        label.name = name
-        label.horizontalAlignmentMode = .center
-        label.verticalAlignmentMode = .center
-        button.addChild(label)
+        let targetWidth = size.width / 4
+        let targetHeight = targetWidth * (332.0 / 1390.0)
+        button.size = CGSize(width: targetWidth, height: targetHeight)
         return button
     }
 

@@ -113,7 +113,7 @@ struct StoryIntegrationTests {
         #expect(!result.accepted)
         #expect(result.effects.isEmpty)
         #expect(!session.sharedStory.albumBook.hasFailedDrawingBefore)
-        #expect(!session.sharedStory.albumBook.isMarkerVisible)
+        #expect(session.sharedStory.albumBook.isMarkerVisible)
     }
 
     @Test("Engine 40 disruption subtracts ten Energy exactly once")
@@ -182,6 +182,23 @@ struct StoryIntegrationTests {
         #expect(persisted?.currentChapter == .sleepingRoom)
         #expect(persisted?.completedChallengeIDs.isEmpty == true)
         #expect(persisted?.deliveredDialogueIDs == ["intro-1"])
+    }
+
+    @Test("Initial map markers immediately show active lab mission in yellow and reference album without entering lab")
+    func initialMapMarkersShowLabMissionAndAlbum() {
+        let session = makeSession()
+        session.beginGameplay()
+
+        let viewModel = TacticalMapViewModel(sessionState: session)
+        let markers = viewModel.visibleMarkers
+
+        let labMarker = markers.first { $0.id == "room-laboratory" }
+        #expect(labMarker != nil)
+        #expect(labMarker?.status == .active)
+
+        let albumMarker = markers.first { $0.id == "album-book" }
+        #expect(albumMarker != nil)
+        #expect(albumMarker?.kind == .albumBook)
     }
 
     private func complete(_ chapter: StoryChapter, in session: GameSessionState) {
