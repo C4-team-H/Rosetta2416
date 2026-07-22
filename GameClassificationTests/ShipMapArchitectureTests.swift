@@ -73,19 +73,28 @@ struct ShipMapArchitectureTests {
     func doorState() {
         let definition = GameMapLayout.doorDefinitions.first(where: { $0.id == .engine })!
         let door = ShipDoorNode(definition: definition)
+        let lockedVisuals = door.childNode(withName: "lockedDoorVisualRoot")
 
         #expect(!door.isOpen)
         #expect(door.state == .closed)
         #expect(door.physicsBody?.categoryBitMask == PhysicsCategory.closedDoor)
+        #expect(lockedVisuals?.isHidden == true)
         door.lock()
         #expect(door.isLocked)
         #expect(door.state == .locked)
         #expect(!door.open())
         #expect(door.physicsBody?.collisionBitMask == PhysicsCategory.player)
+        #expect(lockedVisuals?.isHidden == false)
+        #expect(door.childNode(withName: "//lockedDoorGlow")?.hasActions() == true)
+        #expect(door.childNode(withName: "//lockedDoorInnerPanel") != nil)
+        #expect(door.childNode(withName: "//lockedDoorLockGlyph") != nil)
+        #expect(door.childNode(withName: "//lockedDoorStatusLightLeft") != nil)
+        #expect(door.childNode(withName: "//lockedDoorStatusLightRight") != nil)
 
         door.unlock()
         #expect(!door.isLocked)
         #expect(door.state == .closed)
+        #expect(lockedVisuals?.isHidden == true)
         #expect(door.open())
         #expect(door.isOpen)
         #expect(door.state == .open)
