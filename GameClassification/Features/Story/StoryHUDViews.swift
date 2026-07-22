@@ -20,6 +20,7 @@ struct StoryProgressHUDView: View {
                     iconName: "EngineBarIcon",
                     tint: .yellow
                 )
+            }
             Divider()
                 .overlay(.white)
             if let mission = session.sharedStory.activeMission {
@@ -275,44 +276,83 @@ struct StoryTerminalOverlay: View {
         ZStack {
             Color.black.opacity(0.84).ignoresSafeArea()
 
-            if session.phase == .gameOver {
+            if session.phase == .victory {
+                ZStack(alignment: .top) {
+                    Image("VictoryPopUp")
+                        .resizable()
+                        .scaledToFit()
+
+                    VStack(spacing: 12) {
+                        Grid(horizontalSpacing: 24, verticalSpacing: 6) {
+                            GridRow {
+                                Text("Elapsed time")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text(session.stats.elapsedTime.formattedDuration)
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Missions")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(session.sharedStory.completedMissionIDs.count)/6")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Drawing attempts")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(session.stats.drawingAttempts)")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Kitchen restores")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(session.stats.kitchenRestores)")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                            GridRow {
+                                Text("Final energy")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                Text("\(Int(session.energy))%")
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                            }
+                        }
+                        .font(GameFont.callout)
+                        .foregroundStyle(.white)
+
+                        VStack {
+                            Button(action: {
+                                AudioManager.shared.playButtonSound()
+                                onMainMenu()
+                            }) {
+                                Text("MAIN MENU")
+                                    .font(GameFont.bodyBold)
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Color.green.opacity(0.4),
+                                        in: .rect(cornerRadius: 10)
+                                    )
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.top, 6)
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.top, 170)
+                    .padding(.bottom, 16)
+                }
+                .frame(width: 500)
+                .onTapGesture {
+                    // Prevent tap on card from passing through.
+                }
+            } else if session.phase == .gameOver {
                 GameOverPanel(onRetry: onRetry, onMainMenu: onMainMenu)
-            } else {
-                victoryPanel
             }
         }
-    }
-
-    private var victoryPanel: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "sparkles")
-                .font(GameFont.custom(size: 54))
-                .foregroundStyle(.green)
-            Text("SHIP RESTORED")
-                .font(GameFont.largeTitleBold)
-                .foregroundStyle(.white)
-
-            Grid(horizontalSpacing: 24, verticalSpacing: 8) {
-                GridRow { Text("Elapsed time"); Text(session.stats.elapsedTime.formattedDuration) }
-                GridRow { Text("Missions"); Text("\(session.sharedStory.completedMissionIDs.count)/6") }
-                GridRow { Text("Drawing attempts"); Text("\(session.stats.drawingAttempts)") }
-                GridRow { Text("Kitchen restores"); Text("\(session.stats.kitchenRestores)") }
-                GridRow { Text("Final energy"); Text("\(Int(session.energy))%") }
-                GridRow { Text("Final intelligence"); Text("\(Int(session.sharedStory.intelligence))%") }
-                GridRow { Text("Final engine"); Text("\(Int(session.sharedStory.engineProgress))%") }
-            }
-            .font(GameFont.callout)
-            .foregroundStyle(.white.opacity(0.8))
-
-            HStack(spacing: 12) {
-                Button("PLAY AGAIN", action: onPlayAgain).buttonStyle(.borderedProminent)
-                Button("MAIN MENU", action: onMainMenu).buttonStyle(.bordered)
-            }
-            .controlSize(.large)
-        }
-        .padding(28)
-        .background(.ultraThinMaterial, in: .rect(cornerRadius: 24))
-        .padding(24)
     }
 }
 

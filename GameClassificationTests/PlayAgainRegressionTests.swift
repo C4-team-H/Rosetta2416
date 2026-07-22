@@ -76,4 +76,28 @@ struct PlayAgainRegressionTests {
         // so the session phase resets to .preparing.
         #expect(session.phase == .preparing)
     }
+
+    @Test("Victory launch scene keeps the gameplay session alive until its cutscene completes")
+    func victoryLaunchSceneKeepsSessionAlive() {
+        let session = GameSessionState(localPlayer: PlayerState(
+            id: "victory-cutscene-player",
+            name: "Player",
+            worldPosition: GameMapLayout.playerSpawnPosition,
+            isConnected: true
+        ))
+        let view = SKView(frame: CGRect(x: 0, y: 0, width: 1_024, height: 768))
+        let oldScene = GameScene(
+            size: view.bounds.size,
+            sessionState: session,
+            tacticalMapViewModel: TacticalMapViewModel(sessionState: session)
+        )
+        view.presentScene(oldScene)
+        session.beginGameplay()
+
+        let launchScene = VictoryLaunchScene(size: view.bounds.size) {}
+        view.presentScene(launchScene, transition: .fade(withDuration: 0.1))
+        oldScene.willMove(from: view)
+
+        #expect(session.phase == .playing)
+    }
 }

@@ -7,6 +7,7 @@ protocol GameSceneEventDelegate: AnyObject {
     func gameScene(_ scene: GameScene, didRequestObjective objectiveID: String)
     func gameSceneDidRequestFoodChallenge(_ scene: GameScene)
     func gameSceneDidReachGameOver(_ scene: GameScene)
+    func gameSceneDidReachVictory(_ scene: GameScene)
     func gameSceneDidRequestAlbum(_ scene: GameScene)
 }
 
@@ -400,7 +401,7 @@ createEnginePipeControl()
         physicsWorld.contactDelegate = nil
         tacticalMapViewModel.closeMap()
         mapCoordinateConverter.detach(scene: self)
-        if !(view.scene is GameScene) {
+        if !(view.scene is GameScene), !(view.scene is VictoryLaunchScene) {
             sessionState.endGameplay()
         }
         super.willMove(from: view)
@@ -430,6 +431,7 @@ createEnginePipeControl()
                 ]), withKey: "storyCutscene")
             case .victory:
                 lightingSystem.playVictory(in: self)
+                eventDelegate?.gameSceneDidReachVictory(self)
             default:
                 break
             }
