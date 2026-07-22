@@ -40,29 +40,57 @@ struct MapOverlayHeader: View {
 
             Button(action: onClose) {
                 Image(systemName: "xmark")
-                    .font(GameFont.custom(size: 18, weight: 800))
+                    .font(.system(size: 22, weight: .black))
                     .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(MapDesignTokens.closeButton, in: .rect(cornerRadius: 15))
+                    .frame(width: 54, height: 54)
+                    .background {
+                        RoundedRectangle(cornerRadius: 17)
+                            .fill(MapDesignTokens.ink.opacity(0.9))
+                            .offset(y: 4)
+
+                        RoundedRectangle(cornerRadius: 17)
+                            .fill(MapDesignTokens.closeButton)
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 17)
+                            .strokeBorder(MapDesignTokens.ink, lineWidth: 4)
+                    }
+                    .overlay(alignment: .top) {
+                        Capsule()
+                            .fill(.white.opacity(0.34))
+                            .frame(width: 26, height: 3)
+                            .padding(.top, 7)
+                    }
+//                    .overlay(alignment: .bottom) {
+//                        Capsule()
+//                            .fill(MapDesignTokens.ink.opacity(0.34))
+//                            .frame(width: 30, height: 3)
+//                            .padding(.bottom, 6)
+//                    }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 15)
-                    .strokeBorder(MapDesignTokens.ink, lineWidth: 3)
-            }
-            .overlay(alignment: .top) {
-                Capsule()
-                    .fill(.white.opacity(0.28))
-                    .frame(width: 22, height: 3)
-                    .padding(.top, 7)
-            }
-            .shadow(color: MapDesignTokens.ink.opacity(0.82), radius: 0, y: 3)
             .accessibilityLabel("Close map")
-            .buttonStyle(MapPressButtonStyle())
+            .accessibilityHint("Returns to gameplay")
+            .buttonStyle(MapCloseButtonStyle())
         }
         .padding(.horizontal, 6)
     }
 
     private var statusColor: Color {
         isMapRevealed ? MapDesignTokens.completedMarker : MapDesignTokens.blockedMarker
+    }
+}
+
+private struct MapCloseButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .offset(y: configuration.isPressed && !reduceMotion ? 3 : 0)
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.18, dampingFraction: 0.7),
+                value: configuration.isPressed
+            )
     }
 }

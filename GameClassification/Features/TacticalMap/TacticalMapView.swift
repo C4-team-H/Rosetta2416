@@ -47,13 +47,11 @@ struct TacticalMapView: View {
                 .strokeBorder(MapDesignTokens.panelInnerStroke, lineWidth: 2)
                 .padding(7)
             }
-            .overlay {
-                MapConsoleRivets()
-                    .padding(11)
-                    .allowsHitTesting(false)
-            }
-            .shadow(color: MapDesignTokens.ink.opacity(0.96), radius: 0, y: 8)
-            .shadow(color: .black.opacity(0.52), radius: 28, y: 18)
+//            .overlay {
+//                MapConsoleRivets()
+//                    .padding(11)
+//                    .allowsHitTesting(false)
+//            }
             .safeAreaPadding(10)
         }
         .accessibilityAddTraits(.isModal)

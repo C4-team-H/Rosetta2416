@@ -39,7 +39,6 @@ struct MapBackgroundView: View {
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(.white.opacity(0.16), lineWidth: 1)
                         }
-                        .shadow(color: MapDesignTokens.ink.opacity(0.8), radius: 0, y: 2)
                         .position(x: roomFrame.midX, y: roomFrame.midY)
                 }
             } else {
@@ -230,7 +229,6 @@ private struct MapSignalUnavailableView: View {
                 .frame(width: 48, height: 3)
                 .padding(.top, 6)
         }
-        .shadow(color: MapDesignTokens.ink.opacity(0.9), radius: 0, y: 4)
         .accessibilityElement(children: .combine)
     }
 }

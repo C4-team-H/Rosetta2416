@@ -29,7 +29,6 @@ struct MapMarkerView: View {
                         .frame(width: 4, height: 4)
                         .padding(5)
                 }
-                .shadow(color: MapDesignTokens.ink.opacity(0.8), radius: 0, y: 2)
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 1.2).repeatForever(autoreverses: false), value: isPulsing)
         .onAppear(perform: updatePulseAnimation)

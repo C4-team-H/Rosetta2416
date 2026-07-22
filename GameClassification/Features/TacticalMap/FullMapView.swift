@@ -84,7 +84,7 @@ struct FullMapView: View {
                 )
                 .position(
                     x: surfaceFrame.minX + 50,
-                    y: surfaceFrame.minY + 12
+                    y: surfaceFrame.minY + 32
                 )
 
                 MapScreenBadge(
@@ -95,7 +95,7 @@ struct FullMapView: View {
                 )
                 .position(
                     x: surfaceFrame.maxX - 54,
-                    y: surfaceFrame.minY + 12
+                    y: surfaceFrame.minY + 32
                 )
             }
             .frame(width: geometry.size.width, height: geometry.size.height)

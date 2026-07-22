@@ -23,8 +23,7 @@ struct MapPlayerMarkerView: View {
 
             MapCrewmateGlyph(suitColor: markerColor)
                 .frame(width: 28, height: 30)
-                .shadow(color: MapDesignTokens.ink.opacity(0.86), radius: 0, y: 2)
-
+            
             if differentiateWithoutColor && player.isLocalPlayer {
                 Image(systemName: "star.fill")
                     .font(GameFont.custom(size: 7, weight: 800))
