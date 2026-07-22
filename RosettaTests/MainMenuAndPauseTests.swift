@@ -88,6 +88,12 @@ struct MainMenuAndPauseTests {
         #expect((stars.map(\.size.width).max() ?? 0) > (stars.map(\.size.width).min() ?? 0) * 2)
         #expect(stars.allSatisfy { $0.hasActions() })
 
+        let jetFire = menuScene.childNode(withName: MainMenuScene.jetFireNodeName) as? SKSpriteNode
+        #expect(jetFire != nil)
+        #expect(jetFire?.action(forKey: MainMenuScene.jetFireAnimationKey) != nil)
+        #expect(jetFire?.anchorPoint == CGPoint(x: 0.5, y: 1))
+        #expect(abs((jetFire?.position.x ?? 0) - sceneSize.width / 2) < 0.001)
+
         let singleButtonY = (menuScene.childNode(withName: "newGameButton") as? SKSpriteNode)?.position.y ?? 0
         #expect(abs(singleButtonY - sceneSize.height * 0.24) < 0.001)
 
