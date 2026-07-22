@@ -41,7 +41,7 @@ final class MainMenuScene: SKScene {
         backgroundNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         addChild(backgroundNode)
         
-        if coordinator.sessionState.hasSavedProgress {
+        if coordinator.hasSavedProgress {
             let continueButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
             startButton = continueButton
             addChild(continueButton)
@@ -202,7 +202,7 @@ final class MainMenuScene: SKScene {
             if startButton == nil {
                 startButton = makeImageButton(name: "startButton", imageName: "ContinueButton")
             }
-            if startButton.parent == nil {
+            if let startButton, startButton.parent == nil {
                 addChild(startButton)
             }
         } else {

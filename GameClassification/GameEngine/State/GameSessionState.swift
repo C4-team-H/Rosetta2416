@@ -18,7 +18,6 @@ final class GameSessionState {
     private(set) var currentRoom: RoomID?
     private(set) var showLowEnergyAlert: Bool = false
     private var hasTriggeredLowEnergyAlert: Bool = false
-    private(set) var hasSavedProgress: Bool = false
     private(set) var isPaused: Bool = false
 
     func setPaused(_ paused: Bool) {

@@ -1,10 +1,24 @@
 import SpriteKit
 import Testing
+import UIKit
 @testable import GameClassification
 
 @Suite("Main Menu & Checkpoint Save Tests")
 @MainActor
 struct MainMenuAndPauseTests {
+    @Test("GameViewController presents the main menu on launch")
+    func testGameViewControllerPresentsMainMenuOnLaunch() throws {
+        let storyboard = UIStoryboard(name: "Main", bundle: .main)
+        let viewController = try #require(
+            storyboard.instantiateInitialViewController() as? GameViewController
+        )
+
+        viewController.loadViewIfNeeded()
+        let spriteView = try #require(viewController.view as? SKView)
+
+        #expect(spriteView.scene is MainMenuScene)
+    }
+
     @Test("GameSessionState tracks hasSavedProgress correctly")
     func testHasSavedProgressTracking() async throws {
         let repository = InMemoryStoryProgressRepository()
