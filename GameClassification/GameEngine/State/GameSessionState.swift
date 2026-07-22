@@ -86,8 +86,14 @@ final class GameSessionState {
     }
 
     func endCutscene() {
-        guard case .cutscene = phase else { return }
+        guard case let .cutscene(cutscene) = phase,
+              cutscene != .victoryLaunch else { return }
         phase = .playing
+    }
+
+    func completeVictoryCutscene() {
+        guard phase == .cutscene(.victoryLaunch) else { return }
+        phase = .victory
     }
 
     @discardableResult
@@ -342,7 +348,7 @@ final class GameSessionState {
                 shouldPersist = true
 
             case .victory:
-                phase = .victory
+                phase = .cutscene(.victoryLaunch)
                 shouldPersist = true
             }
         }

@@ -51,6 +51,7 @@ enum StoryCutscene: String, Codable, Equatable, Sendable {
     case electricalDisruption
     case advancedToolsAcquired
     case engineRestoration
+    case victoryLaunch
 }
 
 struct DrawingPrompt: Codable, Equatable, Sendable {

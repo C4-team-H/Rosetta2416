@@ -284,9 +284,7 @@ struct StoryTerminalOverlay: View {
         ZStack {
             Color.black.opacity(0.84).ignoresSafeArea()
 
-            // Original: if session.phase == .victory {
-            // DEBUG: if true {
-            if session.phase == .gameOver || session.phase == .victory { // TEMPORARY DEBUG PREVIEW
+            if session.phase == .victory {
                 ZStack(alignment: .top) {
                     Image("VictoryPopUp")
                         .resizable()

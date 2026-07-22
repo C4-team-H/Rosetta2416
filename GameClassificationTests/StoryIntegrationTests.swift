@@ -184,6 +184,28 @@ struct StoryIntegrationTests {
         #expect(persisted?.deliveredDialogueIDs == ["intro-1"])
     }
 
+    @Test("Final mission waits for launch cutscene before showing Victory")
+    func victoryWaitsForLaunchCutscene() {
+        let session = makeSession()
+        session.beginGameplay()
+        _ = session.handle(.roomEntered(.laboratory))
+        complete(.laboratory, in: session)
+        complete(.engineInitial, in: session)
+        complete(.storage, in: session)
+        complete(.engineFinal, in: session)
+        _ = session.handle(.roomEntered(.cockpit))
+        complete(.cockpit, in: session)
+
+        #expect(session.sharedStory.currentChapter == .victory)
+        #expect(session.phase == .cutscene(.victoryLaunch))
+
+        session.endCutscene()
+        #expect(session.phase == .cutscene(.victoryLaunch))
+
+        session.completeVictoryCutscene()
+        #expect(session.phase == .victory)
+    }
+
     @Test("Initial map markers immediately show active lab mission in yellow and reference album without entering lab")
     func initialMapMarkersShowLabMissionAndAlbum() {
         let session = makeSession()
