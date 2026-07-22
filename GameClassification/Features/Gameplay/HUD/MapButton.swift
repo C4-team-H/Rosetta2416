@@ -12,13 +12,18 @@ struct MapButton: View {
                 .padding(13)
                 .frame(width: 64, height: 64)
                 .contentShape(Circle())
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay {
+                    Circle().stroke(.white.opacity(0.24), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.35), radius: 9, y: 4)
         }
         .buttonStyle(MapPressButtonStyle())
-        .background(.ultraThinMaterial, in: Circle())
-        .overlay {
-            Circle().stroke(.white.opacity(0.24), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.35), radius: 9, y: 4)
+//        .background(.ultraThinMaterial, in: Circle())
+//        .overlay {
+//            Circle().stroke(.white.opacity(0.24), lineWidth: 1)
+//        }
+//        .shadow(color: .black.opacity(0.35), radius: 9, y: 4)
         .accessibilityLabel("Open map")
         .accessibilityHint("Shows the full station map")
     }
