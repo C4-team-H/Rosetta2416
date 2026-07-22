@@ -69,6 +69,13 @@ struct ShipMapArchitectureTests {
         #expect(Set(doorIDs).count == DoorID.allCases.count)
     }
 
+    @Test("Locked door denial uses a tight proximity radius")
+    func lockedDoorDeniedRadius() {
+        #expect(GameplayInteractionTuning.lockedDoorDeniedRadius == GameMapLayout.scaled(36))
+        #expect(GameplayInteractionTuning.lockedDoorDeniedRadius < GameMapLayout.scaled(88))
+        #expect(GameplayInteractionTuning.lockedDoorDeniedRadius > GameMapLayout.playerRadius)
+    }
+
     @Test("Door state deterministically controls collision masks")
     func doorState() {
         let definition = GameMapLayout.doorDefinitions.first(where: { $0.id == .engine })!

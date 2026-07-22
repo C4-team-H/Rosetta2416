@@ -8,7 +8,10 @@ struct PauseButton: View {
             Image(systemName: "pause.fill")
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 64, height: 64)
+                .frame(
+                    width: GameplayHUDLayout.buttonDiameter,
+                    height: GameplayHUDLayout.buttonDiameter
+                )
                 .contentShape(Circle())
                 .background(.ultraThinMaterial, in: Circle())
                 .overlay {
