@@ -19,7 +19,7 @@ struct MainMenuAndPauseTests {
         #expect(spriteView.scene is MainMenuScene)
     }
 
-    @Test("GameSessionState tracks hasSavedProgress correctly")
+    @Test("Continue becomes available only after Pause Leave saves the session")
     func testHasSavedProgressTracking() async throws {
         let repository = InMemoryStoryProgressRepository()
         let session = GameSessionState(
@@ -36,20 +36,43 @@ struct MainMenuAndPauseTests {
         await session.loadProgress()
         #expect(session.hasSavedProgress == false)
 
-        // After starting a new session, progress is saved
+        // Starting and autosaving a new session must not expose Continue.
         session.startNewSession()
+        #expect(session.hasSavedProgress == false)
+
+        // Pause -> Leave explicitly exposes the saved session.
+        session.saveForMainMenuContinue()
         #expect(session.hasSavedProgress == true)
+        await Task.yield()
+        await Task.yield()
+
+        let returningSession = GameSessionState(
+            localPlayer: PlayerState(
+                id: "returning-player",
+                name: "Returning",
+                worldPosition: GameMapLayout.playerSpawnPosition,
+                isConnected: true
+            ),
+            repository: repository
+        )
+        await returningSession.loadProgress()
+        #expect(returningSession.hasSavedProgress == true)
+
+        // Choosing Continue consumes the menu eligibility until the player leaves again.
+        returningSession.resumeSavedProgress()
+        #expect(returningSession.hasSavedProgress == false)
 
         // Clearing progress resets hasSavedProgress
-        session.clearSavedProgress()
-        #expect(session.hasSavedProgress == false)
+        returningSession.clearSavedProgress()
+        #expect(returningSession.hasSavedProgress == false)
     }
 
     @Test("MainMenuScene layout reflects hasSavedProgress")
     func testMainMenuSceneLayout() {
         let coordinator = GameplayCoordinator()
-        let menuScene = MainMenuScene(size: CGSize(width: 1024, height: 768), coordinator: coordinator)
-        let view = SKView(frame: CGRect(x: 0, y: 0, width: 1024, height: 768))
+        let sceneSize = CGSize(width: 1024, height: 768)
+        let menuScene = MainMenuScene(size: sceneSize, coordinator: coordinator)
+        let view = SKView(frame: CGRect(origin: .zero, size: sceneSize))
         view.presentScene(menuScene)
 
         // When no saved progress, startButton (Continue) should not be in scene
@@ -57,12 +80,20 @@ struct MainMenuAndPauseTests {
         #expect(menuScene.childNode(withName: "startButton") == nil)
         #expect(menuScene.childNode(withName: "newGameButton") != nil)
 
-        // Simulate new session (saved progress)
+        let singleButtonY = (menuScene.childNode(withName: "newGameButton") as? SKSpriteNode)?.position.y ?? 0
+        #expect(abs(singleButtonY - sceneSize.height * 0.24) < 0.001)
+
+        // Simulate Pause -> Leave (saved progress eligible for Continue)
         coordinator.sessionState.startNewSession()
+        coordinator.sessionState.saveForMainMenuContinue()
         menuScene.updateMenuButtons()
 
         #expect(coordinator.hasSavedProgress == true)
         #expect(menuScene.childNode(withName: "startButton") != nil)
         #expect(menuScene.childNode(withName: "newGameButton") != nil)
+        let continueButtonY = menuScene.childNode(withName: "startButton")?.position.y ?? 0
+        let pairedNewGameButtonY = menuScene.childNode(withName: "newGameButton")?.position.y ?? 0
+        #expect(abs(continueButtonY - sceneSize.height * 0.24) < 0.001)
+        #expect(abs(pairedNewGameButtonY - sceneSize.height * 0.14) < 0.001)
     }
 }

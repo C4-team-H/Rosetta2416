@@ -219,7 +219,7 @@ final class MainMenuScene: SKScene {
             startButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
             newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.14)
         } else {
-            newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.19)
+            newGameButton?.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
         }
     }
 

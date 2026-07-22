@@ -19,11 +19,16 @@ struct PersistenceAndMapTests {
         let latest = snapshot(story: story, energy: 72, spawn: CGPoint(x: 10, y: 20))
         let checkpoint = snapshot(story: .initial, energy: 55, spawn: CGPoint(x: 30, y: 40))
 
-        try await repository.save(PersistedStoryProgress(latest: latest, checkpoint: checkpoint))
+        try await repository.save(PersistedStoryProgress(
+            latest: latest,
+            checkpoint: checkpoint,
+            isContinueAvailable: true
+        ))
         let loaded = try await repository.load()
 
         #expect(loaded?.latest == latest)
         #expect(loaded?.checkpoint == checkpoint)
+        #expect(loaded?.isContinueAvailable == true)
         #expect(loaded?.latest.schemaVersion == 2)
         #expect(loaded?.latest.sharedStory.selectedChallengeLabels["lab-memory-repair"] == "cat")
         #expect(loaded?.latest.sharedStory.albumBook.isMarkerPermanent == true)

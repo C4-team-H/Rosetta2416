@@ -48,7 +48,8 @@ class GameViewController: UIViewController {
             mapDebugViewModel: coordinator.mapDebugViewModel,
             onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
             onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
-            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
+            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() },
+            onLeaveGame: { [weak coordinator] in coordinator?.leaveGameToMainMenu() }
         )
         #else
         let rootView = GameplayHUDView(
@@ -56,7 +57,8 @@ class GameViewController: UIViewController {
             session: coordinator.sessionState,
             onRetryCheckpoint: { [weak coordinator] in coordinator?.retryCheckpoint() },
             onPlayAgain: { [weak coordinator] in coordinator?.playAgain() },
-            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() }
+            onMainMenu: { [weak coordinator] in coordinator?.returnToMainMenu() },
+            onLeaveGame: { [weak coordinator] in coordinator?.leaveGameToMainMenu() }
         )
         #endif
         let controller = UIHostingController(rootView: rootView)

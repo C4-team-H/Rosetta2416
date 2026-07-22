@@ -184,7 +184,7 @@ struct StoryIntegrationTests {
         #expect(persisted?.deliveredDialogueIDs == ["intro-1"])
     }
 
-    @Test("Continue Game is available only after a game has been saved")
+    @Test("Continue Game is available only after the player leaves from pause")
     func continueGameAvailability() async throws {
         let repository = InMemoryStoryProgressRepository()
         let firstSession = makeSession(repository: repository)
@@ -194,6 +194,8 @@ struct StoryIntegrationTests {
         #expect(!firstSession.hasSavedProgress)
 
         firstSession.startNewSession()
+        #expect(!firstSession.hasSavedProgress)
+        firstSession.saveForMainMenuContinue()
         #expect(firstSession.hasSavedProgress)
         await Task.yield()
         await Task.yield()
@@ -202,6 +204,9 @@ struct StoryIntegrationTests {
         #expect(!returningSession.hasSavedProgress)
         await returningSession.loadProgress()
         #expect(returningSession.hasSavedProgress)
+
+        returningSession.resumeSavedProgress()
+        #expect(!returningSession.hasSavedProgress)
     }
 
     @Test("Final mission waits for launch cutscene before showing Victory")

@@ -1,5 +1,9 @@
 import SpriteKit
 
+enum GameplayInteractionTuning {
+    static let lockedDoorDeniedRadius = GameMapLayout.scaled(36)
+}
+
 extension GameScene {
     func checkProximityToInteractiveObject() {
         guard sessionState.phase == .playing, let player else {
@@ -294,7 +298,7 @@ extension GameScene {
                     )
                 )
             }
-            .filter { $0.distance <= GameMapLayout.scaled(88) }
+            .filter { $0.distance <= GameplayInteractionTuning.lockedDoorDeniedRadius }
             .min { $0.distance < $1.distance }
 
         guard let nearest else {

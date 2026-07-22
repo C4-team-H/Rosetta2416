@@ -10,7 +10,10 @@ struct MapButton: View {
                 .scaledToFit()
                 .frame(width: 50, height: 50)
                 .padding(13)
-                .frame(width: 64, height: 64)
+                .frame(
+                    width: GameplayHUDLayout.buttonDiameter,
+                    height: GameplayHUDLayout.buttonDiameter
+                )
                 .contentShape(Circle())
                 .background(.ultraThinMaterial, in: Circle())
                 .overlay {
