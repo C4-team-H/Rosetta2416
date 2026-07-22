@@ -249,7 +249,7 @@ final class GameSessionState {
             currentRoom = nil
             stats = persisted.latest.stats
             checkpointSystem.restoreRecord(persisted.checkpoint)
-            hasSavedProgress = true
+            hasSavedProgress = persisted.isContinueAvailable
             updateLowEnergyState()
             AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
         } catch {
@@ -280,7 +280,7 @@ final class GameSessionState {
 
     func startNewSession(clearSavedProgress: Bool = true) {
         sessionRevision += 1
-        hasSavedProgress = true
+        hasSavedProgress = false
         _ = storySystem.handle(.newSession)
         energySystem = EnergySystem(playerID: localPlayer.id)
         localPlayer.worldPosition = safeSpawn(for: .sleepingRoomStart)
@@ -293,8 +293,6 @@ final class GameSessionState {
         checkpointNotice = nil
         hasTriggeredLowEnergyAlert = false
         showLowEnergyAlert = false
-        hasSavedProgress = true
-
         let initialLines = dialogueManager.lines(for: .chapterEntered(.sleepingRoom), story: storySystem.state)
         if !initialLines.isEmpty {
             dialogueQueue = Array(initialLines)
@@ -304,7 +302,11 @@ final class GameSessionState {
         }
 
         checkpointSystem.record(makeSnapshot(safeSpawn: safeSpawn(for: .sleepingRoomStart)))
-        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSystem.latestCheckpoint)
+        let progress = PersistedStoryProgress(
+            latest: makeSnapshot(),
+            checkpoint: checkpointSystem.latestCheckpoint,
+            isContinueAvailable: false
+        )
         Task {
             if clearSavedProgress { try? await repository.clear() }
             try? await repository.save(progress)
@@ -313,7 +315,14 @@ final class GameSessionState {
         AudioManager.shared.updateBackgroundMusic(forEnergy: energy)
     }
 
-    func saveCurrentProgress() {
+    func saveForMainMenuContinue() {
+        hasSavedProgress = true
+        persistLatest()
+    }
+
+    func resumeSavedProgress() {
+        guard hasSavedProgress else { return }
+        hasSavedProgress = false
         persistLatest()
     }
 
@@ -391,8 +400,11 @@ final class GameSessionState {
             Task { try? await repository.clear() }
             return
         }
-        hasSavedProgress = true
-        let progress = PersistedStoryProgress(latest: makeSnapshot(), checkpoint: checkpointSystem.latestCheckpoint)
+        let progress = PersistedStoryProgress(
+            latest: makeSnapshot(),
+            checkpoint: checkpointSystem.latestCheckpoint,
+            isContinueAvailable: hasSavedProgress
+        )
         Task { try? await repository.save(progress) }
     }
 

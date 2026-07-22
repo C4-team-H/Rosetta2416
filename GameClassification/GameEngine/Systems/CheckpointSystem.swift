@@ -26,7 +26,8 @@ struct CheckpointSystem: Sendable {
         }
         return PersistedStoryProgress(
             latest: migratedSnapshot(progress.latest),
-            checkpoint: migratedSnapshot(progress.checkpoint)
+            checkpoint: migratedSnapshot(progress.checkpoint),
+            isContinueAvailable: progress.isContinueAvailable
         )
     }
 

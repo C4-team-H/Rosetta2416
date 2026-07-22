@@ -6,12 +6,20 @@ final class StoryProgressRecord {
     var id: String
     @Attribute(.externalStorage) var latestData: Data
     @Attribute(.externalStorage) var checkpointData: Data
+    var isContinueAvailable: Bool = false
     var updatedAt: Date
 
-    init(id: String = "current", latestData: Data, checkpointData: Data, updatedAt: Date = .now) {
+    init(
+        id: String = "current",
+        latestData: Data,
+        checkpointData: Data,
+        isContinueAvailable: Bool = false,
+        updatedAt: Date = .now
+    ) {
         self.id = id
         self.latestData = latestData
         self.checkpointData = checkpointData
+        self.isContinueAvailable = isContinueAvailable
         self.updatedAt = updatedAt
     }
 }
@@ -41,10 +49,15 @@ final class LocalStoryProgressRepository: StoryProgressRepository {
         if let record = records.first {
             record.latestData = latestData
             record.checkpointData = checkpointData
+            record.isContinueAvailable = progress.isContinueAvailable
             record.updatedAt = .now
             for duplicate in records.dropFirst() { context.delete(duplicate) }
         } else {
-            context.insert(StoryProgressRecord(latestData: latestData, checkpointData: checkpointData))
+            context.insert(StoryProgressRecord(
+                latestData: latestData,
+                checkpointData: checkpointData,
+                isContinueAvailable: progress.isContinueAvailable
+            ))
         }
         try context.save()
     }
@@ -58,7 +71,11 @@ final class LocalStoryProgressRepository: StoryProgressRepository {
               checkpoint.schemaVersion <= StorySaveSnapshot.currentSchemaVersion else {
             throw StoryPersistenceError.unsupportedSchema
         }
-        let progress = PersistedStoryProgress(latest: latest, checkpoint: checkpoint)
+        let progress = PersistedStoryProgress(
+            latest: latest,
+            checkpoint: checkpoint,
+            isContinueAvailable: record.isContinueAvailable
+        )
         let migrated = CheckpointSystem.migrate(progress)
         if latest.schemaVersion < StorySaveSnapshot.currentSchemaVersion
             || checkpoint.schemaVersion < StorySaveSnapshot.currentSchemaVersion {

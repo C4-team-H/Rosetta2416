@@ -9,6 +9,7 @@ struct GameplayHUDView: View {
     let onRetryCheckpoint: () -> Void
     let onPlayAgain: () -> Void
     let onMainMenu: () -> Void
+    let onLeaveGame: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var feedbackTrigger = 0
@@ -110,7 +111,7 @@ struct GameplayHUDView: View {
                     onMainMenu: {
                         session.setPaused(false)
                         isPausePresented = false
-                        onMainMenu()
+                        onLeaveGame()
                     }
                 )
                 .zIndex(7)

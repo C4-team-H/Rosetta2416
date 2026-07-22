@@ -129,6 +129,7 @@ final class GameplayCoordinator {
     }
 
     func continueGame(in view: SKView, size: CGSize) {
+        sessionState.resumeSavedProgress()
         presentFreshGameScene(in: view, size: size)
     }
 
@@ -165,14 +166,20 @@ final class GameplayCoordinator {
         presentFreshGameScene(in: view, size: size)
     }
 
+    func leaveGameToMainMenu() {
+        AudioManager.shared.playButtonSound()
+        sessionState.saveForMainMenuContinue()
+        presentMainMenu()
+    }
+
     func returnToMainMenu() {
         AudioManager.shared.playButtonSound()
+        sessionState.clearSavedProgress()
+        presentMainMenu()
+    }
+
+    private func presentMainMenu() {
         presentingViewController?.dismiss(animated: true)
-        if sessionState.phase == .victory || sessionState.sharedStory.currentChapter == .victory {
-            sessionState.clearSavedProgress()
-        } else if sessionState.phase == .playing {
-            sessionState.saveCurrentProgress()
-        }
         guard let (view, size) = activePresentationContext() else { return }
         isVictoryCutscenePending = false
         isVictoryCutscenePresented = false
