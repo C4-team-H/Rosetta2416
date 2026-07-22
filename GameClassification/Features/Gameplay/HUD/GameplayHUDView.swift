@@ -78,7 +78,9 @@ struct GameplayHUDView: View {
                     .zIndex(2)
             }
 
-            if session.phase == .gameOver || session.phase == .victory {
+            // Original: if session.phase == .gameOver || session.phase == .victory {
+            // DEBUG: if true {
+            if session.phase == .gameOver || session.phase == .victory { // TEMPORARY DEBUG PREVIEW
                 StoryTerminalOverlay(
                     session: session,
                     onRetry: onRetryCheckpoint,
