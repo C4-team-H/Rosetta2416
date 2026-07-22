@@ -570,6 +570,44 @@ struct PersistenceAndMapTests {
             id: "local", name: "Player", worldPosition: GameMapLayout.playerSpawnPosition, isConnected: true
         ))
     }
+
+    private func makeScene(session: GameSessionState) -> GameScene {
+        let scene = GameScene(
+            size: CGSize(width: 1_024, height: 768),
+            sessionState: session,
+            tacticalMapViewModel: TacticalMapViewModel(sessionState: session)
+        )
+        scene.addChild(scene.cameraNode)
+        scene.camera = scene.cameraNode
+        scene.cameraNode.setScale(GameScene.gameplayCameraScale)
+        scene.createShipMap()
+        scene.createPlayer()
+        scene.createJoystick()
+        scene.createInteractiveStations()
+        scene.createFoodObject()
+        scene.createAlbumBook()
+        scene.createLabTable()
+        scene.createLabMonitor2()
+        scene.createLabMonitor1()
+        scene.createEngineMonitor()
+        scene.createEnginePipeControl()
+        scene.createMainEngineControl()
+        scene.createStorageMonitor()
+        scene.createStorageMachinery()
+        scene.createStorageCabinet()
+        scene.createCockpitPortMonitor()
+        scene.createCockpitMainConsole()
+        scene.createRocketPowerOffSmoke()
+        scene.enableCandleLight()
+        scene.refreshStoryVisuals()
+        return scene
+    }
+
+    private func forceChapter(_ chapter: StoryChapter, in session: GameSessionState) {
+        var story = session.sharedStory
+        story.currentChapter = chapter
+        session.storySystem.restore(story)
+    }
 }
 
 // MARK: - Lab Monitor 2

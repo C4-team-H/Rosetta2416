@@ -366,8 +366,8 @@ final class StoryProgressionSystem: StoryProgressionManaging {
             id: definition.id,
             chapter: definition.chapter,
             roomID: definition.roomID,
-            title: definition.id.split(separator: "-").map { $0.capitalized }.joined(separator: " "),
-            description: "Draw \(label.uppercased()) to complete this repair.",
+            title: "Repair the \(definition.roomID)",
+            description: "Go to \(definition.id.split(separator: "-").map { $0.capitalized }.joined(separator: " ")) and fix it",
             requiredObjectiveIDs: [],
             reward: StoryProgressReward(
                 intelligence: definition.intelligenceReward,
