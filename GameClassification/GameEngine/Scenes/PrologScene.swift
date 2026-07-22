@@ -161,21 +161,24 @@ final class PrologScene: SKScene {
         AudioManager.shared.playTypingSound()
 
         typewriterTimer = Timer.scheduledTimer(withTimeInterval: 0.035, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
+            // The timer is created on this scene's main run loop, so every callback is main-actor bound.
+            MainActor.assumeIsolated {
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
 
-            if self.displayedCharacterCount < fullText.count {
-                self.displayedCharacterCount += 1
-                self.updateTypedParagraphs(fullText: fullText, paragraphTexts: paragraphTexts)
-            } else {
-                timer.invalidate()
-                self.typewriterTimer = nil
-                self.isTyping = false
-                self.updateTypedParagraphs(fullText: fullText, paragraphTexts: paragraphTexts)
-                self.continueLabel.isHidden = false
-                AudioManager.shared.stopTypingSound()
+                if self.displayedCharacterCount < fullText.count {
+                    self.displayedCharacterCount += 1
+                    self.updateTypedParagraphs(fullText: fullText, paragraphTexts: paragraphTexts)
+                } else {
+                    timer.invalidate()
+                    self.typewriterTimer = nil
+                    self.isTyping = false
+                    self.updateTypedParagraphs(fullText: fullText, paragraphTexts: paragraphTexts)
+                    self.continueLabel.isHidden = false
+                    AudioManager.shared.stopTypingSound()
+                }
             }
         }
     }
