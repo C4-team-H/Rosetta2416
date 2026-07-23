@@ -63,3 +63,5 @@ fastlane/test_output
 .DS_Store
 .opencode/goals/
 .lexa
+.agent
+ASC.md
